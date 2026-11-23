@@ -8,13 +8,14 @@
 # different arm position on each, so every animation-only clip is retargeted: each frame is played
 # on its own skeleton and the resulting joint placements are copied onto the character's skeleton.
 #
-# usage: blender -b --factory-startup --python merge_mixamo.py -- <downloads_dir> <material_source.blend> <out.glb> [--pronate DEG] [--arms-in DEG]
+# usage: blender -b --factory-startup --python merge_mixamo.py -- <downloads_dir> <material_source.blend> <out.glb> [--pronate DEG] [--arms-in DEG|clip=DEG,clip=DEG]
 #   --pronate  for a model that was made with its palms facing forward. Mixamo expects palms facing the
 #              thighs, so such a model hangs its hands palm-forward. This reshapes the model itself:
 #              each forearm is turned about its own length, 0 degrees at the elbow rising smoothly to
 #              DEG at the wrist, and the hand turns with it. Usually 90. The animations are untouched.
 #   --arms-in  brings both upper arms DEG closer to the body in every clip. Mixamo leaves a model that was
-#              rigged in an A-pose holding its arms slightly away from its sides; 6 to 10 looks natural.
+#              rigged in an A-pose holding its arms slightly away from its sides. A negative number moves
+#              them out instead. One number applies to every clip; idle=-5,walk=2 sets clips separately.
 import bpy, sys, os, glob, math
 from mathutils import Quaternion
 
@@ -22,7 +23,11 @@ argv = sys.argv[sys.argv.index("--") + 1:]
 DIR, MATSRC, OUT = argv[0], argv[1], argv[2]
 NAME = os.path.splitext(os.path.basename(OUT))[0]
 PRONATE = float(argv[argv.index("--pronate") + 1]) if "--pronate" in argv else 0.0
-ARMS_IN = float(argv[argv.index("--arms-in") + 1]) if "--arms-in" in argv else 0.0
+ARMS_IN = {}
+if "--arms-in" in argv:
+    spec = argv[argv.index("--arms-in") + 1]
+    if "=" in spec: ARMS_IN = {k: float(v) for k, v in (part.split("=") for part in spec.split(","))}
+    else: ARMS_IN = {"*": float(spec)}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -143,6 +148,8 @@ if ARMS_IN:
              if b.name.replace(":", "").replace("mixamorig", "") in ("LeftArm", "RightArm")]
     ad1 = arm.animation_data or arm.animation_data_create()
     for clip, act in clips:
+        deg = ARMS_IN.get(clip, ARMS_IN.get("*", 0.0))
+        if not deg: continue
         ad1.action = act
         try:
             if act.slots: ad1.action_slot = act.slots[0]
@@ -153,14 +160,14 @@ if ARMS_IN:
             for name, sign in upper:
                 pb = arm.pose.bones[name]
                 M = pb.matrix.to_3x3().to_quaternion()            # where the arm points now, in skeleton space
-                Q = Quaternion(Vector((0, 0, 1)), math.radians(ARMS_IN * sign))
+                Q = Quaternion(Vector((0, 0, 1)), math.radians(deg * sign))
                 pb.rotation_mode = "QUATERNION"
                 pb.rotation_quaternion = pb.rotation_quaternion @ (M.conjugated() @ Q @ M)
                 pb.keyframe_insert("rotation_quaternion", frame=f)
     ad1.action = None
     for pb in arm.pose.bones:
         pb.rotation_quaternion = (1, 0, 0, 0); pb.location = (0, 0, 0)
-    print("ARMS IN upper arms brought %.0f degrees closer to the body in %d clips" % (ARMS_IN, len(clips)))
+    print("ARMS IN upper arms moved towards the body, degrees per clip:", ARMS_IN)
 
 arm.name = NAME; arm.data.name = NAME + "_rig"
 mesh.name = NAME + "_mesh"; mesh.data.name = NAME + "_mesh"
