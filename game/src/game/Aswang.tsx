@@ -46,6 +46,7 @@ export function Aswang() {
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
+    if (game.panel || game.dialogue) return;      // the bag, the trade, a pause or someone speaking: the world waits
     const night = game.night;
     const present = game.stage === "night" && game.form === "foot" && !(night === 3 && game.trusted) && live.caught <= 0;
     if (!present) {

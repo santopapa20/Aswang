@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useProgress } from "@react-three/drei";
 import { carried, endingText, hasSave, live, mods, ROMAN, useGame } from "./state";
 import { aCharm, CHARM_HERBS, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
 import { NIGHTS } from "./story";
@@ -48,6 +49,11 @@ function Title() {
   const toggleMute = useGame((s) => s.toggleMute);
   const [help, setHelp] = useState(false);
   const saved = hasSave();
+  // the models take a while to arrive the first time: say so, and do not start on a black screen
+  const { active, progress } = useProgress();
+  const [begun, setBegun] = useState(false);
+  useEffect(() => { if (active) setBegun(true); const id = setTimeout(() => setBegun(true), 1500); return () => clearTimeout(id); }, [active]);
+  const ready = begun && !active;
   return (
     <div className="screen title">
       <div className="embers">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${-i * 1.3}s`, animationDuration: `${9 + (i % 5) * 2}s` }} />)}</div>
@@ -57,8 +63,9 @@ function Title() {
         <p className="place">Visayas · 1953</p>
         <p className="lede">Your sister is near her time. Her husband is cutting cane in Negros.<br />Every night, something tests the house. Every morning, a neighbour asks how you slept.</p>
         <nav className="menu">
-          {saved && <button className="primary" onClick={() => { sound.wake(); continueGame(); }}>Continue the watch</button>}
-          <button className={saved ? "" : "primary"} onClick={() => { sound.wake(); newGame(); }}>{saved ? "Begin again" : "Begin the watch"}</button>
+          {!ready && <div className="loading"><span>Lighting the lamps</span><i><b style={{ width: `${Math.max(4, progress)}%` }} /></i></div>}
+          {ready && saved && <button className="primary" onClick={() => { sound.wake(); continueGame(); }}>Continue the watch</button>}
+          {ready && <button className={saved ? "" : "primary"} onClick={() => { sound.wake(); newGame(); }}>{saved ? "Begin again" : "Begin the watch"}</button>}
           <button onClick={() => setHelp(!help)}>How to play</button>
           <button onClick={() => { sound.wake(); toggleMute(); }}>Sound: {muted ? "off" : "on"}</button>
         </nav>
@@ -112,7 +119,7 @@ function Arrow() {
   return <div ref={el} className="guide"><span><Icon name="arrow" size={22} /></span><em /></div>;
 }
 
-function Prompt({ k, p }: { k: "E" | "G"; p: { label: string; progress: number } }) {
+function Prompt({ k, p }: { k: "E" | "G" | "T"; p: { label: string; progress: number } }) {
   const off = p.progress < 0;
   return (
     <div className={`prompt ${off ? "off" : ""} ${p.progress > 0 ? "holding" : ""}`}>
@@ -211,7 +218,7 @@ function Play() {
 
       <div className="centre">
         {caption && !g.dialogue && <div className="caption" key={caption.id}>{caption.who && <b>{caption.who}</b>}<span>{caption.text}</span></div>}
-        {g.lost && live.shirtTurn > 0 && <Prompt k="E" p={{ label: "Turning your shirt inside out", progress: Math.min(1, live.shirtTurn / 2) }} />}
+        {g.lost && live.shirtTurn > 0 && <Prompt k="T" p={{ label: "Turning your shirt inside out", progress: Math.min(1, live.shirtTurn / 2) }} />}
         {!g.dialogue && !g.panel && live.shirtTurn <= 0 && (
           <div className="prompts">
             {live.prompts.E && <Prompt k="E" p={live.prompts.E} />}

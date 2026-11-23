@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import { useAnimations, useGLTF } from "@react-three/drei";
+import { useGame } from "./state";
 import { AnimationAction, Group, LoopOnce, LoopRepeat, Mesh, Object3D } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 
@@ -9,7 +11,7 @@ export type PlayOptions = { fade?: number; once?: boolean; speed?: number };
  * Loads an animated character and gives back a `play(clip)` that cross-fades between its clips.
  * The clip names are the ones written by tools/blender/merge_mixamo.py (idle, walk, run, ...).
  */
-export function useCharacter(url: string, shadows: boolean) {
+export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
   const group = useRef<Group>(null);
   const gltf = useGLTF(url);
   const model = useMemo(() => {
@@ -25,6 +27,8 @@ export function useCharacter(url: string, shadows: boolean) {
 
   const { actions, mixer } = useAnimations(gltf.animations, group);
   const current = useRef("");
+  // while the game waits (a panel is open, or someone is speaking) everyone but the player holds still
+  useFrame(() => { const g = useGame.getState(); mixer.timeScale = holdsStill && (g.panel || g.dialogue) ? 0 : 1; });
 
   const api = useMemo(() => ({
     play(name: string, opts: PlayOptions = {}) {

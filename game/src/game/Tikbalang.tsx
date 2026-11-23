@@ -39,6 +39,7 @@ export function Tikbalang() {
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
+    if (game.panel || game.dialogue) return;      // the bag, the trade, a pause or someone speaking: the world waits
     const here = game.stage === "night" && game.night >= 3;
     if (!here) { g.visible = false; if (blob.current) blob.current.visible = false; return; }
     const p = pos.current;

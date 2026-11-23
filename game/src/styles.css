@@ -200,3 +200,8 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0.08em 0.5em 0.12em; mar
   .topbar { grid-template-columns: 1fr 1fr; } .dial { grid-column: 1 / -1; grid-row: 1; } .house { min-width: 0; } .goal { width: 100%; }
   .warn { top: 300px; } .toasts { top: 310px; } .tile { width: 48px; } .hints { display: none; }
 }
+
+/* shown on the title while the models arrive */
+.loading { display: grid; gap: 10px; padding: 12px 0 14px; font: 500 12px/1 var(--display); letter-spacing: 0.32em; text-transform: uppercase; color: #cdb88f; }
+.loading i { display: block; height: 2px; background: rgba(255, 230, 190, 0.14); }
+.loading b { display: block; height: 100%; background: #e2a24f; transition: width 0.3s; box-shadow: 0 0 10px rgba(226, 162, 79, 0.7); }

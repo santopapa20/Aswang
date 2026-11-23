@@ -19,7 +19,7 @@ const hand = new Vector3();
 export function Player() {
   const shadows = useGame((s) => s.shadows);
   const runId = useGame((s) => s.runId);
-  const { group, model, api } = useCharacter("/models/player.glb", shadows);
+  const { group, model, api } = useCharacter("/models/player.glb", shadows, false);
   const lantern = useProp("/models/lantern.glb", 0.34, "y", 1, false)[0];
   const lamp = useRef<Group>(null);
   const light = useRef<PointLight>(null);

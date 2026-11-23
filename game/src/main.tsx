@@ -12,7 +12,7 @@ import { live, useGame } from "./game/state";
 // While developing, expose the game state so it can be poked from the browser console.
 if (import.meta.env.DEV) {
   (window as unknown as Record<string, unknown>).__aswang = { live, useGame };
-  const shot = location.hash.match(/^#shot=(\w+)/);
+  const shot = location.hash.match(/^#shot=([\w.-]+)/);
   if (shot) void import("./devshots").then((m) => m.runShot(shot[1]));
 }
 

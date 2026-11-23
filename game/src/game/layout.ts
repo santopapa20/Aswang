@@ -222,21 +222,22 @@ const clearOfThings = (x: number, z: number, pad: number) =>
   for (let i = 0; i < 70; i++) {
     const area = i % 3 === 2 ? SITIO : BARRIO;
     const x = area.x0 + rnd() * (area.x1 - area.x0), z = area.z0 + rnd() * (area.z1 - area.z0);
-    if (clearOfThings(x, z, 0.8)) rocks.push({ x, z, s: 0.12 + rnd() * 0.2, r: rnd() * 6 });
+    if (clearOfThings(x, z, 0.8)) rocks.push({ x, z, s: 0.14 + rnd() * 0.24, r: rnd() * 6 });
   }
   // grass on the trail repeats with the trees, so nothing gives the loop away
   for (let i = 0; i < 130; i++) {
-    const dx = rnd() * trail.period, z = (rnd() - 0.5) * 15, s = 0.4 + rnd() * 0.45, r = rnd() * 6;
+    const dx = rnd() * trail.period, z = (rnd() - 0.5) * 15, s = 0.8 + rnd() * 0.7, r = rnd() * 6;
     if (Math.abs(z) < 1.5) continue;
     for (let p = 0; p < 4; p++) tufts.push({ x: 37 + p * trail.period + dx, z, s, r });
   }
-  for (let i = 0; i < 6000; i++) {
+  for (let i = 0; i < 9500; i++) {
     const area = rnd() < 0.68 ? BARRIO : SITIO;
     const x = area.x0 + rnd() * (area.x1 - area.x0), z = area.z0 + rnd() * (area.z1 - area.z0);
     const worn = distToPath(x, z);
     if (worn < 0.25 || patches.some((p) => Math.hypot(x - p.x, z - p.z) < p.r * 0.86)) continue;
     if (houses.some((h) => Math.abs(x - h.x) < HUT.hx + 0.2 && Math.abs(z - h.z) < HUT.hz + 0.2)) continue;
-    tufts.push({ x, z, s: 0.36 + rnd() * 0.4 + Math.min(0.25, worn * 0.04), r: rnd() * 6 });
+    if (worn < 0.9 && rnd() < 0.5) continue;                                   // thin at the edge of trodden ground
+    tufts.push({ x, z, s: 0.7 + rnd() * 0.7 + Math.min(0.4, worn * 0.06), r: rnd() * 6 });
   }
 }
 
@@ -269,7 +270,7 @@ export const solids: Circle[] = [
   { x: kapreSpot.x, z: kapreSpot.z, r: 0.95 },
   ...nodes.filter((n) => n.kind !== "herbs").map((n) => ({ x: n.x, z: n.z, r: 0.45 })),
   { x: trail.marker.x, z: trail.marker.z, r: 0.3 },
-  ...decor.filter((d) => d.kind !== "fern").map((d) => ({ x: d.x, z: d.z, r: d.kind === "rocks" ? 0.5 * d.s : 0.55 * d.s })),
+  ...decor.filter((d) => d.kind !== "fern").map((d) => ({ x: d.x, z: d.z, r: d.kind === "rocks" ? 0.5 * d.s : 0.8 * d.s })),
 ];
 export const boxes = houses.map((h) => ({ x: h.x, z: h.z, hx: HUT.hx + 0.1, hz: HUT.hz + 0.1 }));
 

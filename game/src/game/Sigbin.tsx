@@ -49,6 +49,7 @@ export function Sigbin() {
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
+    if (game.panel || game.dialogue) return;      // the bag, the trade, a pause or someone speaking: the world waits
     const s = live.sigbin;
     const hide = () => { g.visible = false; if (blob.current) blob.current.visible = false; if (eyes.current) eyes.current.visible = false; };
     if (!(game.stage === "night" && game.night === 5)) { mode.current = "kennel"; s.out = false; s.feeding = false; s.drain = 0; hide(); return; }

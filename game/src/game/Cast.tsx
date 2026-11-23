@@ -39,6 +39,7 @@ export function Kapre() {
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
+    if (game.panel || game.dialogue) return;      // the bag, the trade, a pause or someone speaking: the world waits
     const night = game.stage === "night";
     const t = clock.elapsedTime;
     g.visible = night;
@@ -150,6 +151,7 @@ export function Pacing() {
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
+    if (game.panel || game.dialogue) return;      // the bag, the trade, a pause or someone speaking: the world waits
     const here = game.stage === "day";
     live.pacing.here = here;
     g.visible = here; if (blob.current) blob.current.visible = here;
@@ -202,7 +204,7 @@ export function Director() {
     const night = game.stage === "night", day = game.stage === "day";
     const once = (key: string, fn: () => void) => { if (!said.current.has(key)) { said.current.add(key); fn(); } };
 
-    if ((day || night) && !game.dialogue && game.panel !== "pause") {
+    if ((day || night) && !game.dialogue && !game.panel) {
       if (live.caught > 0) {
         live.caught -= dt;
         if (live.caught <= 0) { live.caught = 0; game.endNight("caught"); }

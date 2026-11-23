@@ -49,6 +49,7 @@ export function Manananggal() {
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
+    if (game.panel || game.dialogue) return;      // the bag, the trade, a pause or someone speaking: the world waits
     const airNight = game.stage === "night" && game.form === "air";
     if (!airNight) { mode.current = "absent"; g.visible = false; if (blob.current) blob.current.visible = false; return; }
     const p = pos.current;

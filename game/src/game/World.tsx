@@ -2,117 +2,52 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import {
-  BufferAttribute, BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, DirectionalLight, DoubleSide, FogExp2, Group,
+  BufferAttribute, BufferGeometry, Color, DirectionalLight, DoubleSide, FogExp2, Group,
   HemisphereLight, IcosahedronGeometry, InstancedMesh, Mesh, MeshStandardMaterial, Object3D, PointLight,
-  RepeatWrapping, SRGBColorSpace, Vector2, Vector3,
 } from "three";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { Ground } from "./Ground";
 import { useProp } from "./useProp";
 import { live, useGame } from "./state";
 import {
-  balete, Blob, bushes, decor, FENCE_LENGTH, fences, firePit, home, houses, HUT, nodes, openings, palms, patches, paths, rocks, seeded,
+  balete, Blob, bushes, decor, FENCE_LENGTH, fences, firePit, home, houses, HUT, nodes, openings, palms, rocks, seeded,
   trail, tufts, well,
 } from "./layout";
 
-// ---- painted textures (made once, no image files) --------------------------------------------
-function canvasTexture(size: number, paint: (g: CanvasRenderingContext2D, size: number) => void, colour = true) {
-  const c = document.createElement("canvas");
-  c.width = c.height = size;
-  paint(c.getContext("2d")!, size);
-  const tex = new CanvasTexture(c);
-  tex.wrapS = tex.wrapT = RepeatWrapping;
-  if (colour) tex.colorSpace = SRGBColorSpace;
-  tex.anisotropy = 4;
-  return tex;
-}
-const grassTexture = () => canvasTexture(512, (g, s) => {
-  const rnd = seeded(11);
-  g.fillStyle = "#363a22"; g.fillRect(0, 0, s, s);
-  for (let i = 0; i < 260; i++) {                           // broad mottling: damp and dry ground
-    g.fillStyle = `rgba(${rnd() < 0.5 ? "30,34,18" : "86,78,44"},${0.05 + rnd() * 0.07})`;
-    const x = rnd() * s, y = rnd() * s, r = 14 + rnd() * 46;
-    for (const ox of [-s, 0, s]) for (const oy of [-s, 0, s]) { g.beginPath(); g.arc(x + ox, y + oy, r, 0, 7); g.fill(); }
-  }
-  for (let i = 0; i < 9000; i++) {                          // blades
-    const x = rnd() * s, y = rnd() * s, l = 3 + rnd() * 6, a = -Math.PI / 2 + (rnd() - 0.5) * 1.4;
-    const v = rnd();
-    g.strokeStyle = `rgba(${52 + v * 44},${66 + v * 46},${28 + v * 22},${0.14 + rnd() * 0.2})`;
-    g.lineWidth = 0.7 + rnd() * 0.8;
-    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
-  }
-});
-const dirtTexture = () => canvasTexture(256, (g, s) => {
-  const rnd = seeded(23);
-  g.fillStyle = "#77593a"; g.fillRect(0, 0, s, s);
-  for (let i = 0; i < 5200; i++) {
-    const v = rnd();
-    g.fillStyle = `rgba(${70 + v * 90},${50 + v * 70},${28 + v * 50},${0.12 + rnd() * 0.25})`;
-    const d = 1 + rnd() * 2.6;
-    g.fillRect(rnd() * s, rnd() * s, d, d);
-  }
-  for (let i = 0; i < 60; i++) {                            // pebbles
-    g.fillStyle = `rgba(${150 + rnd() * 50},${140 + rnd() * 40},${120 + rnd() * 40},0.5)`;
-    g.beginPath(); g.ellipse(rnd() * s, rnd() * s, 1 + rnd() * 2, 0.8 + rnd() * 1.4, rnd() * 3, 0, 7); g.fill();
-  }
-});
-/** White where the path is solid, fading raggedly to black at both edges (U runs across the path). */
-const pathEdge = () => canvasTexture(128, (g, s) => {
-  const rnd = seeded(5);
-  g.fillStyle = "#000"; g.fillRect(0, 0, s, s);
-  void rnd;
-  for (let y = 0; y < s; y++) {
-    const a = (y / s) * Math.PI * 2;
-    const l = 0.27 + 0.035 * Math.sin(a) + 0.02 * Math.sin(a * 3 + 1), r = 0.73 + 0.035 * Math.sin(a + 2) + 0.02 * Math.sin(a * 2 + 4);
-    const grad = g.createLinearGradient(0, 0, s, 0);
-    grad.addColorStop(Math.max(0, l - 0.22), "#000"); grad.addColorStop(l - 0.08, "#777"); grad.addColorStop(l, "#fff");
-    grad.addColorStop(r, "#fff"); grad.addColorStop(r + 0.08, "#777"); grad.addColorStop(Math.min(1, r + 0.22), "#000");
-    g.fillStyle = grad; g.fillRect(0, y, s, 1);
-  }
-}, false);
-const patchEdge = () => canvasTexture(128, (g, s) => {
-  const grad = g.createRadialGradient(s / 2, s / 2, s * 0.22, s / 2, s / 2, s * 0.5);
-  grad.addColorStop(0, "#fff"); grad.addColorStop(0.7, "#888"); grad.addColorStop(1, "#000");
-  g.fillStyle = grad; g.fillRect(0, 0, s, s);
-}, false);
-
-/** One strip of ground along each path, wide enough for its soft edges. */
-function pathGeometry() {
-  const pos: number[] = [], uv: number[] = [], idx: number[] = [];
-  for (const p of paths) {
-    const curve = new CatmullRomCurve3(p.pts.map(([x, z]) => new Vector3(x, 0, z)), false, "catmullrom", 0.4);
-    const n = Math.max(2, Math.ceil(curve.getLength() / 0.9));
-    const pts = curve.getSpacedPoints(n);
-    const base = pos.length / 3;
-    let along = 0;
-    for (let i = 0; i <= n; i++) {
-      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)];
-      const t = new Vector2(b.x - a.x, b.z - a.z).normalize();
-      if (i > 0) along += pts[i].distanceTo(pts[i - 1]);
-      // a path narrows to nothing over its last few steps, so it fades out and is not cut off square
-      const half = p.w * 1.1 * Math.min(1, (Math.min(i, n - i) + 0.15) / 3.5);
-      pos.push(pts[i].x - t.y * half, 0, pts[i].z + t.x * half, pts[i].x + t.y * half, 0, pts[i].z - t.x * half);
-      uv.push(0, along / 3, 1, along / 3);        // 3 m per repeat: the trail's 30 m loop is a whole number of them
-      if (i < n) { const k = base + i * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
-    }
+/** A clump of grass: a dozen bent blades of different heights, dark at the root and pale at the tip. */
+function tuftGeometry() {
+  const pos: number[] = [], col: number[] = [];
+  const rnd = seeded(77);
+  for (let b = 0; b < 12; b++) {
+    const a = b * 2.4 + rnd(), out = 0.02 + rnd() * 0.1, h = 0.16 + rnd() * 0.24, lean = 0.05 + rnd() * 0.16, w = 0.022 + rnd() * 0.02;
+    const cx = Math.cos(a), cz = Math.sin(a), bx = cx * out, bz = cz * out;
+    const mx = bx + cx * lean * 0.4, mz = bz + cz * lean * 0.4, tx = bx + cx * lean, tz = bz + cz * lean;
+    // two pieces to a blade, so it bends
+    pos.push(bx - cz * w, 0, bz + cx * w, bx + cz * w, 0, bz - cx * w, mx + cz * w * 0.7, h * 0.55, mz - cx * w * 0.7);
+    pos.push(bx - cz * w, 0, bz + cx * w, mx + cz * w * 0.7, h * 0.55, mz - cx * w * 0.7, mx - cz * w * 0.7, h * 0.55, mz + cx * w * 0.7);
+    pos.push(mx - cz * w * 0.7, h * 0.55, mz + cx * w * 0.7, mx + cz * w * 0.7, h * 0.55, mz - cx * w * 0.7, tx, h, tz);
+    const dry = rnd() < 0.2;
+    const root = [0.07, 0.1, 0.04], mid = dry ? [0.3, 0.29, 0.12] : [0.17, 0.25, 0.09], tip = dry ? [0.48, 0.44, 0.2] : [0.3, 0.4, 0.14];
+    col.push(...root, ...root, ...mid, ...root, ...mid, ...mid, ...mid, ...mid, ...tip);
   }
   const g = new BufferGeometry();
   g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
-  g.setAttribute("uv", new BufferAttribute(new Float32Array(uv), 2));
-  g.setIndex(idx);
+  g.setAttribute("color", new BufferAttribute(new Float32Array(col), 3));
   g.computeVertexNormals();
   return g;
 }
 
-/** Three bent blades of grass. */
-function tuftGeometry() {
-  const pos: number[] = [], col: number[] = [];
-  for (let b = 0; b < 5; b++) {
-    const a = b * 1.26, lean = 0.1 + (b % 3) * 0.06, h = 0.2 + (b % 3) * 0.08, w = 0.05;
-    const cx = Math.cos(a), cz = Math.sin(a);
-    pos.push(-cz * w, 0, cx * w, cz * w, 0, -cx * w, cx * lean, h, cz * lean);
-    col.push(0.08, 0.11, 0.045, 0.08, 0.11, 0.045, 0.24, 0.31, 0.12);
+/** A stone: a lumpy ball, smooth-shaded, darker below and mossy on top. */
+function rockGeometry() {
+  const g = mergeVertices(new IcosahedronGeometry(1, 2).deleteAttribute("normal").deleteAttribute("uv"));
+  const p = g.getAttribute("position"), col: number[] = [];
+  const n = (x: number, y: number, z: number) => Math.sin(x * 2.1 + y * 1.3) * Math.cos(z * 2.4 - y * 0.7) * 0.5 + Math.sin(x * 4.7 - z * 3.9 + y * 5.1) * 0.22;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = 1 + n(x, y, z) * 0.34;
+    p.setXYZ(i, x * k, Math.max(-0.35, y * k), z * k);
+    const light = 0.5 + 0.5 * Math.min(1, Math.max(0, y * 0.7 + 0.5)), moss = Math.max(0, y - 0.35) * (0.6 + n(z, x, y));
+    col.push(0.5 * light * (1 - moss * 0.5), 0.48 * light * (1 + moss * 0.15), 0.44 * light * (1 - moss * 0.7));
   }
-  const g = new BufferGeometry();
-  g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
   g.setAttribute("color", new BufferAttribute(new Float32Array(col), 3));
   g.computeVertexNormals();
   return g;
@@ -143,6 +78,22 @@ function bushGeometry() {
   return g;
 }
 
+/** Gives one copy of a model its own materials, drawn as a fine screen of dots when faded, so it can thin out without its twins. */
+function seeThrough(o: Object3D) {
+  const mats: MeshStandardMaterial[] = [];
+  o.traverse((m) => {
+    const mesh = m as Mesh;
+    if (!mesh.isMesh) return;
+    const mat = (mesh.material as MeshStandardMaterial).clone();
+    mat.alphaHash = true;
+    mesh.material = mat; mats.push(mat);
+  });
+  return mats;
+}
+let stone: BufferGeometry | null = null;
+/** One shared stone, for the fire ring and the trail's marker. */
+const stoneGeometry = () => (stone ??= rockGeometry());
+
 /** Splits scattered things into squares of ground, so each square can be skipped when it is off screen. */
 function inSquares(items: Blob[], size: number) {
   const squares = new Map<string, Blob[]>();
@@ -153,6 +104,21 @@ function inSquares(items: Blob[], size: number) {
   }
   return [...squares.values()];
 }
+
+/** Wind: the top of each blade drifts, the root stays put. One clock is shared by every patch of grass. */
+const wind = { value: 0 };
+const swaying = (sh: { uniforms: Record<string, { value: unknown }>; vertexShader: string }) => {
+  sh.uniforms.uWind = wind;
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nuniform float uWind;")
+    .replace("#include <begin_vertex>", `#include <begin_vertex>
+      #ifdef USE_INSTANCING
+        vec3 root = instanceMatrix[3].xyz;
+        float gust = sin(uWind * 1.3 + root.x * 0.35 + root.z * 0.27) + 0.5 * sin(uWind * 2.9 + root.x * 1.1 - root.z * 0.8);
+        transformed.x += gust * 0.22 * position.y;
+        transformed.z += gust * 0.12 * position.y;
+      #endif`);
+};
 
 function Scatter({ items, geometry, colour, squash, vary, flat, sway, tinted }: {
   items: Blob[]; geometry: BufferGeometry; colour: string; squash: [number, number, number]; vary: number; flat?: boolean; sway?: boolean; tinted?: boolean;
@@ -174,7 +140,7 @@ function Scatter({ items, geometry, colour, squash, vary, flat, sway, tinted }: 
   }, [items, colour, squash, vary]);
   return (
     <instancedMesh ref={ref} args={[geometry, undefined, items.length]} receiveShadow={!sway}>
-      <meshLambertMaterial vertexColors={!!sway || !!tinted} side={sway ? DoubleSide : undefined} flatShading={flat} />
+      <meshLambertMaterial vertexColors={!!sway || !!tinted} side={sway ? DoubleSide : undefined} flatShading={flat} onBeforeCompile={sway ? swaying : undefined} />
     </instancedMesh>
   );
 }
@@ -190,15 +156,7 @@ const three = (out: Color, set: { night: Color; dusk: Color; day: Color }, t: nu
 export function World() {
   const { scene } = useThree();
   const shadows = useGame((s) => s.shadows);
-  const tex = useMemo(() => {
-    const grass = grassTexture(); grass.repeat.set(70, 40);
-    const dirt = dirtTexture();
-    const dirtPatch = dirtTexture(); dirtPatch.repeat.set(3, 3);
-    return { grass, dirt, dirtPatch, edge: pathEdge(), round: patchEdge() };
-  }, []);
-  const geo = useMemo(() => ({
-    path: pathGeometry(), tuft: tuftGeometry(), bush: bushGeometry(), rock: new IcosahedronGeometry(1, 0),
-  }), []);
+  const geo = useMemo(() => ({ tuft: tuftGeometry(), bush: bushGeometry(), rock: rockGeometry() }), []);
 
   const squares = useMemo(() => ({ tufts: inSquares(tufts, 24), bushes: inSquares(bushes, 24) }), []);
   const hutModels = useProp("/models/hut.glb", HUT.height, "y", houses.length, shadows);
@@ -206,6 +164,8 @@ export function World() {
   const palmModels = useProp("/models/palm.glb", 1, "y", palms.length, shadows);     // 1 m tall, scaled per tree below
   const wellModels = useProp("/models/well.glb", 2.5, "y", 1, shadows);
   const baleteModels = useProp("/models/balete.glb", balete.height, "y", 1, shadows);
+
+  const see = useMemo(() => ({ palms: palmModels.map(seeThrough), huts: hutModels.map(seeThrough), balete: seeThrough(baleteModels[0]) }), [palmModels, hutModels, baleteModels]);
 
   const hemi = useRef<HemisphereLight>(null);
   const sun = useRef<DirectionalLight>(null);
@@ -220,19 +180,23 @@ export function World() {
 
     // anything tall standing between the camera and the player would cover him, so hide those
     const px = live.player.x, pz = live.player.z;
+    const k = Math.min(1, dt * 7);
+    const thin = (mats: MeshStandardMaterial[], hides: boolean, to = 0.16) => { for (const m of mats) m.opacity += ((hides ? to : 1) - m.opacity) * k; };
     for (let i = 0; i < palms.length; i++) {
       const dx = palms[i].x - px, dz = palms[i].z - pz;
-      palmModels[i].visible = !(dz > 0.8 && dz < 1.6 + palms[i].h && Math.abs(dx) < 2.6);
+      if (Math.abs(dx) > 12 || Math.abs(dz) > 14) continue;
+      thin(see.palms[i], dz > 0.8 && dz < 1.6 + palms[i].h && Math.abs(dx) < 2.6);
     }
     for (let i = 0; i < houses.length; i++) {
       const dx = houses[i].x - px, dz = houses[i].z - pz;
-      hutModels[i].visible = !(dz > HUT.hz + 0.3 && dz < 7.5 && Math.abs(dx) < HUT.hx + 1.2);
+      thin(see.huts[i], dz > HUT.hz + 0.3 && dz < 7.5 && Math.abs(dx) < HUT.hx + 1.2, 0.22);
     }
     {
       const dx = balete.x - px, dz = balete.z - pz;
-      baleteModels[0].visible = !(dz > 1.2 && dz < 6 + balete.height * 0.6 && Math.abs(dx) < balete.height * 0.6);
+      thin(see.balete, dz > 1.2 && dz < 6 + balete.height * 0.6 && Math.abs(dx) < balete.height * 0.6, 0.22);
     }
 
+    wind.value += Math.min(dt, 0.1);
     const t = live.daylight;
     three(sky, SKY, t);
     fog.color.copy(sky);
@@ -249,24 +213,11 @@ export function World() {
       <hemisphereLight ref={hemi} args={["#27356b", "#0b0a10", 1.5]} />
       <directionalLight ref={sun} position={[-14, 22, -8]} color="#7f9bff" intensity={1.7} />
 
-      {/* the ground: grass everywhere, worn earth where people walk and sweep */}
-      <mesh rotation-x={-Math.PI / 2} position={[46, 0, 0]} receiveShadow>
-        <planeGeometry args={[420, 240]} />
-        <meshStandardMaterial map={tex.grass} roughness={1} metalness={0} />
-      </mesh>
-      {patches.map((p, i) => (
-        <mesh key={i} rotation-x={-Math.PI / 2} position={[p.x, 0.012, p.z]} renderOrder={1} receiveShadow>
-          <circleGeometry args={[p.r, 28]} />
-          <meshStandardMaterial map={tex.dirtPatch} alphaMap={tex.round} transparent depthWrite={false} roughness={1} />
-        </mesh>
-      ))}
-      <mesh geometry={geo.path} position={[0, 0.02, 0]} renderOrder={2} receiveShadow>
-        <meshStandardMaterial map={tex.dirt} alphaMap={tex.edge} transparent depthWrite={false} roughness={1} />
-      </mesh>
+      <Ground />
 
       {squares.tufts.map((part, i) => <Scatter key={`t${i}`} items={part} geometry={geo.tuft} colour="#ffffff" squash={[1, 1, 1]} vary={0.5} sway />)}
       {squares.bushes.map((part, i) => <Scatter key={`b${i}`} items={part} geometry={geo.bush} colour="#3a5230" squash={[0.72, 0.62, 0.72]} vary={0.35} tinted />)}
-      <Scatter items={rocks} geometry={geo.rock} colour="#6f6a62" squash={[1, 0.55, 0.8]} vary={0.3} flat />
+      <Scatter items={rocks} geometry={geo.rock} colour="#b9b2a6" squash={[1, 0.6, 0.8]} vary={0.3} tinted />
 
       {houses.map((h, i) => (
         <group key={h.id} position={[h.x, 0, h.z]}>
@@ -375,9 +326,8 @@ function HomeYard() {
       })}
       <group position={[firePit.x, 0, firePit.z]}>
         {Array.from({ length: 9 }, (_, i) => (
-          <mesh key={i} position={[Math.cos(i * 0.7) * 0.42, 0.07, Math.sin(i * 0.7) * 0.42]} rotation-y={i} scale={[1, 0.6, 0.8]}>
-            <icosahedronGeometry args={[0.12, 0]} />
-            <meshStandardMaterial color="#5f5a53" roughness={1} flatShading />
+          <mesh key={i} geometry={stoneGeometry()} position={[Math.cos(i * 0.7) * 0.46, 0.06, Math.sin(i * 0.7) * 0.46]} rotation-y={i * 1.9} scale={[0.15 + (i % 3) * 0.02, 0.1, 0.12 + (i % 2) * 0.03]}>
+            <meshStandardMaterial color="#a39c90" roughness={1} vertexColors />
           </mesh>
         ))}
         <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}><circleGeometry args={[0.36, 14]} /><meshStandardMaterial color="#1a1614" roughness={1} /></mesh>
@@ -408,7 +358,7 @@ function Dressing() {
   useMemo(() => {
     const tone = (o: Object3D, k: number) => o.traverse((m) => { const mat = (m as Mesh).material as MeshStandardMaterial | undefined; if (mat?.color) mat.color.setScalar(k); });
     if (piles[0]) tone(piles[0], 0.36);
-    if (shrubs[0]) tone(shrubs[0], 0.52);
+    if (shrubs[0]) shrubs[0].traverse((m) => { const mat = (m as Mesh).material as MeshStandardMaterial | undefined; if (mat?.color) mat.color.setRGB(0.3, 0.36, 0.24); });      // it came lime green
     if (ferns[0]) tone(ferns[0], 0.8);
   }, [piles, shrubs, ferns]);
   const sets: [string, Object3D[]][] = [["shrub", shrubs], ["fern", ferns], ["rocks", piles]];
@@ -477,7 +427,7 @@ function TrailMarker() {
       <mesh position={[0, 0.8, 0]} rotation-z={0.08}><cylinderGeometry args={[0.05, 0.07, 1.6, 6]} /><meshStandardMaterial color="#6d5535" roughness={1} /></mesh>
       <mesh position={[0.2, 1.4, 0.05]} rotation-z={-0.5}><boxGeometry args={[0.42, 0.26, 0.02]} /><meshStandardMaterial color="#a32a22" emissive="#5a0f0a" emissiveIntensity={0.5} roughness={1} side={DoubleSide} /></mesh>
       {[0, 1, 2].map((i) => (
-        <mesh key={i} position={[0.3 + i * 0.16, 0.08, 0.3 - i * 0.1]} scale={[1, 0.6, 0.8]}><icosahedronGeometry args={[0.13 - i * 0.02, 0]} /><meshStandardMaterial color="#77726a" flatShading roughness={1} /></mesh>
+        <mesh key={i} geometry={stoneGeometry()} position={[0.3 + i * 0.16, 0.06, 0.3 - i * 0.1]} rotation-y={i * 2.2} scale={[0.15 - i * 0.02, 0.1, 0.12]}><meshStandardMaterial color="#a39c90" vertexColors roughness={1} /></mesh>
       ))}
     </group>
   );
