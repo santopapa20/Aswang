@@ -4,6 +4,7 @@ import { Group, PointLight, Vector3 } from "three";
 import { live, pushOut, useGame } from "./state";
 import { actions, moveAxis, held, toggles } from "./input";
 import { useCharacter } from "./useCharacter";
+import { useProp } from "./useProp";
 
 const SPEED = { sneak: 0.85, walk: 1.5, run: 3.4 };
 // how far away each way of moving can be noticed by the aswang, in metres
@@ -15,6 +16,7 @@ export function Player() {
   const shadows = useGame((s) => s.shadows);
   const runId = useGame((s) => s.runId);
   const { group, model, api } = useCharacter("/models/player.glb", shadows);
+  const lantern = useProp("/models/lantern.glb", 0.34, "y", 1, false)[0];
   const lamp = useRef<Group>(null);
   const light = useRef<PointLight>(null);
   const fill = useRef<PointLight>(null);
@@ -87,7 +89,7 @@ export function Player() {
     const bone = api.bone("RightHand");
     if (bone && lamp.current) {
       bone.getWorldPosition(hand);
-      lamp.current.position.set(hand.x, hand.y - 0.2, hand.z);
+      lamp.current.position.set(hand.x, hand.y - 0.12, hand.z);
     }
     if (light.current) {
       const t = state.clock.elapsedTime;
@@ -110,17 +112,11 @@ export function Player() {
         </mesh>
       </group>
       <group ref={lamp}>
-        <mesh>
-          <cylinderGeometry args={[0.055, 0.065, 0.16, 10]} />
-          <meshStandardMaterial color="#3a2a10" emissive="#ffab45" emissiveIntensity={2.4} roughness={0.5} />
-        </mesh>
-        <mesh position={[0, 0.11, 0]}>
-          <coneGeometry args={[0.075, 0.07, 10]} />
-          <meshStandardMaterial color="#2b2b2b" roughness={0.7} metalness={0.6} />
-        </mesh>
-        <mesh position={[0, -0.1, 0]}>
-          <cylinderGeometry args={[0.075, 0.075, 0.04, 10]} />
-          <meshStandardMaterial color="#2b2b2b" roughness={0.7} metalness={0.6} />
+        <primitive object={lantern} position={[0, -0.2, 0]} />
+        {/* the flame: a small bright core so the lantern reads as lit from any distance */}
+        <mesh position={[0, -0.06, 0]}>
+          <sphereGeometry args={[0.035, 10, 8]} />
+          <meshBasicMaterial color="#ffc26b" />
         </mesh>
         <pointLight
           ref={light}

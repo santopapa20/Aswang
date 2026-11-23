@@ -29,3 +29,5 @@ game/public/models/
 
 # Raw gallery exports are large (the hut is 60 MB); the shrunk versions next to them are tracked
 assets/village/source/
+
+assets/items/source/

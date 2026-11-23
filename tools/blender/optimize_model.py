@@ -2,7 +2,10 @@
 # the texture, reduces the triangle count, shrinks the textures, and writes
 #   <out_dir>/<name>.blend  (textures packed inside, used by the later rigging steps)
 #   <out_dir>/<name>.glb    (WebP textures, for the game / viewing)
-# usage: blender -b --factory-startup --python optimize_model.py -- <tripo.glb> <out_dir> <name> [target_tris=45000] [colour_px=2048] [other_px=1024]
+# usage: blender -b --factory-startup --python optimize_model.py -- <tripo.glb> <out_dir> <name> [target_tris=45000] [colour_px=2048] [other_px=1024] [seams=keep|free]
+#   seams  keep (default) never merges across texture seams, which is safest but cannot shrink a model
+#          that is made of very many small texture islands. free ignores seams and reaches the target;
+#          use it for props when keep stops far above the target, and check the render afterwards.
 import bpy, bmesh, sys, os
 
 argv = sys.argv[sys.argv.index("--") + 1:]
@@ -10,6 +13,7 @@ SRC, OUT, NAME = argv[0], argv[1], argv[2]
 TARGET = int(argv[3]) if len(argv) > 3 else 45000
 COLOUR_PX = int(argv[4]) if len(argv) > 4 else 2048
 OTHER_PX = int(argv[5]) if len(argv) > 5 else 1024
+SEAMS = argv[6] if len(argv) > 6 else "keep"
 os.makedirs(OUT, exist_ok=True)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -35,11 +39,17 @@ def stats(tag):
     bm.free(); return tris
 
 before = stats("BEFORE")
+if SEAMS == "free":
+    # some gallery models are a soup of loose fragments; weld touching vertices so they can be reduced
+    bm = bmesh.new(); bm.from_mesh(me)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=max(ob.dimensions) * 2e-5)
+    bm.to_mesh(me); bm.free(); me.update()
+    before = stats("WELDED")
 if before > TARGET:
     mod = ob.modifiers.new("decimate", "DECIMATE")
     mod.decimate_type = "COLLAPSE"
     mod.ratio = TARGET / before
-    mod.delimit = {"UV"}                      # keep texture seams where they are
+    if SEAMS == "keep": mod.delimit = {"UV"}  # keep texture seams where they are
     mod.use_collapse_triangulate = True
     bpy.ops.object.modifier_apply(modifier=mod.name)
 after = stats("AFTER ")

@@ -12,6 +12,10 @@ const files = [
   ["aswang", join("assets", "aswang", "game", "aswang.glb")],
   ["hut", join("assets", "village", "hut.glb")],
   ["fence", join("assets", "village", "fence.glb")],
+  ["palm", join("assets", "village", "palm.glb")],
+  ["well", join("assets", "village", "well.glb")],
+  ["lantern", join("assets", "items", "lantern.glb")],
+  ["garlic", join("assets", "items", "garlic.glb")],
 ];
 for (const [name, rel] of files) {
   const src = join(root, rel);

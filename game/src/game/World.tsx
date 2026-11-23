@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { Box3, CanvasTexture, Color, DirectionalLight, FogExp2, HemisphereLight, Mesh, Object3D, RepeatWrapping, SRGBColorSpace, Vector3 } from "three";
+import { CanvasTexture, Color, DirectionalLight, FogExp2, HemisphereLight, RepeatWrapping, SRGBColorSpace } from "three";
+import { useProp } from "./useProp";
 import { live, NIGHT_SECONDS, obstacles, useGame } from "./state";
 
 // ---- a fixed layout, so the map is the same every time ------------------------------------
@@ -88,29 +89,6 @@ function useGroundTexture() {
   }, []);
 }
 
-/**
- * Loads a prop and returns copies of it, resized so that `size` metres fits along `axis`,
- * centred on X and Z and standing on the ground.
- */
-function useProp(url: string, size: number, axis: "x" | "y", count: number, shadows: boolean) {
-  const gltf = useGLTF(url);
-  return useMemo(() => {
-    const box = new Box3().setFromObject(gltf.scene);
-    const dim = box.getSize(new Vector3());
-    const centre = box.getCenter(new Vector3());
-    const scale = size / (axis === "x" ? dim.x : dim.y);
-    return Array.from({ length: count }, () => {
-      const copy = gltf.scene.clone(true);
-      copy.traverse((o) => { if ((o as Mesh).isMesh) { o.castShadow = shadows; o.receiveShadow = shadows; } });
-      copy.position.set(-centre.x * scale, -box.min.y * scale, -centre.z * scale);
-      copy.scale.setScalar(scale);
-      const holder = new Object3D();
-      holder.add(copy);
-      return holder;
-    });
-  }, [gltf.scene, size, axis, count, shadows]);
-}
-
 const NIGHT = { sky: new Color("#0a1024"), hemiSky: new Color("#3a4f96"), hemiGround: new Color("#14121c"), moon: new Color("#7f9bff") };
 const DAWN = { sky: new Color("#3b3040"), hemiSky: new Color("#c9987a"), hemiGround: new Color("#3a2c2a"), moon: new Color("#ffc890") };
 
@@ -121,6 +99,8 @@ export function World() {
   const ground = useGroundTexture();
   const hutModels = useProp("/models/hut.glb", HUT_HEIGHT, "y", huts.length, shadows);
   const fenceModels = useProp("/models/fence.glb", FENCE_LENGTH, "x", fence.length, shadows);
+  const palmModels = useProp("/models/palm.glb", 1, "y", trees.length, shadows);     // 1 m tall, scaled per tree below
+  const wellModels = useProp("/models/well.glb", 2.5, "y", 1, shadows);
   const hemi = useRef<HemisphereLight>(null);
   const moon = useRef<DirectionalLight>(null);
   const fog = useMemo(() => new FogExp2(NIGHT.sky.getHex(), 0.03), []);
@@ -134,6 +114,12 @@ export function World() {
     // frames per second, averaged over half a second
     acc.current.t += dt; acc.current.n += 1;
     if (acc.current.t >= 0.5) { live.fps = acc.current.n / acc.current.t; acc.current.t = 0; acc.current.n = 0; }
+
+    // a palm standing between the camera and the player would fill the screen, so hide those
+    for (let i = 0; i < trees.length; i++) {
+      const dx = trees[i].x - live.player.x, dz = trees[i].z - live.player.z;
+      palmModels[i].visible = !(dz > 0.8 && dz < 9.5 && Math.abs(dx) < 3.4);
+    }
 
     const game = useGame.getState();
     if (game.phase === "playing") {
@@ -170,26 +156,15 @@ export function World() {
         <primitive key={`fence${i}`} object={fenceModels[i]} position={[f.x, 0, f.z]} rotation-y={f.rot} />
       ))}
 
-      {/* Still placeholders: plain shapes standing in for palms and the well. */}
       {trees.map((t, i) => (
-        <group key={i} position={[t.x, 0, t.z]} rotation-z={t.lean}>
-          <mesh position={[0, t.h / 2, 0]} castShadow={shadows}>
-            <cylinderGeometry args={[0.16, 0.26, t.h, 7]} />
-            <meshStandardMaterial color="#3a3026" roughness={1} />
-          </mesh>
-          <mesh position={[0, t.h + 0.5, 0]} castShadow={shadows}>
-            <coneGeometry args={[2.3, 1.6, 7]} />
-            <meshStandardMaterial color="#1c2b1c" roughness={1} />
-          </mesh>
-        </group>
+        <primitive key={`palm${i}`} object={palmModels[i]} position={[t.x, 0, t.z]} rotation-y={i * 2.4} rotation-z={t.lean * 0.4} scale={t.h + 2} />
       ))}
-      <mesh position={[well.x, 0.45, well.z]} castShadow={shadows} receiveShadow>
-        <cylinderGeometry args={[0.85, 0.9, 0.9, 12]} />
-        <meshStandardMaterial color="#56534e" roughness={0.95} />
-      </mesh>
+      <primitive object={wellModels[0]} position={[well.x, 0, well.z]} rotation-y={0.6} />
     </>
   );
 }
 
 useGLTF.preload("/models/hut.glb");
 useGLTF.preload("/models/fence.glb");
+useGLTF.preload("/models/palm.glb");
+useGLTF.preload("/models/well.glb");

@@ -2,14 +2,16 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group } from "three";
 import { useGame } from "./state";
+import { useProp } from "./useProp";
 
 /**
  * Things lying around the barrio to pick up, and the salt lines the player has poured.
- * The pickups are simple stand-in shapes until the real salt bowl and garlic braid models are in.
+ * The salt bowl is still a simple stand-in shape; the garlic braid is the real model.
  */
 export function Items() {
   const pickups = useGame((s) => s.pickups);
   const lines = useGame((s) => s.lines);
+  const garlicModels = useProp("/models/garlic.glb", 0.55, "y", 8, false);
   const bob = useRef<Group>(null);
   useFrame(({ clock }) => {
     if (bob.current) bob.current.position.y = 0.06 * Math.sin(clock.elapsedTime * 2.2);
@@ -32,12 +34,7 @@ export function Items() {
                 </mesh>
               </>
             ) : (
-              [[0, 0, 0], [0.09, -0.08, 0.03], [-0.08, -0.1, -0.02], [0.02, -0.19, 0.04]].map(([x, y, z], i) => (
-                <mesh key={i} position={[x, y + 0.1, z]}>
-                  <sphereGeometry args={[0.075, 10, 8]} />
-                  <meshStandardMaterial color="#efe6cf" emissive="#fff0c0" emissiveIntensity={0.5} roughness={0.9} />
-                </mesh>
-              ))
+              <primitive object={garlicModels[p.id % garlicModels.length]} position={[0, -0.2, 0]} rotation-y={p.id} />
             )}
           </group>
         ))}
