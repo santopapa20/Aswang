@@ -36,6 +36,12 @@ B="/c/Program Files/Blender Foundation/Blender 5.3/blender.exe"
 "$B" -b --factory-startup --python tools/blender/check_mesh.py -- <model.glb>
 "$B" -b --factory-startup --python tools/blender/inspect_parts.py -- <model.blend|glb>
 
+# a Tripo model that already has its own texture: report + flat-lit renders from five angles and a face close-up
+"$B" -b --factory-startup --python tools/blender/render_textured.py -- <model.glb> <out_prefix>
+
+# make a textured Tripo model game-sized (about 45k triangles, 2048 colour texture, WebP)
+"$B" -b --factory-startup --python tools/blender/optimize_model.py -- <tripo.glb> <out_dir> <name> 45000
+
 # quick grey renders from four angles
 "$B" -b --factory-startup --python tools/blender/render_views.py -- <model.glb> <out_prefix> <single|random>
 
