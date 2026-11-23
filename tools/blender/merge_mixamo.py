@@ -8,7 +8,12 @@
 # different arm position on each, so every animation-only clip is retargeted: each frame is played
 # on its own skeleton and the resulting joint placements are copied onto the character's skeleton.
 #
-# usage: blender -b --factory-startup --python merge_mixamo.py -- <downloads_dir> <material_source.blend> <out.glb> [--pronate DEG] [--arms-in DEG|clip=DEG,clip=DEG]
+# usage: blender -b --factory-startup --python merge_mixamo.py -- <downloads_dir> <material_source.blend> <out.glb> [--character rigged.blend] [--pronate DEG] [--arms-in DEG|clip=DEG,clip=DEG]
+#   --character  for a body Mixamo's auto-rigger refuses: use the character rigged by rig_humanoid.py
+#              instead of a "With Skin" download. Every .fbx in the folder is then a motion only (they can
+#              be downloaded on any Mixamo character). Each bone's turning is carried over rather than its
+#              exact placement, so the body keeps its own proportions and stance (horse legs, long neck);
+#              the arms are matched by direction, and the hips' travel is scaled to the leg length.
 #   --pronate  for a model that was made with its palms facing forward. Mixamo expects palms facing the
 #              thighs, so such a model hangs its hands palm-forward. This reshapes the model itself:
 #              each forearm is turned about its own length, 0 degrees at the elbow rising smoothly to
@@ -23,6 +28,7 @@ argv = sys.argv[sys.argv.index("--") + 1:]
 DIR, MATSRC, OUT = argv[0], argv[1], argv[2]
 NAME = os.path.splitext(os.path.basename(OUT))[0]
 PRONATE = float(argv[argv.index("--pronate") + 1]) if "--pronate" in argv else 0.0
+CHARACTER = argv[argv.index("--character") + 1] if "--character" in argv else None
 ARMS_IN = {}
 if "--arms-in" in argv:
     spec = argv[argv.index("--arms-in") + 1]
@@ -84,8 +90,68 @@ def retarget(src, src_act, clip):
     print("RETARGET %-8s frames %d, largest joint mismatch %.1f mm" % (clip, f1 - f0 + 1, worst * 1000))
     return new
 
+ARM_CHAIN = ("Shoulder", "Arm", "ForeArm", "Hand")
+def short(name): return name.replace(":", "").replace("mixamorig", "")
+def world_rot(obj, M): return (obj.matrix_world.to_3x3() @ M.to_3x3()).normalized().to_quaternion()
+
+def retarget_onto_own_rig(src, src_act, clip):
+    """Carry a motion onto a skeleton with different proportions and its own rest stance."""
+    from mathutils import Vector
+    new = bpy.data.actions.new(clip)
+    ad = arm.animation_data or arm.animation_data_create()
+    ad.action = new
+    names = {short(b.name): b.name for b in src.data.bones}
+    pairs = []                                              # (our bone, their bone, constant correction)
+    for pb in arm.pose.bones:                               # parents come before children
+        sn = names.get(short(pb.name))
+        if not sn: continue
+        Rs, Rt = world_rot(src, src.data.bones[sn].matrix_local), world_rot(arm, pb.bone.matrix_local)
+        if short(pb.name).replace("Left", "").replace("Right", "") in ARM_CHAIN:
+            # their rest pose has the arms straight out, ours has them hanging: match by direction
+            align = (Rs @ Vector((0, 1, 0))).rotation_difference(Rt @ Vector((0, 1, 0)))
+            pairs.append((pb, sn, Rs.inverted() @ align.inverted() @ Rt))
+        else:
+            # legs, spine, neck, head: our rest stance stands for their rest stance
+            pairs.append((pb, sn, Rs.inverted() @ Rt))
+    root, root_src = next((pb, sn) for pb, sn, _ in pairs if not pb.parent)
+    ratio = (arm.matrix_world @ root.bone.head_local).z / (src.matrix_world @ src.data.bones[root_src].head_local).z
+    to_arm = arm.matrix_world.to_3x3().normalized().to_quaternion().inverted()
+    f0, f1 = int(src_act.frame_range[0]), int(src_act.frame_range[1])
+    last = {}
+    for f in range(f0, f1 + 1):
+        scene.frame_set(f)
+        A = {}
+        for pb, sn, corr in pairs:
+            A[pb.name] = to_arm @ (world_rot(src, src.pose.bones[sn].matrix) @ corr)
+            R = pb.bone.matrix_local.to_quaternion()
+            if pb.parent and pb.parent.name in A:
+                q = (pb.parent.bone.matrix_local.to_quaternion().inverted() @ R).inverted() @ (A[pb.parent.name].inverted() @ A[pb.name])
+            else:
+                q = R.inverted() @ A[pb.name]
+            if pb.name in last and last[pb.name].dot(q) < 0: q.negate()
+            last[pb.name] = q
+            pb.rotation_mode = "QUATERNION"
+            pb.rotation_quaternion = q
+            pb.keyframe_insert("rotation_quaternion", frame=f)
+            if not pb.parent:
+                where = (src.matrix_world @ src.pose.bones[sn].matrix.translation) * ratio
+                pb.location = pb.bone.matrix_local.inverted() @ (arm.matrix_world.inverted() @ where)
+                pb.keyframe_insert("location", frame=f)
+    ad.action = None
+    for pb in arm.pose.bones:
+        pb.rotation_quaternion = (1, 0, 0, 0); pb.location = (0, 0, 0)
+    print("RETARGET %-8s frames %d, onto own rig (%d bones matched, hip travel x%.2f)" % (clip, f1 - f0 + 1, len(pairs), ratio))
+    return new
+
 files = sorted(glob.glob(os.path.join(DIR, "*.fbx")))
 arm = mesh = None
+if CHARACTER:
+    with bpy.data.libraries.load(os.path.abspath(CHARACTER)) as (lib_src, lib_dst):
+        lib_dst.objects = list(lib_src.objects)
+    for o in lib_dst.objects:
+        if o: scene.collection.objects.link(o)
+    arm = next(o for o in lib_dst.objects if o and o.type == "ARMATURE")
+    mesh = next(o for o in lib_dst.objects if o and o.type == "MESH")
 clips = []
 pending = []                                                # animation-only clips, retargeted once the character is known
 for f in files:
@@ -93,7 +159,7 @@ for f in files:
     objs, acts = import_fbx(f)
     if len(acts) != 1:
         print("WARNING", clip, "has", len(acts), "actions")
-    if has_mesh_objects(objs) and arm is None:
+    if has_mesh_objects(objs) and arm is None and not CHARACTER:
         arm = next(o for o in objs if o.type == "ARMATURE")
         mesh = next(o for o in objs if o.type == "MESH")
         acts[0].name = clip
@@ -106,7 +172,7 @@ if arm is None:
     print("ERROR no clip in", DIR, "contains the skinned character (download one With Skin)"); sys.exit(1)
 for clip, objs, act in pending:
     src = next(o for o in objs if o.type == "ARMATURE")
-    new = retarget(src, act, clip)
+    new = retarget_onto_own_rig(src, act, clip) if CHARACTER else retarget(src, act, clip)
     new.use_fake_user = True
     clips.append((clip, new))
     remove_objects(objs)
@@ -141,9 +207,10 @@ if PRONATE:
     print("PRONATE forearms turned %.0f degrees at the wrist, %d vertices reshaped" % (PRONATE, moved))
 
 if ARMS_IN:
-    # the skeleton's own axes: Y is up, +X is its left, +Z is forward. Turning an upper arm about the
-    # forward axis swings the hand towards (or away from) the body.
+    # Turning an upper arm about the character's forward axis swings the hand towards (or away from)
+    # the body. Every character faces -Y in the scene; FORWARD is that direction in the skeleton's own axes.
     from mathutils import Vector
+    FORWARD = (arm.matrix_world.to_3x3().inverted() @ Vector((0, -1, 0))).normalized()
     upper = [(b.name, -1.0 if "Left" in b.name else 1.0) for b in arm.data.bones
              if b.name.replace(":", "").replace("mixamorig", "") in ("LeftArm", "RightArm")]
     ad1 = arm.animation_data or arm.animation_data_create()
@@ -160,7 +227,7 @@ if ARMS_IN:
             for name, sign in upper:
                 pb = arm.pose.bones[name]
                 M = pb.matrix.to_3x3().to_quaternion()            # where the arm points now, in skeleton space
-                Q = Quaternion(Vector((0, 0, 1)), math.radians(deg * sign))
+                Q = Quaternion(FORWARD, math.radians(deg * sign))
                 pb.rotation_mode = "QUATERNION"
                 pb.rotation_quaternion = pb.rotation_quaternion @ (M.conjugated() @ Q @ M)
                 pb.keyframe_insert("rotation_quaternion", frame=f)

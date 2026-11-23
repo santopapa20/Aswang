@@ -1,4 +1,21 @@
 {
-  "_comment": "Tikbalang: single fused piece, no detachable props.",
+  "_comment": "Tikbalang: single fused piece, no detachable props. Joint positions measured on tikbalang_rigready.blend (its own units, 0.977 tall; faces -Y, its left is +X). Left side only; the right side is mirrored. Used by tools/blender/rig_humanoid.py, because Mixamo's auto-rigger refuses this body. 'ankle' is the horse hock, 'toe' the top of the hoof, 'head_end' the muzzle.",
+  "hips": [0.0, 0.030, 0.555],
+  "spine": [0.0, 0.030, 0.615],
+  "chest": [0.0, 0.030, 0.675],
+  "upper_chest": [0.0, 0.032, 0.735],
+  "neck": [0.0, 0.040, 0.795],
+  "head": [0.0, 0.000, 0.895],
+  "head_end": [0.0, -0.110, 0.800],
+  "clavicle": [0.030, 0.040, 0.775],
+  "shoulder": [0.118, 0.045, 0.762],
+  "elbow": [0.180, 0.045, 0.662],
+  "wrist": [0.258, 0.020, 0.545],
+  "hand_tip": [0.272, -0.010, 0.470],
+  "hip": [0.060, 0.030, 0.535],
+  "knee": [0.075, 0.022, 0.383],
+  "ankle": [0.106, 0.053, 0.152],
+  "toe": [0.118, 0.005, 0.040],
+  "toe_tip": [0.120, -0.045, 0.012],
   "props": {}
 }

@@ -87,6 +87,13 @@ B="/c/Program Files/Blender Foundation/Blender 5.3/blender.exe"
 # merge Mixamo downloads (one "With Skin", the rest without) into one animated GLB with named clips
 "$B" -b --factory-startup --python tools/blender/merge_mixamo.py --   assets/player/mixamo/downloads assets/player/player_v2.blend assets/player/game/player.glb
 
+# a body Mixamo's auto-rigger refuses (the tikbalang): build the same skeleton here from measured joints,
+# then merge with --character. The motions are downloaded "Without Skin" on any Mixamo character.
+"$B" -b --factory-startup --python tools/blender/rig_humanoid.py -- \
+  assets/tikbalang/tikbalang_rigready.blend assets/tikbalang/rig_landmarks.json assets/tikbalang/tikbalang_rigged.blend --height 2.3
+"$B" -b --factory-startup --python tools/blender/merge_mixamo.py -- assets/tikbalang/mixamo/downloads \
+  assets/tikbalang/tikbalang.blend assets/tikbalang/game/tikbalang.glb --character assets/tikbalang/tikbalang_rigged.blend
+
 # render every clip of an animated GLB to frames (then ffmpeg makes a video or contact sheet)
 "$B" -b --factory-startup --python tools/blender/preview_clips.py -- assets/player/game/player.glb <out_dir>
 ```
