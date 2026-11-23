@@ -1,178 +1,430 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { CanvasTexture, Color, DirectionalLight, FogExp2, HemisphereLight, RepeatWrapping, SRGBColorSpace } from "three";
+import {
+  BufferAttribute, BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, DirectionalLight, DoubleSide, FogExp2, Group,
+  HemisphereLight, IcosahedronGeometry, InstancedMesh, LatheGeometry, Mesh, MeshStandardMaterial, Object3D, PointLight,
+  RepeatWrapping, SRGBColorSpace, Vector2, Vector3,
+} from "three";
 import { useProp } from "./useProp";
-import { live, NIGHT_SECONDS, obstacles, useGame } from "./state";
+import { live, useGame } from "./state";
+import {
+  balete, Blob, bushes, FENCE_LENGTH, fences, firePit, home, houses, HUT, nodes, openings, palms, patches, paths, rocks, seeded,
+  trail, tufts, well,
+} from "./layout";
 
-// ---- a fixed layout, so the map is the same every time ------------------------------------
-function seeded(seed: number) {
-  return () => {
-    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+// ---- painted textures (made once, no image files) --------------------------------------------
+function canvasTexture(size: number, paint: (g: CanvasRenderingContext2D, size: number) => void, colour = true) {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  paint(c.getContext("2d")!, size);
+  const tex = new CanvasTexture(c);
+  tex.wrapS = tex.wrapT = RepeatWrapping;
+  if (colour) tex.colorSpace = SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
 }
-
-type Hut = { x: number; z: number; rot: number };
-type Tree = { x: number; z: number; h: number; lean: number };
-type FencePiece = { x: number; z: number; rot: number };
-
-const HUT_HEIGHT = 4.4;       // metres, floor to roof ridge
-const FENCE_LENGTH = 2.3;     // metres per fence section
-
-const huts: Hut[] = [
-  { x: -9, z: -6, rot: 0.5 },
-  { x: 10, z: -10, rot: -0.6 },
-  { x: 5, z: 14, rot: 2.6 },
-];
-const well = { x: -3, z: 2 };
-/** The balete: an old strangler fig at the edge of the barrio. The kapre will live here. */
-// Its crown is about as wide as it is tall, so everything below is worked out from the height.
-const balete = { x: -21, z: -19, height: 7 };
-
-/** Fence runs: start point, direction in radians, number of sections. */
-const fenceRuns: [number, number, number, number][] = [
-  [-15, -1.5, 0, 5],
-  [-15, -1.5, -Math.PI / 2, 4],
-  [5.5, -4.5, 0, 4],
-  [16, -4.5, -Math.PI / 2, 4],
-  [-1, 9.5, 0, 3],
-  [10.5, 10, Math.PI / 2, 3],
-];
-const fence: FencePiece[] = [];
-for (const [sx, sz, dir, n] of fenceRuns) {
-  for (let i = 0; i < n; i++) {
-    const d = (i + 0.5) * FENCE_LENGTH;
-    fence.push({ x: sx + Math.cos(dir) * d, z: sz - Math.sin(dir) * d, rot: dir });
+const grassTexture = () => canvasTexture(512, (g, s) => {
+  const rnd = seeded(11);
+  g.fillStyle = "#3d3f27"; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 260; i++) {                           // broad mottling: damp and dry ground
+    g.fillStyle = `rgba(${rnd() < 0.5 ? "30,34,18" : "86,78,44"},${0.05 + rnd() * 0.07})`;
+    g.beginPath(); g.arc(rnd() * s, rnd() * s, 14 + rnd() * 46, 0, 7); g.fill();
   }
-}
-
-const trees: Tree[] = [];
-{
-  const rnd = seeded(1950);
-  while (trees.length < 34) {
-    const x = (rnd() - 0.5) * 64, z = (rnd() - 0.5) * 64;
-    const clear = Math.hypot(x, z - 6) > 5
-      && huts.every((h) => Math.hypot(x - h.x, z - h.z) > 5.5)
-      && fence.every((f) => Math.hypot(x - f.x, z - f.z) > 2)
-      && Math.hypot(x - well.x, z - well.z) > 3
-      && Math.hypot(x - balete.x, z - balete.z) > balete.height * 0.75;
-    if (clear) trees.push({ x, z, h: 4.5 + rnd() * 3.5, lean: (rnd() - 0.5) * 0.25 });
+  for (let i = 0; i < 15000; i++) {                         // blades
+    const x = rnd() * s, y = rnd() * s, l = 3 + rnd() * 7, a = -Math.PI / 2 + (rnd() - 0.5) * 1.4;
+    const v = rnd();
+    g.strokeStyle = `rgba(${60 + v * 70},${78 + v * 70},${30 + v * 30},${0.25 + rnd() * 0.35})`;
+    g.lineWidth = 0.7 + rnd() * 0.8;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
   }
-  obstacles.length = 0;
-  for (const h of huts) obstacles.push({ x: h.x, z: h.z, r: 2.6 });
-  for (const t of trees) obstacles.push({ x: t.x, z: t.z, r: 0.45 });
-  for (const f of fence) {
-    for (const k of [-0.75, 0, 0.75]) obstacles.push({ x: f.x + Math.cos(f.rot) * k, z: f.z - Math.sin(f.rot) * k, r: 0.45 });
+});
+const dirtTexture = () => canvasTexture(256, (g, s) => {
+  const rnd = seeded(23);
+  g.fillStyle = "#77593a"; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 5200; i++) {
+    const v = rnd();
+    g.fillStyle = `rgba(${70 + v * 90},${50 + v * 70},${28 + v * 50},${0.12 + rnd() * 0.25})`;
+    const d = 1 + rnd() * 2.6;
+    g.fillRect(rnd() * s, rnd() * s, d, d);
   }
-  obstacles.push({ x: well.x, z: well.z, r: 1.0 });
-  obstacles.push({ x: balete.x, z: balete.z, r: balete.height * 0.2 });
-}
+  for (let i = 0; i < 60; i++) {                            // pebbles
+    g.fillStyle = `rgba(${150 + rnd() * 50},${140 + rnd() * 40},${120 + rnd() * 40},0.5)`;
+    g.beginPath(); g.ellipse(rnd() * s, rnd() * s, 1 + rnd() * 2, 0.8 + rnd() * 1.4, rnd() * 3, 0, 7); g.fill();
+  }
+});
+/** White where the path is solid, fading raggedly to black at both edges (U runs across the path). */
+const pathEdge = () => canvasTexture(128, (g, s) => {
+  const rnd = seeded(5);
+  g.fillStyle = "#000"; g.fillRect(0, 0, s, s);
+  for (let y = 0; y < s; y++) {
+    const l = 0.2 + 0.08 * Math.sin(y * 0.21) + rnd() * 0.05, r = 0.8 + 0.07 * Math.sin(y * 0.17 + 2) - rnd() * 0.05;
+    const grad = g.createLinearGradient(0, 0, s, 0);
+    grad.addColorStop(Math.max(0, l - 0.16), "#000"); grad.addColorStop(l, "#fff");
+    grad.addColorStop(r, "#fff"); grad.addColorStop(Math.min(1, r + 0.16), "#000");
+    g.fillStyle = grad; g.fillRect(0, y, s, 1);
+  }
+}, false);
+const patchEdge = () => canvasTexture(128, (g, s) => {
+  const grad = g.createRadialGradient(s / 2, s / 2, s * 0.22, s / 2, s / 2, s * 0.5);
+  grad.addColorStop(0, "#fff"); grad.addColorStop(0.7, "#888"); grad.addColorStop(1, "#000");
+  g.fillStyle = grad; g.fillRect(0, 0, s, s);
+}, false);
 
-function useGroundTexture() {
-  return useMemo(() => {
-    const size = 256;
-    const c = document.createElement("canvas");
-    c.width = c.height = size;
-    const g = c.getContext("2d")!;
-    const rnd = seeded(7);
-    g.fillStyle = "#3a2f24";
-    g.fillRect(0, 0, size, size);
-    for (let i = 0; i < 9000; i++) {
-      const v = 30 + rnd() * 50;
-      g.fillStyle = `rgba(${v + 18}, ${v + 6}, ${v - 6}, ${0.15 + rnd() * 0.3})`;
-      const s = 1 + rnd() * 3;
-      g.fillRect(rnd() * size, rnd() * size, s, s);
+/** One strip of ground along each path, wide enough for its soft edges. */
+function pathGeometry() {
+  const pos: number[] = [], uv: number[] = [], idx: number[] = [];
+  for (const p of paths) {
+    const curve = new CatmullRomCurve3(p.pts.map(([x, z]) => new Vector3(x, 0, z)), false, "catmullrom", 0.4);
+    const n = Math.max(2, Math.ceil(curve.getLength() / 0.9));
+    const pts = curve.getSpacedPoints(n);
+    const half = p.w * 0.85, base = pos.length / 3;
+    let along = 0;
+    for (let i = 0; i <= n; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)];
+      const t = new Vector2(b.x - a.x, b.z - a.z).normalize();
+      if (i > 0) along += pts[i].distanceTo(pts[i - 1]);
+      pos.push(pts[i].x - t.y * half, 0, pts[i].z + t.x * half, pts[i].x + t.y * half, 0, pts[i].z - t.x * half);
+      uv.push(0, along / 3.2, 1, along / 3.2);
+      if (i < n) { const k = base + i * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
     }
-    const tex = new CanvasTexture(c);
-    tex.wrapS = tex.wrapT = RepeatWrapping;
-    tex.repeat.set(28, 28);
-    tex.colorSpace = SRGBColorSpace;
-    return tex;
-  }, []);
+  }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
+  g.setAttribute("uv", new BufferAttribute(new Float32Array(uv), 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
 }
 
-const NIGHT = { sky: new Color("#0a1024"), hemiSky: new Color("#3a4f96"), hemiGround: new Color("#14121c"), moon: new Color("#7f9bff") };
-const DAWN = { sky: new Color("#3b3040"), hemiSky: new Color("#c9987a"), hemiGround: new Color("#3a2c2a"), moon: new Color("#ffc890") };
+/** Three bent blades of grass. */
+function tuftGeometry() {
+  const pos: number[] = [], col: number[] = [];
+  for (let b = 0; b < 3; b++) {
+    const a = b * 2.1, lean = 0.12 + b * 0.05, h = 0.34 + b * 0.07, w = 0.035;
+    const cx = Math.cos(a), cz = Math.sin(a);
+    pos.push(-cz * w, 0, cx * w, cz * w, 0, -cx * w, cx * lean, h, cz * lean);
+    col.push(0.1, 0.13, 0.05, 0.1, 0.13, 0.05, 0.42, 0.5, 0.2);
+  }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
+  g.setAttribute("color", new BufferAttribute(new Float32Array(col), 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+function Scatter({ items, geometry, colour, squash, vary, flat, sway }: {
+  items: Blob[]; geometry: BufferGeometry; colour: string; squash: [number, number, number]; vary: number; flat?: boolean; sway?: boolean;
+}) {
+  const ref = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const m = ref.current!;
+    const o = new Object3D(), c = new Color(), rnd = seeded(items.length);
+    items.forEach((it, i) => {
+      o.position.set(it.x, 0, it.z); o.rotation.set(0, it.r, 0);
+      o.scale.set(it.s * squash[0], it.s * squash[1], it.s * squash[2]);
+      o.updateMatrix(); m.setMatrixAt(i, o.matrix);
+      const v = 1 - vary / 2 + rnd() * vary;
+      m.setColorAt(i, c.set(colour).multiplyScalar(v));
+    });
+    m.instanceMatrix.needsUpdate = true;
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    m.computeBoundingSphere();
+  }, [items, colour, squash, vary]);
+  return (
+    <instancedMesh ref={ref} args={[geometry, undefined, items.length]} frustumCulled={false} receiveShadow={!sway}>
+      <meshLambertMaterial vertexColors={!!sway} side={sway ? DoubleSide : undefined} flatShading={flat} />
+    </instancedMesh>
+  );
+}
+
+// ---- light and sky by time of day ------------------------------------------------------------
+const SKY = { night: new Color("#0a1024"), dusk: new Color("#5a3a3c"), day: new Color("#b9c4c9") };
+const HEMI_SKY = { night: new Color("#3a4f96"), dusk: new Color("#d49a78"), day: new Color("#fff3da") };
+const HEMI_GROUND = { night: new Color("#14121c"), dusk: new Color("#3a2c2a"), day: new Color("#6d6247") };
+const SUN = { night: new Color("#7f9bff"), dusk: new Color("#ff9d5c"), day: new Color("#fff1d2") };
+const three = (out: Color, set: { night: Color; dusk: Color; day: Color }, t: number) =>
+  t < 0.5 ? out.lerpColors(set.night, set.dusk, t * 2) : out.lerpColors(set.dusk, set.day, t * 2 - 2 + 1);
 
 export function World() {
   const { scene } = useThree();
   const shadows = useGame((s) => s.shadows);
-  const runId = useGame((s) => s.runId);
-  const ground = useGroundTexture();
-  const hutModels = useProp("/models/hut.glb", HUT_HEIGHT, "y", huts.length, shadows);
-  const fenceModels = useProp("/models/fence.glb", FENCE_LENGTH, "x", fence.length, shadows);
-  const palmModels = useProp("/models/palm.glb", 1, "y", trees.length, shadows);     // 1 m tall, scaled per tree below
+  const tex = useMemo(() => {
+    const grass = grassTexture(); grass.repeat.set(70, 40);
+    const dirt = dirtTexture();
+    const dirtPatch = dirtTexture(); dirtPatch.repeat.set(3, 3);
+    return { grass, dirt, dirtPatch, edge: pathEdge(), round: patchEdge() };
+  }, []);
+  const geo = useMemo(() => ({
+    path: pathGeometry(), tuft: tuftGeometry(), bush: new IcosahedronGeometry(1, 1), rock: new IcosahedronGeometry(1, 0),
+  }), []);
+
+  const hutModels = useProp("/models/hut.glb", HUT.height, "y", houses.length, shadows);
+  const fenceModels = useProp("/models/fence.glb", FENCE_LENGTH, "x", fences.length, shadows);
+  const palmModels = useProp("/models/palm.glb", 1, "y", palms.length, shadows);     // 1 m tall, scaled per tree below
   const wellModels = useProp("/models/well.glb", 2.5, "y", 1, shadows);
   const baleteModels = useProp("/models/balete.glb", balete.height, "y", 1, shadows);
-  const hemi = useRef<HemisphereLight>(null);
-  const moon = useRef<DirectionalLight>(null);
-  const fog = useMemo(() => new FogExp2(NIGHT.sky.getHex(), 0.03), []);
-  const sky = useMemo(() => NIGHT.sky.clone(), []);
 
+  const hemi = useRef<HemisphereLight>(null);
+  const sun = useRef<DirectionalLight>(null);
+  const fog = useMemo(() => new FogExp2(SKY.night.getHex(), 0.03), []);
+  const sky = useMemo(() => SKY.night.clone(), []);
   useEffect(() => { scene.fog = fog; scene.background = sky; return () => { scene.fog = null; }; }, [scene, fog, sky]);
-  useEffect(() => { live.timeLeft = NIGHT_SECONDS; }, [runId]);
 
   const acc = useRef({ t: 0, n: 0 });
   useFrame((_, dt) => {
-    // frames per second, averaged over half a second
     acc.current.t += dt; acc.current.n += 1;
     if (acc.current.t >= 0.5) { live.fps = acc.current.n / acc.current.t; acc.current.t = 0; acc.current.n = 0; }
 
-    // a palm standing between the camera and the player would fill the screen, so hide those
-    for (let i = 0; i < trees.length; i++) {
-      const dx = trees[i].x - live.player.x, dz = trees[i].z - live.player.z;
+    // anything tall standing between the camera and the player would cover him, so hide those
+    const px = live.player.x, pz = live.player.z;
+    for (let i = 0; i < palms.length; i++) {
+      const dx = palms[i].x - px, dz = palms[i].z - pz;
       palmModels[i].visible = !(dz > 0.8 && dz < 9.5 && Math.abs(dx) < 3.4);
     }
-
+    for (let i = 0; i < houses.length; i++) {
+      const dx = houses[i].x - px, dz = houses[i].z - pz;
+      hutModels[i].visible = !(dz > HUT.hz + 0.3 && dz < 7.5 && Math.abs(dx) < HUT.hx + 1.2);
+    }
     {
-      const dx = balete.x - live.player.x, dz = balete.z - live.player.z;
+      const dx = balete.x - px, dz = balete.z - pz;
       baleteModels[0].visible = !(dz > 1.2 && dz < 6 + balete.height * 0.6 && Math.abs(dx) < balete.height * 0.6);
     }
 
-    const game = useGame.getState();
-    if (game.phase === "playing") {
-      live.timeLeft = Math.max(0, live.timeLeft - Math.min(dt, 0.1));
-      if (live.timeLeft === 0) game.setPhase("survived");
-    }
-    // the last 30 seconds of the night slowly turn to dawn
-    const k = Math.min(1, Math.max(0, 1 - live.timeLeft / 30));
-    sky.lerpColors(NIGHT.sky, DAWN.sky, k);
+    const t = live.daylight;
+    three(sky, SKY, t);
     fog.color.copy(sky);
-    fog.density = 0.03 - 0.012 * k;
+    fog.density = 0.03 - 0.021 * t;
     if (hemi.current) {
-      hemi.current.color.lerpColors(NIGHT.hemiSky, DAWN.hemiSky, k);
-      hemi.current.groundColor.lerpColors(NIGHT.hemiGround, DAWN.hemiGround, k);
-      hemi.current.intensity = 1.5 + 0.9 * k;
+      three(hemi.current.color, HEMI_SKY, t); three(hemi.current.groundColor, HEMI_GROUND, t);
+      hemi.current.intensity = 1.5 + 1.3 * t;
     }
-    if (moon.current) { moon.current.color.lerpColors(NIGHT.moon, DAWN.moon, k); moon.current.intensity = 1.7 + 0.6 * k; }
+    if (sun.current) { three(sun.current.color, SUN, t); sun.current.intensity = 1.7 + 1.5 * t; }
   });
 
   return (
     <>
       <hemisphereLight ref={hemi} args={["#27356b", "#0b0a10", 1.5]} />
-      <directionalLight ref={moon} position={[-14, 22, -8]} color="#7f9bff" intensity={1.7} />
+      <directionalLight ref={sun} position={[-14, 22, -8]} color="#7f9bff" intensity={1.7} />
 
-      <mesh rotation-x={-Math.PI / 2} receiveShadow>
-        <planeGeometry args={[160, 160]} />
-        <meshStandardMaterial map={ground} roughness={1} metalness={0} />
+      {/* the ground: grass everywhere, worn earth where people walk and sweep */}
+      <mesh rotation-x={-Math.PI / 2} position={[46, 0, 0]} receiveShadow>
+        <planeGeometry args={[420, 240]} />
+        <meshStandardMaterial map={tex.grass} roughness={1} metalness={0} />
+      </mesh>
+      {patches.map((p, i) => (
+        <mesh key={i} rotation-x={-Math.PI / 2} position={[p.x, 0.012, p.z]} renderOrder={1} receiveShadow>
+          <circleGeometry args={[p.r, 28]} />
+          <meshStandardMaterial map={tex.dirtPatch} alphaMap={tex.round} transparent depthWrite={false} roughness={1} />
+        </mesh>
+      ))}
+      <mesh geometry={geo.path} position={[0, 0.02, 0]} renderOrder={2} receiveShadow>
+        <meshStandardMaterial map={tex.dirt} alphaMap={tex.edge} transparent depthWrite={false} roughness={1} />
       </mesh>
 
-      {huts.map((h, i) => (
-        <primitive key={`hut${i}`} object={hutModels[i]} position={[h.x, 0, h.z]} rotation-y={h.rot} />
+      <Scatter items={tufts} geometry={geo.tuft} colour="#ffffff" squash={[1, 1, 1]} vary={0.5} sway />
+      <Scatter items={bushes} geometry={geo.bush} colour="#26381f" squash={[1, 0.72, 1]} vary={0.45} />
+      <Scatter items={rocks} geometry={geo.rock} colour="#6f6a62" squash={[1, 0.55, 0.8]} vary={0.3} flat />
+
+      {houses.map((h, i) => (
+        <group key={h.id} position={[h.x, 0, h.z]}>
+          <primitive object={hutModels[i]} />
+          <HouseFront lit={h.lit} beacon={h.id === "home"} />
+        </group>
       ))}
-      {fence.map((f, i) => (
+      {fences.map((f, i) => (
         <primitive key={`fence${i}`} object={fenceModels[i]} position={[f.x, 0, f.z]} rotation-y={f.rot} />
       ))}
-
-      {trees.map((t, i) => (
+      {palms.map((t, i) => (
         <primitive key={`palm${i}`} object={palmModels[i]} position={[t.x, 0, t.z]} rotation-y={i * 2.4} rotation-z={t.lean * 0.4} scale={t.h + 2} />
       ))}
       <primitive object={wellModels[0]} position={[well.x, 0, well.z]} rotation-y={0.6} />
       <primitive object={baleteModels[0]} position={[balete.x, 0, balete.z]} rotation-y={0.9} />
+
+      <HomeYard />
+      <LootNodes />
+      <SaltLines />
+      <TrailMarker />
     </>
+  );
+}
+
+/** What the hut model lacks: a doorway, a ladder up to it, and a window that glows after dark. */
+function HouseFront({ lit, beacon }: { lit: boolean; beacon: boolean }) {
+  const pane = useRef<MeshStandardMaterial>(null);
+  const glow = useRef<PointLight>(null);
+  useFrame(({ clock }) => {
+    const dark = 1 - live.daylight;
+    const f = 0.9 + 0.1 * Math.sin(clock.elapsedTime * 7.3 + (beacon ? 0 : 2));
+    if (pane.current) pane.current.emissiveIntensity = lit ? 2.6 * dark * f : 0;
+    if (glow.current) glow.current.intensity = 9 * dark * f;
+  });
+  const z = HUT.hz + 0.02, floor = 1.12;
+  return (
+    <group>
+      <mesh position={[-0.55, floor + 0.8, z]}>
+        <planeGeometry args={[0.85, 1.6]} />
+        <meshStandardMaterial color="#120c07" roughness={1} />
+      </mesh>
+      <mesh position={[0.95, floor + 1.05, z]}>
+        <planeGeometry args={[0.72, 0.62]} />
+        <meshStandardMaterial ref={pane} color={lit ? "#3a2a16" : "#0d0906"} emissive="#ffb055" emissiveIntensity={0} roughness={1} />
+      </mesh>
+      {/* bamboo ladder */}
+      <group position={[-0.55, 0, HUT.hz + 0.05]} rotation-x={0.62}>
+        {[-0.3, 0.3].map((x) => (
+          <mesh key={x} position={[x, 0.72, 0]}><cylinderGeometry args={[0.035, 0.04, 1.5, 6]} /><meshStandardMaterial color="#8a6a3a" roughness={0.9} /></mesh>
+        ))}
+        {[0.25, 0.6, 0.95, 1.3].map((y) => (
+          <mesh key={y} position={[0, y, 0]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.028, 0.028, 0.66, 6]} /><meshStandardMaterial color="#9a7a46" roughness={0.9} /></mesh>
+        ))}
+      </group>
+      {beacon && <pointLight ref={glow} position={[0.95, 2.2, HUT.hz + 0.9]} color="#ffae5c" intensity={0} distance={8} decay={1.7} />}
+    </group>
+  );
+}
+
+/** The house you guard: a peg at each opening for its protection, and the smudge fire. */
+function HomeYard() {
+  const wards = useGame((s) => s.wards);
+  const garlic = useProp("/models/garlic.glb", 0.5, "y", 3, false);
+  const flame = useRef<Group>(null);
+  const fire = useRef<PointLight>(null);
+  const smoke = useRef<Group>(null);
+  useFrame(({ clock }) => {
+    const on = live.smoke > 0;
+    const t = clock.elapsedTime;
+    if (flame.current) { flame.current.visible = on; flame.current.scale.y = 0.8 + 0.25 * Math.sin(t * 13) + 0.1 * Math.sin(t * 29); }
+    if (fire.current) fire.current.intensity = on ? 7 + 2.5 * Math.sin(t * 11) : 0;
+    if (smoke.current) {
+      smoke.current.visible = on;
+      smoke.current.children.forEach((c, i) => {
+        const k = (t * 0.32 + i / smoke.current!.children.length) % 1;
+        c.position.set(Math.sin(i * 2.3 + t * 0.6) * 0.3 * k - k * 2.6, 0.4 + k * 4.2, -k * 2.2);
+        c.scale.setScalar(0.25 + k * 0.9);
+        ((c as Mesh).material as MeshStandardMaterial).opacity = 0.3 * (1 - k);
+      });
+    }
+  });
+  return (
+    <>
+      {openings.map((o, i) => {
+        const side = o.id === "door" ? 0 : o.id === "west" ? -1 : 1;
+        return (
+          <group key={o.id} position={[o.x, 0, o.z]}>
+            <mesh position={[side * 0.55 || 0.75, 0.55, side ? 0.5 : 0.1]}>
+              <cylinderGeometry args={[0.035, 0.045, 1.1, 6]} />
+              <meshStandardMaterial color="#8a6a3a" roughness={0.9} />
+            </mesh>
+            {wards[o.id] === "garlic" && <primitive object={garlic[i]} position={[side * 0.55 || 0.75, 0.55, side ? 0.62 : 0.22]} />}
+            {wards[o.id] === "salt" && (
+              <mesh position={[0, 0.03, side ? 0 : -0.25]} rotation-y={side ? Math.PI / 2 : 0}>
+                <boxGeometry args={[1.5, 0.03, 0.16]} />
+                <meshStandardMaterial color="#f6f4ee" emissive="#dfe6ff" emissiveIntensity={0.7} roughness={1} />
+              </mesh>
+            )}
+          </group>
+        );
+      })}
+      <group position={[firePit.x, 0, firePit.z]}>
+        {Array.from({ length: 9 }, (_, i) => (
+          <mesh key={i} position={[Math.cos(i * 0.7) * 0.42, 0.07, Math.sin(i * 0.7) * 0.42]} rotation-y={i} scale={[1, 0.6, 0.8]}>
+            <icosahedronGeometry args={[0.12, 0]} />
+            <meshStandardMaterial color="#5f5a53" roughness={1} flatShading />
+          </mesh>
+        ))}
+        <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}><circleGeometry args={[0.36, 14]} /><meshStandardMaterial color="#1a1614" roughness={1} /></mesh>
+        <group ref={flame} position={[0, 0.08, 0]} visible={false}>
+          {[0, Math.PI / 2].map((r) => (
+            <mesh key={r} position={[0, 0.22, 0]} rotation-y={r}><coneGeometry args={[0.16, 0.5, 5, 1, true]} /><meshBasicMaterial color="#ff9a3c" transparent opacity={0.85} side={DoubleSide} /></mesh>
+          ))}
+        </group>
+        <group ref={smoke} visible={false}>
+          {Array.from({ length: 7 }, (_, i) => (
+            <mesh key={i}><icosahedronGeometry args={[0.5, 1]} /><meshStandardMaterial color="#9a958c" transparent opacity={0.2} depthWrite={false} roughness={1} /></mesh>
+          ))}
+        </group>
+        <pointLight ref={fire} position={[0, 0.5, 0]} color="#ff8a3a" intensity={0} distance={6} decay={1.8} />
+      </group>
+    </>
+  );
+}
+
+/** Chests, jars, sacks, fronds and herbs. A searched one looks searched. */
+function LootNodes() {
+  const searched = useGame((s) => s.searched);
+  const jar = useMemo(() => new LatheGeometry([[0.001, 0], [0.16, 0], [0.26, 0.16], [0.27, 0.34], [0.18, 0.5], [0.13, 0.56], [0.17, 0.62]].map(([x, y]) => new Vector2(x, y)), 14), []);
+  return (
+    <>
+      {nodes.map((n) => {
+        const done = searched.includes(n.id);
+        return (
+          <group key={n.id} position={[n.x, 0, n.z]} rotation-y={n.rot}>
+            {n.kind === "baul" && (
+              <>
+                <mesh position={[0, 0.2, 0]}><boxGeometry args={[0.92, 0.4, 0.5]} /><meshStandardMaterial color="#4a3320" roughness={0.85} /></mesh>
+                <group position={[0, 0.4, -0.25]} rotation-x={done ? -1.25 : 0}>
+                  <mesh position={[0, 0.06, 0.25]}><boxGeometry args={[0.96, 0.12, 0.54]} /><meshStandardMaterial color="#553a24" roughness={0.85} /></mesh>
+                </group>
+                {[-0.3, 0.3].map((x) => (
+                  <mesh key={x} position={[x, 0.2, 0]}><boxGeometry args={[0.06, 0.42, 0.52]} /><meshStandardMaterial color="#2c2a28" roughness={0.6} metalness={0.5} /></mesh>
+                ))}
+              </>
+            )}
+            {n.kind === "banga" && (
+              <mesh geometry={jar} rotation-z={done ? 1.35 : 0} position={[0, done ? 0.26 : 0, 0]}>
+                <meshStandardMaterial color="#8a4f33" roughness={0.9} side={DoubleSide} />
+              </mesh>
+            )}
+            {n.kind === "sako" && (
+              <mesh position={[0, done ? 0.1 : 0.3, 0]} scale={done ? [0.5, 0.1, 0.45] : [0.4, 0.34, 0.36]}>
+                <icosahedronGeometry args={[1, 2]} /><meshStandardMaterial color="#8d7b56" roughness={1} />
+              </mesh>
+            )}
+            {n.kind === "kindling" && !done && [0, 1, 2, 3, 4].map((i) => (
+              <mesh key={i} position={[(i - 2) * 0.08, 0.06 + (i % 2) * 0.07, 0]} rotation={[Math.PI / 2, 0, i * 0.5 - 1]}>
+                <cylinderGeometry args={[0.03, 0.045, 1.1, 5]} /><meshStandardMaterial color="#6a5330" roughness={1} />
+              </mesh>
+            ))}
+            {n.kind === "herbs" && !done && [0, 1, 2, 3, 4, 5].map((i) => (
+              <mesh key={i} position={[Math.cos(i * 1.1) * 0.22, 0.2, Math.sin(i * 1.1) * 0.22]} rotation={[0.3 * Math.cos(i), 0, 0.3 * Math.sin(i)]}>
+                <coneGeometry args={[0.1, 0.42, 4]} /><meshStandardMaterial color={i % 3 ? "#4f7a3a" : "#c9c79a"} roughness={1} flatShading />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
+function SaltLines() {
+  const lines = useGame((s) => s.lines);
+  return (
+    <>
+      {lines.map((l, i) => {
+        const dx = l.bx - l.ax, dz = l.bz - l.az;
+        return (
+          <mesh key={i} position={[(l.ax + l.bx) / 2, 0.035, (l.az + l.bz) / 2]} rotation-y={-Math.atan2(dz, dx)}>
+            <boxGeometry args={[Math.hypot(dx, dz), 0.03, 0.16]} />
+            <meshStandardMaterial color="#f6f4ee" emissive="#dfe6ff" emissiveIntensity={0.7} roughness={1} />
+          </mesh>
+        );
+      })}
+    </>
+  );
+}
+
+/** A post with a red rag, halfway along the trail. You should only ever pass it once. */
+function TrailMarker() {
+  return (
+    <group position={[trail.marker.x, 0, trail.marker.z]}>
+      <mesh position={[0, 0.8, 0]} rotation-z={0.08}><cylinderGeometry args={[0.05, 0.07, 1.6, 6]} /><meshStandardMaterial color="#6d5535" roughness={1} /></mesh>
+      <mesh position={[0.2, 1.4, 0.05]} rotation-z={-0.5}><boxGeometry args={[0.42, 0.26, 0.02]} /><meshStandardMaterial color="#a32a22" emissive="#5a0f0a" emissiveIntensity={0.5} roughness={1} side={DoubleSide} /></mesh>
+      {[0, 1, 2].map((i) => (
+        <mesh key={i} position={[0.3 + i * 0.16, 0.08, 0.3 - i * 0.1]} scale={[1, 0.6, 0.8]}><icosahedronGeometry args={[0.13 - i * 0.02, 0]} /><meshStandardMaterial color="#77726a" flatShading roughness={1} /></mesh>
+      ))}
+    </group>
   );
 }
 
