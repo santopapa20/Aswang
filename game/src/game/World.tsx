@@ -7,6 +7,7 @@ import {
 } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Ground } from "./Ground";
+import { Atmosphere } from "./Atmosphere";
 import { useProp } from "./useProp";
 import { live, useGame } from "./state";
 import {
@@ -18,7 +19,7 @@ import {
 function tuftGeometry() {
   const pos: number[] = [], col: number[] = [];
   const rnd = seeded(77);
-  for (let b = 0; b < 12; b++) {
+  for (let b = 0; b < 9; b++) {
     const a = b * 2.4 + rnd(), out = 0.02 + rnd() * 0.1, h = 0.16 + rnd() * 0.24, lean = 0.05 + rnd() * 0.16, w = 0.022 + rnd() * 0.02;
     const cx = Math.cos(a), cz = Math.sin(a), bx = cx * out, bz = cz * out;
     const mx = bx + cx * lean * 0.4, mz = bz + cz * lean * 0.4, tx = bx + cx * lean, tz = bz + cz * lean;
@@ -53,34 +54,46 @@ function rockGeometry() {
   return g;
 }
 
-/** A clump of undergrowth: a few lumpy, overlapping mounds, shaded dark underneath and lighter on top. */
+/**
+ * A clump of undergrowth: broad leaves on arching stems, the way gabi, wild ginger and young banana
+ * grow at the edge of a clearing. Outer leaves droop, inner ones stand; dark at the stem, paler at the tip.
+ */
 function bushGeometry() {
-  const pos: number[] = [], nor: number[] = [], col: number[] = [];
-  const lumps: [number, number, number, number][] = [[0, 0.5, 0, 0.95], [0.6, 0.4, 0.2, 0.7], [-0.55, 0.44, -0.3, 0.76], [0.1, 0.34, 0.62, 0.6]];
-  const hash = (x: number, y: number, z: number) => { const h = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; return h - Math.floor(h); };
-  for (const [cx, cy, cz, r] of lumps) {
-    const p = new IcosahedronGeometry(r, 2).getAttribute("position");
-    for (let i = 0; i < p.count; i++) {
-      const x = p.getX(i), y = p.getY(i), z = p.getZ(i), len = Math.hypot(x, y, z) || 1;
-      // two sizes of bumps, so the outline reads as leaves and not as a smooth ball (the same point always moves the same way: no cracks)
-      const k = 1 + (hash(x + cx, y, z + cz) - 0.5) * 0.3 + (hash(Math.round(x * 3) + cx, Math.round(y * 3), Math.round(z * 3) + cz) - 0.5) * 0.26;
-      const py = Math.max(0, cy + y * k);
-      pos.push(cx + x * k, py, cz + z * k);
-      nor.push(x / len, y / len, z / len);
-      const light = 0.3 + 0.7 * Math.min(1, py / 1.2) * (0.55 + 0.75 * hash(Math.round(z * 4), Math.round(x * 4), Math.round(y * 4)));
-      col.push(0.62 * light, 0.9 * light, 0.5 * light);
+  const pos: number[] = [], col: number[] = [], nor: number[] = [];
+  const rnd = seeded(31);
+  const leaf = (a: number, reach: number, rise: number, droop: number, wide: number, shade: number) => {
+    const cx = Math.cos(a), cz = Math.sin(a);
+    // four stations along the leaf: its midrib arches up and over, its edges hang a little below the rib
+    const st = [0, 0.3, 0.65, 1].map((t) => {
+      const along = reach * (0.06 + 0.94 * t), up = 0.03 + rise * Math.sin(t * 2.1) - droop * t * t, w = wide * Math.pow(Math.sin(Math.PI * Math.min(1, t * 0.92 + 0.08)), 0.75);
+      const tone = (0.45 + 0.75 * t) * shade;
+      return {
+        mid: [cx * along, up, cz * along], left: [cx * along - cz * w, up - w * 0.22, cz * along + cx * w], right: [cx * along + cz * w, up - w * 0.22, cz * along - cx * w],
+        rib: [0.1 * tone, 0.2 * tone, 0.065 * tone], blade: [0.055 * tone, 0.135 * tone, 0.045 * tone],
+        nl: [cx * 0.25 - cz * 0.4, 0.88, cz * 0.25 + cx * 0.4], nr: [cx * 0.25 + cz * 0.4, 0.88, cz * 0.25 - cx * 0.4], nm: [cx * 0.3, 0.95, cz * 0.3],
+      };
+    });
+    for (let i = 0; i < 3; i++) {
+      const p = st[i], q = st[i + 1];
+      pos.push(...p.left, ...q.left, ...p.mid, ...p.mid, ...q.left, ...q.mid, ...p.mid, ...q.mid, ...p.right, ...p.right, ...q.mid, ...q.right);
+      col.push(...p.blade, ...q.blade, ...p.rib, ...p.rib, ...q.blade, ...q.rib, ...p.rib, ...q.rib, ...p.blade, ...p.blade, ...q.rib, ...q.blade);
+      nor.push(...p.nl, ...q.nl, ...p.nm, ...p.nm, ...q.nl, ...q.nm, ...p.nm, ...q.nm, ...p.nr, ...p.nr, ...q.nm, ...q.nr);
     }
-  }
+  };
+  for (let i = 0; i < 13; i++) leaf(i * 0.483 * 2 + rnd() * 0.4, 1.0 + rnd() * 0.6, 0.5 + rnd() * 0.3, 0.45 + rnd() * 0.3, 0.2 + rnd() * 0.1, 0.8 + rnd() * 0.45);      // the outer ring
+  for (let i = 0; i < 7; i++) leaf(i * 0.9 + rnd(), 0.55 + rnd() * 0.3, 0.95 + rnd() * 0.4, 0.2, 0.15 + rnd() * 0.07, 0.95 + rnd() * 0.45);                           // young leaves, upright
   const g = new BufferGeometry();
   g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
-  g.setAttribute("normal", new BufferAttribute(new Float32Array(nor), 3));
   g.setAttribute("color", new BufferAttribute(new Float32Array(col), 3));
+  g.setAttribute("normal", new BufferAttribute(new Float32Array(nor), 3));
   return g;
 }
 
 /** Gives one copy of a model its own materials, drawn as a fine screen of dots when faded, so it can thin out without its twins. */
 function seeThrough(o: Object3D) {
+  if (o.userData.mats) return o.userData.mats as MeshStandardMaterial[];      // asked twice for the same copy: the same answer
   const mats: MeshStandardMaterial[] = [];
+  o.userData.mats = mats;
   o.traverse((m) => {
     const mesh = m as Mesh;
     if (!mesh.isMesh) return;
@@ -107,7 +120,7 @@ function inSquares(items: Blob[], size: number) {
 
 /** Wind: the top of each blade drifts, the root stays put. One clock is shared by every patch of grass. */
 const wind = { value: 0 };
-const swaying = (sh: { uniforms: Record<string, { value: unknown }>; vertexShader: string }) => {
+const swaying = (amount: number) => (sh: { uniforms: Record<string, { value: unknown }>; vertexShader: string }) => {
   sh.uniforms.uWind = wind;
   sh.vertexShader = sh.vertexShader
     .replace("#include <common>", "#include <common>\nuniform float uWind;")
@@ -115,13 +128,15 @@ const swaying = (sh: { uniforms: Record<string, { value: unknown }>; vertexShade
       #ifdef USE_INSTANCING
         vec3 root = instanceMatrix[3].xyz;
         float gust = sin(uWind * 1.3 + root.x * 0.35 + root.z * 0.27) + 0.5 * sin(uWind * 2.9 + root.x * 1.1 - root.z * 0.8);
-        transformed.x += gust * 0.22 * position.y;
-        transformed.z += gust * 0.12 * position.y;
+        transformed.x += gust * ${amount.toFixed(3)} * position.y;
+        transformed.z += gust * ${(amount * 0.55).toFixed(3)} * position.y;
       #endif`);
 };
 
-function Scatter({ items, geometry, colour, squash, vary, flat, sway, tinted }: {
-  items: Blob[]; geometry: BufferGeometry; colour: string; squash: [number, number, number]; vary: number; flat?: boolean; sway?: boolean; tinted?: boolean;
+const grassWind = swaying(0.22), leafWind = swaying(0.05);
+
+function Scatter({ items, geometry, colour, squash, vary, flat, sway, tinted, leaves }: {
+  items: Blob[]; geometry: BufferGeometry; colour: string; squash: [number, number, number]; vary: number; flat?: boolean; sway?: boolean; tinted?: boolean; leaves?: boolean;
 }) {
   const ref = useRef<InstancedMesh>(null);
   useLayoutEffect(() => {
@@ -139,17 +154,17 @@ function Scatter({ items, geometry, colour, squash, vary, flat, sway, tinted }: 
     m.computeBoundingSphere();
   }, [items, colour, squash, vary]);
   return (
-    <instancedMesh ref={ref} args={[geometry, undefined, items.length]} receiveShadow={!sway}>
-      <meshLambertMaterial vertexColors={!!sway || !!tinted} side={sway ? DoubleSide : undefined} flatShading={flat} onBeforeCompile={sway ? swaying : undefined} />
+    <instancedMesh ref={ref} args={[geometry, undefined, items.length]} receiveShadow={!sway && !leaves}>
+      <meshLambertMaterial vertexColors={!!sway || !!tinted || !!leaves} side={sway || leaves ? DoubleSide : undefined} flatShading={flat} onBeforeCompile={sway ? grassWind : leaves ? leafWind : undefined} />
     </instancedMesh>
   );
 }
 
 // ---- light and sky by time of day ------------------------------------------------------------
-const SKY = { night: new Color("#0a1024"), dusk: new Color("#5a3a3c"), day: new Color("#b9c4c9") };
-const HEMI_SKY = { night: new Color("#3a4f96"), dusk: new Color("#d49a78"), day: new Color("#fff3da") };
+const SKY = { night: new Color("#070c1c"), dusk: new Color("#5a3a3c"), day: new Color("#b9c4c9") };
+const HEMI_SKY = { night: new Color("#34488e"), dusk: new Color("#d49a78"), day: new Color("#fff3da") };
 const HEMI_GROUND = { night: new Color("#14121c"), dusk: new Color("#3a2c2a"), day: new Color("#6d6247") };
-const SUN = { night: new Color("#7f9bff"), dusk: new Color("#ff9d5c"), day: new Color("#fff1d2") };
+const SUN = { night: new Color("#8fa9ff"), dusk: new Color("#ff9d5c"), day: new Color("#ffeccb") };
 const three = (out: Color, set: { night: Color; dusk: Color; day: Color }, t: number) =>
   t < 0.5 ? out.lerpColors(set.night, set.dusk, t * 2) : out.lerpColors(set.dusk, set.day, t * 2 - 2 + 1);
 
@@ -203,9 +218,9 @@ export function World() {
     fog.density = 0.03 - 0.021 * t;
     if (hemi.current) {
       three(hemi.current.color, HEMI_SKY, t); three(hemi.current.groundColor, HEMI_GROUND, t);
-      hemi.current.intensity = 1.5 + 1.3 * t;
+      hemi.current.intensity = 1.15 + 1.5 * t;
     }
-    if (sun.current) { three(sun.current.color, SUN, t); sun.current.intensity = 1.7 + 1.5 * t; }
+    if (sun.current) { three(sun.current.color, SUN, t); sun.current.intensity = 2.1 + 1.3 * t; }
   });
 
   return (
@@ -214,9 +229,10 @@ export function World() {
       <directionalLight ref={sun} position={[-14, 22, -8]} color="#7f9bff" intensity={1.7} />
 
       <Ground />
+      <Atmosphere />
 
       {squares.tufts.map((part, i) => <Scatter key={`t${i}`} items={part} geometry={geo.tuft} colour="#ffffff" squash={[1, 1, 1]} vary={0.5} sway />)}
-      {squares.bushes.map((part, i) => <Scatter key={`b${i}`} items={part} geometry={geo.bush} colour="#3a5230" squash={[0.72, 0.62, 0.72]} vary={0.35} tinted />)}
+      {squares.bushes.map((part, i) => <Scatter key={`b${i}`} items={part} geometry={geo.bush} colour="#a4bd90" squash={[1, 1, 1]} vary={0.4} leaves />)}
       <Scatter items={rocks} geometry={geo.rock} colour="#b9b2a6" squash={[1, 0.6, 0.8]} vary={0.3} tinted />
 
       {houses.map((h, i) => (
@@ -250,7 +266,7 @@ function HouseFront({ lit, beacon }: { lit: boolean; beacon: boolean }) {
   useFrame(({ clock }) => {
     const dark = 1 - live.daylight;
     const f = 0.9 + 0.1 * Math.sin(clock.elapsedTime * 7.3 + (beacon ? 0 : 2));
-    if (pane.current) pane.current.emissiveIntensity = lit ? 2.6 * dark * f : 0;
+    if (pane.current) pane.current.emissiveIntensity = lit ? 1.5 * dark * f : 0;
     if (glow.current) glow.current.intensity = 9 * dark * f;
   });
   const z = HUT.hz + 0.02, floor = 1.12;
@@ -266,7 +282,7 @@ function HouseFront({ lit, beacon }: { lit: boolean; beacon: boolean }) {
       <mesh position={[-0.55, floor + 1.66, z + 0.02]}><boxGeometry args={[1.0, 0.07, 0.05]} /><meshStandardMaterial color="#8a6a3a" roughness={0.9} /></mesh>
       <mesh position={[0.95, floor + 1.05, z]}>
         <planeGeometry args={[0.72, 0.62]} />
-        <meshStandardMaterial ref={pane} color={lit ? "#4a371f" : "#241a10"} emissive="#ffb055" emissiveIntensity={0} roughness={1} />
+        <meshStandardMaterial ref={pane} color={lit ? "#4a371f" : "#241a10"} emissive="#ff9a3d" emissiveIntensity={0} roughness={1} />
       </mesh>
       {/* bamboo ladder */}
       <group position={[-0.55, 0, HUT.hz + 0.05]} rotation-x={0.62}>

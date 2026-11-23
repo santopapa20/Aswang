@@ -23,6 +23,9 @@ export function Aswang() {
   const shadows = useGame((s) => s.shadows);
   const runId = useGame((s) => s.runId);
   const { group, model, api } = useCharacter("/models/aswang.glb", shadows);
+  const stall = useRef(0);
+  const retreat = useRef(0);      // seconds spent on the present withdrawal
+  const detour = useRef({ t: 0, side: 1 });
   const blob = useRef<Group>(null);
   const pos = useRef(new Vector3());
   const facing = useRef(0);
@@ -83,9 +86,21 @@ export function Aswang() {
       if (d < near) return "there";
       const lx = p.x + (ex / d) * 0.6, lz = p.z + (ez / d) * 0.6;
       if (game.lines.some((l) => crossesLine(p.x, p.z, lx, lz, l))) return "blocked";
-      p.x += (ex / d) * speed * dt; p.z += (ez / d) * speed * dt;
+      // something solid in the way: after a moment of getting nowhere, she goes round it
+      let ux = ex / d, uz = ez / d;
+      if (detour.current.t > 0) {
+        detour.current.t -= dt;
+        const s = detour.current.side, sx = ux * 0.35 - uz * s, sz = uz * 0.35 + ux * s, n = Math.hypot(sx, sz);
+        ux = sx / n; uz = sz / n;
+      }
+      const bx = p.x, bz = p.z;
+      p.x += ux * speed * dt; p.z += uz * speed * dt;
       pushOut(p, 0.4);
-      turnTo(ex, ez, 6);
+      if (Math.hypot(p.x - bx, p.z - bz) < speed * dt * 0.35) {
+        stall.current += dt;
+        if (stall.current > 0.35) { stall.current = 0; detour.current = { t: 1.2, side: -detour.current.side }; }
+      } else stall.current = Math.max(0, stall.current - dt * 0.5);
+      turnTo(ux, uz, 6);
       return "going";
     };
     const lurkAway = (wait: number) => {
@@ -156,7 +171,9 @@ export function Aswang() {
       case "withdraw": {
         api.play("run", { fade: 0.3, speed: 0.8 });
         const wait = timer.current;
-        if (stepTo(goal.current.x, goal.current.z, STALK * 1.15) !== "going") {
+        retreat.current += dt;
+        if (stepTo(goal.current.x, goal.current.z, STALK * 1.15) !== "going" || retreat.current > 14) {
+          retreat.current = 0;
           // with nobody at the house she comes back sooner, unless she has just fed
           mode.current = "lurk"; timer.current = Math.max(4, wait) * (guarding || sated.current ? 1 : 0.6); sated.current = false;
         }

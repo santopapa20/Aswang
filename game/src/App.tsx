@@ -51,6 +51,23 @@ function FollowCamera() {
   return null;
 }
 
+/** Prepares everything in the scene for drawing while the title is still up, so nothing stutters the first time it comes into view. */
+function Warmup() {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => {
+    const id = setTimeout(() => {
+      scene.traverse((o) => {
+        const m = (o as unknown as { material?: Record<string, unknown> }).material;
+        if (!m) return;
+        for (const k of ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap"]) { const t = m[k] as { isTexture?: boolean } | undefined; if (t?.isTexture) gl.initTexture(t as never); }
+      });
+      gl.compile(scene, camera);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [gl, scene, camera]);
+  return null;
+}
+
 /** While developing: lets a test step the game frame by frame (window.__aswang.three / .advance). */
 function DevHook() {
   const get = useThree((s) => s.get);
@@ -92,6 +109,7 @@ export default function App() {
           <Pacing />
           <Guide />
           <Director />
+          <Warmup />
         </Suspense>
         <FollowCamera />
         <DevHook />

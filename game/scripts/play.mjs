@@ -20,6 +20,7 @@ const page = await browser.newPage();
 const notes = [];
 const note = (s) => { notes.push(s); console.log("NOTE", s); };
 page.on("pageerror", (e) => note(`page error: ${String(e).slice(0, 300)}`));
+page.on("response", (r) => { if (r.status() >= 400) note(`${r.status()} ${r.url()}`); });
 page.on("console", (m) => { if (["error", "warning"].includes(m.type())) note(`console ${m.type()}: ${m.text().slice(0, 240)}`); });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -38,14 +39,14 @@ const tap = async (k) => { await page.keyboard.press(k); await sleep(120); };
 const talkThrough = async () => { for (let i = 0; i < 40 && (await st()).dialogue; i++) { await tap("Enter"); await sleep(180); } };
 /** Samples his position every 50 ms while `fn` runs, and reports the path length against the straight line. */
 const trace = async (fn) => {
-  await page.evaluate(() => { const l = window.__aswang.live; window.__trace = []; window.__tid = setInterval(() => window.__trace.push([l.player.x, l.player.z]), 50); });
+  await page.evaluate(() => { const l = window.__aswang.live; window.__trace = []; window.__gap = 0; let last = performance.now(); const f = (t) => { window.__gap = Math.max(window.__gap, t - last); last = t; window.__raf = requestAnimationFrame(f); }; window.__raf = requestAnimationFrame(f); window.__tid = setInterval(() => window.__trace.push([l.player.x, l.player.z]), 50); });
   await fn();
   return page.evaluate(() => {
-    clearInterval(window.__tid);
+    clearInterval(window.__tid); cancelAnimationFrame(window.__raf);
     const t = window.__trace; let len = 0, back = 0;
     for (let i = 1; i < t.length; i++) len += Math.hypot(t[i][0] - t[i - 1][0], t[i][1] - t[i - 1][1]);
     for (let i = 2; i < t.length; i++) { const a = [t[i - 1][0] - t[i - 2][0], t[i - 1][1] - t[i - 2][1]], b = [t[i][0] - t[i - 1][0], t[i][1] - t[i - 1][1]]; if (a[0] * b[0] + a[1] * b[1] < -1e-5) back++; }
-    return { samples: t.length, path: +len.toFixed(2), straight: +Math.hypot(t.at(-1)[0] - t[0][0], t.at(-1)[1] - t[0][1]).toFixed(2), reversals: back };
+    return { samples: t.length, path: +len.toFixed(2), straight: +Math.hypot(t.at(-1)[0] - t[0][0], t.at(-1)[1] - t[0][1]).toFixed(2), reversals: back, longestFrameMs: Math.round(window.__gap) };
   });
 };
 const body = { x: 480, y: 200, width: 320, height: 320 };       // the middle of the screen, where he stands
@@ -53,7 +54,9 @@ const body = { x: 480, y: 200, width: 320, height: 320 };       // the middle of
 await page.goto("http://localhost:5173/", { waitUntil: "domcontentloaded" });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: "domcontentloaded" });
-await sleep(6000);
+await sleep(1200); await snap("loading");
+await page.waitForFunction(() => [...document.querySelectorAll("button")].some((b) => /Begin/.test(b.textContent)), { timeout: 120000 });
+await sleep(2500);
 await snap("title");
 await page.evaluate(() => [...document.querySelectorAll("button")].find((b) => /Begin/.test(b.textContent))?.click());
 await sleep(1500); await snap("intro");

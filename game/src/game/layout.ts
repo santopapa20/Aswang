@@ -203,8 +203,9 @@ const clearOfThings = (x: number, z: number, pad: number) =>
       else { t -= w; x = r.x0; z = r.z1 - t; nx = -1; }
       if (skip(x, z)) continue;
       const out = 1.2 + rnd() * 2.4;
-      bushes.push({ x: x + nx * out + (rnd() - 0.5), z: z + nz * out + (rnd() - 0.5), s: 1.0 + rnd() * 0.9, r: rnd() * 6 });
-      if (rnd() < 0.55) bushes.push({ x: x + nx * (out + 3.2), z: z + nz * (out + 3.2), s: 1.4 + rnd() * 1.0, r: rnd() * 6 });
+      bushes.push({ x: x + nx * out + (rnd() - 0.5), z: z + nz * out + (rnd() - 0.5), s: 0.9 + rnd() * 0.7, r: rnd() * 6 });
+      bushes.push({ x: x + nx * (out + 1.6) + (rnd() - 0.5) * 1.6, z: z + nz * (out + 1.6) + (rnd() - 0.5) * 1.6, s: 1.1 + rnd() * 0.8, r: rnd() * 6 });
+      if (rnd() < 0.7) bushes.push({ x: x + nx * (out + 3.4), z: z + nz * (out + 3.4), s: 1.4 + rnd() * 1.0, r: rnd() * 6 });
       if (rnd() < 0.62) addPalm(x + nx * (2.2 + rnd() * 5), z + nz * (2.2 + rnd() * 5), false);
     }
   };
@@ -216,7 +217,7 @@ const clearOfThings = (x: number, z: number, pad: number) =>
   for (let p = 0; p < 4; p++) {
     const base = 37 + p * trail.period;
     for (const [dx, z] of palmPattern) palms.push({ x: base + dx, z, h: 4.8 + ((dx * 7) % 3) * 0.4, lean: z > 0 ? 0.12 : -0.1, solid: false });
-    for (const [dx, z, s] of bushPattern) bushes.push({ x: base + dx, z, s: s * (z > 0 ? 0.5 : 0.75), r: dx });      // lower on the camera's side of the trail
+    for (const [dx, z, s] of bushPattern) bushes.push({ x: base + dx, z, s: s * (z > 0 ? 0.42 : 0.62), r: dx });      // lower on the camera's side of the trail
   }
   // stones and grass
   for (let i = 0; i < 70; i++) {
@@ -230,14 +231,14 @@ const clearOfThings = (x: number, z: number, pad: number) =>
     if (Math.abs(z) < 1.5) continue;
     for (let p = 0; p < 4; p++) tufts.push({ x: 37 + p * trail.period + dx, z, s, r });
   }
-  for (let i = 0; i < 9500; i++) {
+  for (let i = 0; i < 8600; i++) {
     const area = rnd() < 0.68 ? BARRIO : SITIO;
     const x = area.x0 + rnd() * (area.x1 - area.x0), z = area.z0 + rnd() * (area.z1 - area.z0);
     const worn = distToPath(x, z);
     if (worn < 0.25 || patches.some((p) => Math.hypot(x - p.x, z - p.z) < p.r * 0.86)) continue;
     if (houses.some((h) => Math.abs(x - h.x) < HUT.hx + 0.2 && Math.abs(z - h.z) < HUT.hz + 0.2)) continue;
     if (worn < 0.9 && rnd() < 0.5) continue;                                   // thin at the edge of trodden ground
-    tufts.push({ x, z, s: 0.7 + rnd() * 0.7 + Math.min(0.4, worn * 0.06), r: rnd() * 6 });
+    tufts.push({ x, z, s: 0.6 + rnd() * 0.75 + Math.min(0.4, worn * 0.06), r: rnd() * 6 });
   }
 }
 

@@ -14,7 +14,7 @@ const browsers = ["C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
 const executablePath = browsers.find(existsSync);
 if (!executablePath) { console.error("No Edge or Chrome found."); process.exit(1); }
 const browser = await puppeteer.launch({
-  executablePath, headless: true, defaultViewport: { width: 1280, height: 720 },
+  executablePath, headless: true, defaultViewport: { width: 1280, height: 720 }, protocolTimeout: 600000,
   args: ["--window-size=1280,720", "--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=d3d11", "--hide-scrollbars", "--mute-audio"],
 });
 let failed = false;
@@ -34,6 +34,6 @@ async function shoot(name) {
   await page.close();
 }
 const names = process.argv.slice(2);
-for (let i = 0; i < names.length; i += 2) await Promise.all(names.slice(i, i + 2).map(shoot));
+for (const name of names) await shoot(name);      // one at a time: two copies of the game at once starve each other
 await browser.close();
 process.exit(failed ? 1 : 0);

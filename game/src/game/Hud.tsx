@@ -51,9 +51,9 @@ function Title() {
   const saved = hasSave();
   // the models take a while to arrive the first time: say so, and do not start on a black screen
   const { active, progress } = useProgress();
-  const [begun, setBegun] = useState(false);
-  useEffect(() => { if (active) setBegun(true); const id = setTimeout(() => setBegun(true), 1500); return () => clearTimeout(id); }, [active]);
-  const ready = begun && !active;
+  const [ready, setReady] = useState(false);
+  // ready once nothing has been arriving for a moment, and it stays ready
+  useEffect(() => { if (ready || active) return; const id = setTimeout(() => setReady(true), 900); return () => clearTimeout(id); }, [active, ready]);
   return (
     <div className="screen title">
       <div className="embers">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${-i * 1.3}s`, animationDuration: `${9 + (i % 5) * 2}s` }} />)}</div>

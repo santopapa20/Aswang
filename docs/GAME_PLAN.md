@@ -1,6 +1,6 @@
 # Aswang Night: what is built, and what is next
 
-Updated 2026-11-24. The design is `DESIGN_PROPOSAL.md` (direction B, the vigil) with a loot-and-level
+Updated 2026-11-24 (map and bug pass). The design is `DESIGN_PROPOSAL.md` (direction B, the vigil) with a loot-and-level
 loop added on top, as Keith asked. This file tracks the state of the build.
 
 ## The game in one paragraph
@@ -32,13 +32,16 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 | Screens | Title, pause, bag, trade, dialogue with a typewriter and letterbox, a card naming each day and night, cockcrow report, endings. Progress saved at each dusk and morning |
 | Guidance | A card that always says what to do next, an arrow to where it is (with distance), soft rings under things you can use, key-cap prompts with a hold ring, and the house's four openings shown top-left, turning red when one is attacked |
 | Look | Two bundled typefaces (Cinzel, Cormorant Garamond), line icons drawn in code, film grain, a vignette that reddens with danger, a camera that draws back when she is on the roof |
+| Ground and plants | The ground is one painted surface: worn earth with ragged edges where people walk, damp dark soil under trees and houses, and shadows that fall to the south-east. Grass grows in swaying clumps; the edge of the map is a wall of broad-leaved undergrowth |
+| Night | Fireflies (thick about the balete), mist lying in the low ground, warm light spilling from lit windows, a firmer moon |
+| Comfort | A loading bar on the title; the world stops while the bag, the trade or the pause is open; a house or tree between the camera and you thins to a screen of dots instead of hiding you |
 
 ## Not built yet
 
 - **The amalanhig** (the enemy you can fight and loot). Needs a model, so there is no combat beyond the whip.
 - **Models still missing:** Nong Kadyo and the hilot. They are voices at a door for now.
-- **A few props are still stand-ins:** the fire pit and the trail marker are simple shapes built in
-  code. Chests, pots, sacks, firewood, herbs, shrubs, ferns and rock piles are gallery models
+- **A few props are still built in code:** the fire ring, the trail marker, the undergrowth and the
+  grass. They are shaped and shaded to sit with the models, but they are not models. Chests, pots, sacks, firewood, herbs, shrubs, ferns and rock piles are gallery models
   (`assets/props/`, credited in `CREDITS.md`).
 - **Real sound:** everything is synthesized. Recorded night ambience and voices would lift it a great deal.
 - **Balance:** the numbers come from scripted test runs, not from people playing.
@@ -46,12 +49,22 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 
 ## How it was tested
 
-`npm run selftest` (in `game/`, with the dev server running) plays all five nights by script in a
+Three tools, all in `game/scripts/` and all needing the dev server running.
+
+`npm run selftest` plays all five nights by script in a
 headless browser and checks 76 things: movement, every item, every errand, each creature's rule,
 trade, charms, levels, saving, the endings and losing. `npm run shots` photographs the main screens
 into `game/shots/`. Both run on the real graphics card and reported 45 to 80 frames a second.
 
-What that does not cover: nobody has played it by hand, so difficulty and feel are a first guess,
+`node scripts/play.mjs` plays the first day and night in real time with real key presses and takes
+pictures as it goes. It found what the stepped test could not: a black screen at the start, the
+aswang stuck against a wall for the rest of a night, a house hiding the player, creatures that kept
+moving while the bag was open. All four are fixed.
+
+`node scripts/frames.mjs` stands in a dozen places by day and night and reports frames per second
+and the longest single frame.
+
+What none of this covers: nobody has played it by hand, so difficulty and feel are a first guess,
 and the sound (all synthesized) has not been listened to.
 
 ## How it is built

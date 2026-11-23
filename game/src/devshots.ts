@@ -69,7 +69,7 @@ const SHOTS: Record<string, () => Promise<void>> = {
 };
 
 export async function runShot(name: string) {
-  for (let i = 0; i < 200 && !(typeof dev()?.run === "function" && live.fps > 0); i++) await sleep(150);
+  for (let i = 0; i < 700 && !(typeof dev()?.run === "function" && live.fps > 0); i++) await sleep(150);
   if (name === "selftest") await (await import("./devtest")).selfTest();
   else if (/^at_/.test(name)) {
     // at_<x>_<z>_<d|n>: stand anywhere on the map by day or by night (for looking the map over)

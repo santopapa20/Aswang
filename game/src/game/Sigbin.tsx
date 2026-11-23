@@ -36,6 +36,8 @@ export function Sigbin() {
   const mode = useRef<Mode>("kennel");
   const timer = useRef(0);
   const roam = useRef({ x: 0, z: 0, wait: 0 });
+  const stall = useRef(0);
+  const detour = useRef({ t: 0, side: 1 });
 
   useEffect(() => {
     mode.current = "kennel"; timer.current = 0;
@@ -65,9 +67,19 @@ export function Sigbin() {
     const stepTo = (tx: number, tz: number, speed: number) => {
       const len = Math.hypot(tx - s.x, tz - s.z);
       if (len < 0.05) return false;
-      const nx = s.x + ((tx - s.x) / len) * speed * dt, nz = s.z + ((tz - s.z) / len) * speed * dt;
+      let ux = (tx - s.x) / len, uz = (tz - s.z) / len;
+      if (detour.current.t > 0) {            // it has been pushing at something solid: step round it
+        detour.current.t -= dt;
+        const k = detour.current.side, sx = ux * 0.35 - uz * k, sz = uz * 0.35 + ux * k, n = Math.hypot(sx, sz);
+        ux = sx / n; uz = sz / n;
+      }
+      const bx = s.x, bz = s.z, nx = s.x + ux * speed * dt, nz = s.z + uz * speed * dt;
       if (game.lines.some((l) => crossesLine(s.x, s.z, nx, nz, l))) return false;
       s.x = nx; s.z = nz; pushOut(s, 0.45);
+      if (Math.hypot(s.x - bx, s.z - bz) < speed * dt * 0.35) {
+        stall.current += dt;
+        if (stall.current > 0.35) { stall.current = 0; detour.current = { t: 1.2, side: -detour.current.side }; }
+      } else stall.current = Math.max(0, stall.current - dt * 0.5);
       return true;
     };
     const away = Math.atan2(-dx, -dz), towards = Math.atan2(dx, dz);
