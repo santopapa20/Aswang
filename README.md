@@ -17,7 +17,18 @@ new one borrows its garlic and sash labels and its test skin weights from them.
 
 One small barrio map and one night: the player with his lamp, one aswang and one manananggal, salt
 and garlic as counters, win at sunrise or lose when caught. Village: one or two Tripo models plus
-free CC0 assets. Engine proposed: browser, React Three Fiber (awaiting Keith's confirmation).
+free assets. Engine: browser, React Three Fiber (agreed).
+
+## Running the game
+
+```bash
+cd game
+npm install      # first time only
+npm run dev      # then open http://localhost:5173
+```
+
+WASD or arrows to move, Shift to run, C to sneak, L to switch lamp shadows, R to restart.
+`npm run dev` first copies the finished models from `assets/` into `game/public/models/`.
 
 ## Folders
 
@@ -25,6 +36,9 @@ free CC0 assets. Engine proposed: browser, React Three Fiber (awaiting Keith's c
 - `assets/player/` the player: reference images, Tripo exports, coloured model, rig-ready model
 - `assets/player/mixamo/` the file to upload to Mixamo and the upload steps (`README.md` there)
 - `assets/player/rig_test/` renders from the bend test
+- `assets/village/` hut and fence exported from Tripo's community gallery (wooden thatched hut by LégioFr,
+  bamboo fence; credit the creators), shrunk with `optimize_model.py`
+- `game/` the browser game (Vite, React, three.js via React Three Fiber)
 - `tools/blender/` the asset scripts
 
 ## Asset pipeline

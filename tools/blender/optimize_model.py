@@ -13,7 +13,10 @@ OTHER_PX = int(argv[5]) if len(argv) > 5 else 1024
 os.makedirs(OUT, exist_ok=True)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath=SRC, merge_vertices=True)
+if SRC.lower().endswith(".fbx"):
+    bpy.ops.import_scene.fbx(filepath=SRC)          # textures are picked up from the folder beside it
+else:
+    bpy.ops.import_scene.gltf(filepath=SRC, merge_vertices=True)
 meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
 bpy.ops.object.select_all(action="DESELECT")
 for o in meshes: o.select_set(True)
