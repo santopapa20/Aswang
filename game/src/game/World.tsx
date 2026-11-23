@@ -3,13 +3,13 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import {
   BufferAttribute, BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, DirectionalLight, DoubleSide, FogExp2, Group,
-  HemisphereLight, IcosahedronGeometry, InstancedMesh, LatheGeometry, Mesh, MeshStandardMaterial, Object3D, PointLight,
+  HemisphereLight, IcosahedronGeometry, InstancedMesh, Mesh, MeshStandardMaterial, Object3D, PointLight,
   RepeatWrapping, SRGBColorSpace, Vector2, Vector3,
 } from "three";
 import { useProp } from "./useProp";
 import { live, useGame } from "./state";
 import {
-  balete, Blob, bushes, FENCE_LENGTH, fences, firePit, home, houses, HUT, nodes, openings, palms, patches, paths, rocks, seeded,
+  balete, Blob, bushes, decor, FENCE_LENGTH, fences, firePit, home, houses, HUT, nodes, openings, palms, patches, paths, rocks, seeded,
   trail, tufts, well,
 } from "./layout";
 
@@ -140,6 +140,17 @@ function bushGeometry() {
   return g;
 }
 
+/** Splits scattered things into squares of ground, so each square can be skipped when it is off screen. */
+function inSquares(items: Blob[], size: number) {
+  const squares = new Map<string, Blob[]>();
+  for (const it of items) {
+    const key = `${Math.floor(it.x / size)},${Math.floor(it.z / size)}`;
+    if (!squares.has(key)) squares.set(key, []);
+    squares.get(key)!.push(it);
+  }
+  return [...squares.values()];
+}
+
 function Scatter({ items, geometry, colour, squash, vary, flat, sway, tinted }: {
   items: Blob[]; geometry: BufferGeometry; colour: string; squash: [number, number, number]; vary: number; flat?: boolean; sway?: boolean; tinted?: boolean;
 }) {
@@ -159,7 +170,7 @@ function Scatter({ items, geometry, colour, squash, vary, flat, sway, tinted }: 
     m.computeBoundingSphere();
   }, [items, colour, squash, vary]);
   return (
-    <instancedMesh ref={ref} args={[geometry, undefined, items.length]} frustumCulled={false} receiveShadow={!sway}>
+    <instancedMesh ref={ref} args={[geometry, undefined, items.length]} receiveShadow={!sway}>
       <meshLambertMaterial vertexColors={!!sway || !!tinted} side={sway ? DoubleSide : undefined} flatShading={flat} />
     </instancedMesh>
   );
@@ -186,6 +197,7 @@ export function World() {
     path: pathGeometry(), tuft: tuftGeometry(), bush: bushGeometry(), rock: new IcosahedronGeometry(1, 0),
   }), []);
 
+  const squares = useMemo(() => ({ tufts: inSquares(tufts, 24), bushes: inSquares(bushes, 24) }), []);
   const hutModels = useProp("/models/hut.glb", HUT.height, "y", houses.length, shadows);
   const fenceModels = useProp("/models/fence.glb", FENCE_LENGTH, "x", fences.length, shadows);
   const palmModels = useProp("/models/palm.glb", 1, "y", palms.length, shadows);     // 1 m tall, scaled per tree below
@@ -249,8 +261,8 @@ export function World() {
         <meshStandardMaterial map={tex.dirt} alphaMap={tex.edge} transparent depthWrite={false} roughness={1} />
       </mesh>
 
-      <Scatter items={tufts} geometry={geo.tuft} colour="#ffffff" squash={[1, 1, 1]} vary={0.5} sway />
-      <Scatter items={bushes} geometry={geo.bush} colour="#3a5230" squash={[0.72, 0.62, 0.72]} vary={0.35} tinted />
+      {squares.tufts.map((part, i) => <Scatter key={`t${i}`} items={part} geometry={geo.tuft} colour="#ffffff" squash={[1, 1, 1]} vary={0.5} sway />)}
+      {squares.bushes.map((part, i) => <Scatter key={`b${i}`} items={part} geometry={geo.bush} colour="#3a5230" squash={[0.72, 0.62, 0.72]} vary={0.35} tinted />)}
       <Scatter items={rocks} geometry={geo.rock} colour="#6f6a62" squash={[1, 0.55, 0.8]} vary={0.3} flat />
 
       {houses.map((h, i) => (
@@ -269,6 +281,7 @@ export function World() {
       <primitive object={baleteModels[0]} position={[balete.x, 0, balete.z]} rotation-y={0.9} />
 
       <HomeYard />
+      <Dressing />
       <LootNodes />
       <SaltLines />
       <TrailMarker />
@@ -381,48 +394,48 @@ function HomeYard() {
   );
 }
 
+/** Shrubs, ferns and rock piles from the gallery models. */
+function Dressing() {
+  const shadows = useGame((s) => s.shadows);
+  const of = (kind: string) => decor.filter((d) => d.kind === kind);
+  const shrubs = useProp("/models/shrub.glb", 1.5, "y", of("shrub").length, shadows);
+  const ferns = useProp("/models/fern.glb", 1.0, "y", of("fern").length, shadows);
+  const piles = useProp("/models/rocks.glb", 1.3, "x", of("rocks").length, shadows);
+  const sets: [string, Object3D[]][] = [["shrub", shrubs], ["fern", ferns], ["rocks", piles]];
+  return (
+    <>
+      {sets.map(([kind, models]) => of(kind).map((d, i) => (
+        <primitive key={kind + i} object={models[i]} position={[d.x, 0, d.z]} rotation-y={d.r} scale={d.s} />
+      )))}
+    </>
+  );
+}
+
 /** Chests, jars, sacks, fronds and herbs. A searched one looks searched. */
 function LootNodes() {
   const searched = useGame((s) => s.searched);
-  const jar = useMemo(() => new LatheGeometry([[0.001, 0], [0.16, 0], [0.26, 0.16], [0.27, 0.34], [0.18, 0.5], [0.13, 0.56], [0.17, 0.62]].map(([x, y]) => new Vector2(x, y)), 14), []);
-  const sack = useMemo(() => new LatheGeometry([[0.001, 0], [0.24, 0.01], [0.33, 0.14], [0.31, 0.36], [0.2, 0.5], [0.08, 0.56], [0.07, 0.6], [0.15, 0.68], [0.001, 0.66]].map(([x, y]) => new Vector2(x, y)), 12), []);
+  const count = (kind: string) => nodes.filter((n) => n.kind === kind).length;
+  const model: Record<string, Object3D[]> = {
+    baul: useProp("/models/chest.glb", 0.95, "x", count("baul"), false),
+    banga: useProp("/models/pot.glb", 0.62, "y", count("banga"), false),
+    sako: useProp("/models/sack.glb", 0.78, "y", count("sako"), false),
+    kindling: useProp("/models/logs.glb", 0.95, "x", count("kindling"), false),
+    herbs: useProp("/models/fern.glb", 0.55, "y", count("herbs"), false),
+  };
+  const nth: Record<string, number> = {};
   return (
     <>
       {nodes.map((n) => {
         const done = searched.includes(n.id);
+        const i = (nth[n.kind] = (nth[n.kind] ?? -1) + 1);
+        // searched: firewood and herbs are taken; a pot or sack lies on its side; a chest is left askew
+        const gone = done && (n.kind === "kindling" || n.kind === "herbs");
+        const tip = !done ? 0 : n.kind === "banga" ? 1.4 : n.kind === "sako" ? 1.45 : 0;
         return (
-          <group key={n.id} position={[n.x, 0, n.z]} rotation-y={n.rot}>
-            {n.kind === "baul" && (
-              <>
-                <mesh position={[0, 0.2, 0]}><boxGeometry args={[0.92, 0.4, 0.5]} /><meshStandardMaterial color="#4a3320" roughness={0.85} /></mesh>
-                <group position={[0, 0.4, -0.25]} rotation-x={done ? -1.25 : 0}>
-                  <mesh position={[0, 0.06, 0.25]}><boxGeometry args={[0.96, 0.12, 0.54]} /><meshStandardMaterial color="#553a24" roughness={0.85} /></mesh>
-                </group>
-                {[-0.3, 0.3].map((x) => (
-                  <mesh key={x} position={[x, 0.2, 0]}><boxGeometry args={[0.06, 0.42, 0.52]} /><meshStandardMaterial color="#2c2a28" roughness={0.6} metalness={0.5} /></mesh>
-                ))}
-              </>
-            )}
-            {n.kind === "banga" && (
-              <mesh geometry={jar} rotation-z={done ? 1.35 : 0} position={[0, done ? 0.26 : 0, 0]}>
-                <meshStandardMaterial color="#8a4f33" roughness={0.9} side={DoubleSide} />
-              </mesh>
-            )}
-            {n.kind === "sako" && (
-              <mesh geometry={sack} rotation-z={done ? 1.45 : 0.06} position={[0, done ? 0.3 : 0, 0]} scale={done ? [1, 0.75, 1] : 1}>
-                <meshStandardMaterial color="#75633f" roughness={1} side={DoubleSide} />
-              </mesh>
-            )}
-            {n.kind === "kindling" && !done && [0, 1, 2, 3, 4].map((i) => (
-              <mesh key={i} position={[(i - 2) * 0.08, 0.06 + (i % 2) * 0.07, 0]} rotation={[Math.PI / 2, 0, i * 0.5 - 1]}>
-                <cylinderGeometry args={[0.03, 0.045, 1.1, 5]} /><meshStandardMaterial color="#6a5330" roughness={1} />
-              </mesh>
-            ))}
-            {n.kind === "herbs" && !done && [0, 1, 2, 3, 4, 5].map((i) => (
-              <mesh key={i} position={[Math.cos(i * 1.1) * 0.22, 0.2, Math.sin(i * 1.1) * 0.22]} rotation={[0.3 * Math.cos(i), 0, 0.3 * Math.sin(i)]}>
-                <coneGeometry args={[0.1, 0.42, 4]} /><meshStandardMaterial color={i % 3 ? "#4f7a3a" : "#c9c79a"} roughness={1} flatShading />
-              </mesh>
-            ))}
+          <group key={n.id} position={[n.x, 0, n.z]} rotation-y={n.rot} visible={!gone}>
+            <group rotation-z={tip} position-y={tip ? 0.28 : 0} rotation-x={done && n.kind === "baul" ? -0.22 : 0}>
+              <primitive object={model[n.kind][i]} />
+            </group>
           </group>
         );
       })}

@@ -35,6 +35,8 @@ export const RARITY = [
 ];
 export type Charm = { id: number; stat: StatId; rarity: number; value: number };
 export const charmName = (c: Charm) => `${RARITY[c.rarity].name} habak of ${STATS[c.stat].noun}`;
+/** The name with "a" or "an" in front, for sentences. */
+export const aCharm = (c: Charm) => `${/^[AEIOU]/.test(charmName(c)) ? "an" : "a"} ${charmName(c)}`;
 export function makeCharm(id: number, rnd: () => number, bonus = 0): Charm {
   const stats = Object.keys(STATS) as StatId[];
   const roll = rnd() - bonus;

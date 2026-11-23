@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { carried, endingText, hasSave, live, mods, useGame } from "./state";
-import { CHARM_HERBS, charmName, HERB_PRICE, TONIC, ITEM_ORDER, ITEMS, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
+import { aCharm, CHARM_HERBS, charmName, HERB_PRICE, TONIC, ITEM_ORDER, ITEMS, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
 import { ERRANDS, NIGHTS } from "./story";
 import { openings } from "./layout";
 import { choose } from "./input";
@@ -207,7 +207,7 @@ function Trade() {
         <button className="perk" disabled={g.bag.herbs < 1} onClick={() => { if (g.spend("herbs", 1)) g.add("coins", HERB_PRICE); }}>
           <b>Sell a bundle of herbs</b><span className="rank">+{HERB_PRICE} c</span><p>He always needs them.</p>
         </button>
-        <button className="perk" disabled={g.bag.herbs < CHARM_HERBS} onClick={() => { if (g.spend("herbs", CHARM_HERBS)) { const c = g.addCharm(0.05); g.toast(`Nong Kadyo binds a ${charmName(c)}.`, "good"); } }}>
+        <button className="perk" disabled={g.bag.herbs < CHARM_HERBS} onClick={() => { if (g.spend("herbs", CHARM_HERBS)) { const c = g.addCharm(0.05); g.toast(`Nong Kadyo binds ${aCharm(c)}.`, "good"); } }}>
           <b>Have a charm bound</b><span className="rank">{CHARM_HERBS} herbs</span><p>He knots herbs, a prayer and a little oil into a habak. No two come out alike.</p>
         </button>
         <button className="perk" disabled={g.rosing >= 3 || g.tonicOn === g.night || g.bag.herbs < TONIC.herbs || g.bag.coins < TONIC.coins}

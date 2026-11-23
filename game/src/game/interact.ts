@@ -3,7 +3,7 @@
  * so a thing offers itself only when it makes sense (the well only when water is wanted, and so on).
  * E is the main action; G lays a protection at one of the house's openings.
  */
-import { ITEMS, ItemId, NODE, rollLoot, charmName } from "./data";
+import { ITEMS, ItemId, NODE, rollLoot, aCharm } from "./data";
 import { balete, doorOf, firePit, hidingSpots, home, house, nodes, openings, well } from "./layout";
 import { Game, live, mods, rnd } from "./state";
 import { KADYO_DAY, PACING_DAY, PROOF_TEXT, ROSING_SAYS } from "./story";
@@ -41,7 +41,7 @@ export function interactables(g: Game): Interactable[] {
         g.markSearched(n.id);
         g.gainXp(NODE[n.kind].xp);
         g.toast(Object.keys(got).length ? `Found: ${list(got)}${left ? ". You cannot carry the rest." : ""}` : "You cannot carry any more.", left ? "plain" : "good");
-        if (charm) { const c = g.addCharm(n.rich ? 0.04 : 0); g.toast(`Hidden at the bottom: a ${charmName(c)}.`, "good"); g.gainXp(15); }
+        if (charm) { const c = g.addCharm(n.rich ? 0.04 : 0); g.toast(`Hidden at the bottom: ${aCharm(c)}.`, "good"); g.gainXp(15); }
       },
     });
   }

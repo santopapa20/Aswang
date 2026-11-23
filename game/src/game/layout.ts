@@ -238,6 +238,24 @@ const clearOfThings = (x: number, z: number, pad: number) =>
   }
 }
 
+// ---- set dressing: real models, placed on purpose ---------------------------------------------
+export type Decor = { kind: "rocks" | "shrub" | "fern"; x: number; z: number; s: number; r: number };
+export const decor: Decor[] = [];
+for (const h of houses) {
+  if (!h.lit) continue;
+  decor.push({ kind: "shrub", x: h.x - 4.9, z: h.z - 3.9, s: 1.25, r: h.x });           // in the back corners of each lived-in yard
+  decor.push({ kind: "shrub", x: h.x + 5.2, z: h.z - 4.1, s: 1.05, r: h.z });
+}
+for (const [x, z, s] of [[7.6, 9.2, 1.2], [-4.6, -1.2, 1.0], [30.2, 4.6, 1.3], [96.4, 4.4, 1.2], [112, -19, 1.3], [-31, 14, 1.3]]) decor.push({ kind: "shrub", x, z, s, r: x * z });
+for (const [x, z, s] of [[5.4, 20.5, 1.0], [-6.6, 9.4, 0.8], [9.2, -3.4, 0.9], [27.4, 3.4, 1.1], [-10.4, -10.6, 0.9], [21.6, -12, 0.8], [97.2, -3.8, 1.0], [108.6, 4.6, 0.9], [116.2, 3.2, 1.1], [-2.6, 26, 0.9]]) {
+  decor.push({ kind: "rocks", x, z, s, r: x + z });
+}
+palms.filter((p) => p.solid).slice(0, 26).forEach((p, i) => decor.push({ kind: "fern", x: p.x + Math.cos(i * 2.4) * 1.1, z: p.z + Math.sin(i * 2.4) * 1.1, s: 0.7 + (i % 3) * 0.12, r: i }));
+for (let p = 0; p < 4; p++) {
+  const base = 37 + p * trail.period;                                                  // the trail's dressing repeats with its trees
+  decor.push({ kind: "fern", x: base + 4.6, z: -3.9, s: 0.8, r: 1 }, { kind: "fern", x: base + 11.6, z: 4.0, s: 0.75, r: 2 }, { kind: "rocks", x: base + 7.4, z: 4.3, s: 0.7, r: 3 });
+}
+
 // ---- collision -------------------------------------------------------------------------------
 export type Circle = { x: number; z: number; r: number };
 export const solids: Circle[] = [
@@ -248,6 +266,7 @@ export const solids: Circle[] = [
   { x: firePit.x, z: firePit.z, r: 0.5 },
   ...nodes.filter((n) => n.kind !== "herbs").map((n) => ({ x: n.x, z: n.z, r: 0.45 })),
   { x: trail.marker.x, z: trail.marker.z, r: 0.3 },
+  ...decor.filter((d) => d.kind !== "fern").map((d) => ({ x: d.x, z: d.z, r: d.kind === "rocks" ? 0.5 * d.s : 0.55 * d.s })),
 ];
 export const boxes = houses.map((h) => ({ x: h.x, z: h.z, hx: HUT.hx + 0.1, hz: HUT.hz + 0.1 }));
 

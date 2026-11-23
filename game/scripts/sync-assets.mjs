@@ -22,6 +22,7 @@ const files = [
   ["rosary", join("assets", "items", "rosary.glb")],
   ["lantern", join("assets", "items", "lantern.glb")],
   ["garlic", join("assets", "items", "garlic.glb")],
+  ...["chest", "pot", "sack", "rocks", "logs", "fern", "shrub"].map((n) => [n, join("assets", "props", `${n}.glb`)]),
 ];
 for (const [name, rel] of files) {
   const src = join(root, rel);

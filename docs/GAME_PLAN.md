@@ -35,8 +35,9 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 - **The amalanhig** (the enemy you can fight and loot). Needs a model, so there is no combat beyond the whip.
 - **Models still missing:** the kapre (Keith has generated one; it is not rigged or in the game), Nong
   Kadyo, the hilot, the sigbin. Kadyo and the hilot are voices at a door for now.
-- **Props are stand-ins:** chests, jars, sacks, kindling, herbs, the fire pit and the trail marker are
-  simple shapes built in code.
+- **A few props are still stand-ins:** the fire pit and the trail marker are simple shapes built in
+  code. Chests, pots, sacks, firewood, herbs, shrubs, ferns and rock piles are gallery models
+  (`assets/props/`, credited in `CREDITS.md`).
 - **Real sound:** everything is synthesized. Recorded night ambience and voices would lift it a great deal.
 - **Balance:** the numbers come from scripted test runs, not from people playing.
 - **The opening walk-in**, a title-screen settings page, and quality levels.
@@ -54,4 +55,5 @@ background tab, so frame rate and feel are unmeasured.
 - `layout.ts` is the map as data. `data.ts` is items, loot, charms and perks. `story.ts` is the nights
   and every line of speech. `state.ts` is the game state and saving. `interact.ts` is everything you
   can do by standing next to something.
-- Rendering budget seen in tests: 170 to 225 thousand triangles and 13 to 50 draw calls per frame.
+- Rendering budget seen in tests: 140 to 220 thousand triangles and 20 to 56 draw calls per frame.
+  Grass and undergrowth are drawn in squares of ground so that off-screen squares are skipped.
