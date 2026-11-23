@@ -48,7 +48,8 @@ const SHOTS: Record<string, () => Promise<void>> = {
     dev().run(4);
   },
   trail: async () => { await dusk(3); at(61, 0.6); dev().run(2); },
-  balete: async () => { await dusk(4); at(-22.8, -16.4); dev().run(22); at(-23, -16.6); },
+  balete: async () => { await dusk(4); at(-26.2, -14.2); dev().run(22); at(-26, -14); },
+  kapre: async () => { await dusk(4); at(-27, -15); key("ShiftLeft"); key("KeyA"); dev().run(1.0); key("KeyA", false); key("ShiftLeft", false); dev().run(1.6); },
   bag: async () => { await begin(3); for (let i = 0; i < 4; i++) G().addCharm(i * 0.03); G().gainXp(150); G().set({ hasWhip: true, proofs: { salt: true, oil: false, skirt: false } }); G().setPanel("bag"); },
   trade: async () => { await begin(2); at(24, -18.7); G().setPanel("trade"); },
   pause: async () => { await dusk(1); G().setPanel("pause"); },

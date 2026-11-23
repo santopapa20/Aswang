@@ -5,6 +5,7 @@
  */
 import { live, mods, useGame } from "./game/state";
 import { doorOf, firePit, hidingSpots, home, house, well } from "./game/layout";
+import { BALETE_ROOTS } from "./game/interact";
 
 type Dev = { run: (seconds: number, fps?: number) => void; show: () => void };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -172,7 +173,7 @@ async function play() {
   check("night 4: the kapre errand", G().errand?.id === "kapre", G().errand);
   live.player.set(-27, 0, -15); key("ShiftLeft"); key("KeyA"); run(1.2); key("KeyA", false); key("ShiftLeft", false);
   check("running under the balete gets the lamp blown out", live.lampBlown > 0 && G().kapre === "angry", { blown: live.lampBlown.toFixed(0), kapre: G().kapre });
-  live.lampBlown = 0; at(-24.6, -17.6); hold("KeyE", 1.6);
+  live.lampBlown = 0; at(BALETE_ROOTS.x + 0.5, BALETE_ROOTS.z + 0.6); hold("KeyE", 1.6);
   check("tobacco befriends it", G().kapre === "friend" && G().errand?.step === 1, G().kapre);
   at(hidingSpots[0].x + 0.4, hidingSpots[0].z + 1.2); hold("KeyE", 1.4);
   check("the legs are recognised", G().proofs.skirt && G().legsSeen, G().proofs);

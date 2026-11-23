@@ -69,6 +69,8 @@ export const lurkPoints: P2[] = [
 // ---- landmarks -------------------------------------------------------------------------------
 export const well: P2 = { x: 2, z: 4 };
 export const balete = { x: -27, z: -22, height: 7, yard: 8.5 };
+/** Where the kapre stands after dark: against the balete's trunk, on the side the barrio can see. */
+export const kapreSpot: P2 = { x: balete.x - 2.7, z: balete.z + 2.4 };
 export const START: P2 = { x: 2, z: 30 };
 /** Where the manananggal may leave her lower half. The first is by the balete's roots. */
 export const hidingSpots: P2[] = [
@@ -264,6 +266,7 @@ export const solids: Circle[] = [
   { x: well.x, z: well.z, r: 1.05 },
   { x: balete.x, z: balete.z, r: balete.height * 0.2 },
   { x: firePit.x, z: firePit.z, r: 0.5 },
+  { x: kapreSpot.x, z: kapreSpot.z, r: 0.95 },
   ...nodes.filter((n) => n.kind !== "herbs").map((n) => ({ x: n.x, z: n.z, r: 0.45 })),
   { x: trail.marker.x, z: trail.marker.z, r: 0.3 },
   ...decor.filter((d) => d.kind !== "fern").map((d) => ({ x: d.x, z: d.z, r: d.kind === "rocks" ? 0.5 * d.s : 0.55 * d.s })),

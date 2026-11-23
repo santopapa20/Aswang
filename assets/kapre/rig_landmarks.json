@@ -1,0 +1,21 @@
+{
+  "_comment": "Kapre: single fused piece, no detachable props. Joint positions measured on kapre_rigready.blend (its own units, 0.976 tall; faces -Y, its left is +X). Left side only; the right side is mirrored. Used by tools/blender/rig_humanoid.py.",
+  "hips": [0.0, -0.005, 0.545],
+  "spine": [0.0, -0.010, 0.610],
+  "chest": [0.0, -0.012, 0.675],
+  "upper_chest": [0.0, -0.012, 0.740],
+  "neck": [0.0, -0.008, 0.805],
+  "head": [0.0, -0.026, 0.845],
+  "head_end": [0.0, -0.030, 0.965],
+  "clavicle": [0.035, -0.005, 0.795],
+  "shoulder": [0.136, 0.015, 0.790],
+  "elbow": [0.200, 0.020, 0.665],
+  "wrist": [0.272, 0.010, 0.530],
+  "hand_tip": [0.268, -0.020, 0.440],
+  "hip": [0.075, -0.005, 0.525],
+  "knee": [0.105, -0.012, 0.345],
+  "ankle": [0.127, 0.017, 0.100],
+  "toe": [0.145, -0.088, 0.030],
+  "toe_tip": [0.155, -0.130, 0.020],
+  "props": {}
+}

@@ -21,7 +21,7 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 | Aswang (on foot, nights 1 and 3) | Waits outside the light, tries one opening at a time, draws off when you bring the lamp to her, hunts you if you are far from the house or in the dark |
 | Manananggal (nights 2, 4, 5) | Settles on the roof unless smoke stops her; striking the house post drives her off and brings her down on you; dives at your lamp away from the house; ended by salting her lower half |
 | Tikbalang (trail, night 3 on) | Does not kill. The trail loops until you turn your shirt inside out (hold T) |
-| Kapre | An ember in the balete. Run under the tree and it blows out your lamp; leave tobacco and on the last night its ember shows where the legs are. No model in the game yet |
+| Kapre | A three-metre giant standing in the balete's roots after dark, lit by his cigar. Run under the tree and he roars and blows out your lamp; leave tobacco at his feet and on the last night his ember shows where the legs are |
 | Nang Pacing | Walks the barrio by day, visits each morning, makes her offer on day 3 |
 | Nong Kadyo | Heard at his door (no model yet): advice each day, trade, charms, a tonic for Rosing, the whip |
 | Loot | 20 places to search (chests, jars, sacks, fronds, herbs), refilled each day and each night; the old sitio is richer |
@@ -35,8 +35,8 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 ## Not built yet
 
 - **The amalanhig** (the enemy you can fight and loot). Needs a model, so there is no combat beyond the whip.
-- **Models still missing:** the kapre (Keith has generated one; it is not rigged or in the game), Nong
-  Kadyo, the hilot, the sigbin. Kadyo and the hilot are voices at a door for now.
+- **Models still missing:** Nong Kadyo, the hilot and the sigbin. Kadyo and the hilot are voices at a
+  door for now.
 - **A few props are still stand-ins:** the fire pit and the trail marker are simple shapes built in
   code. Chests, pots, sacks, firewood, herbs, shrubs, ferns and rock piles are gallery models
   (`assets/props/`, credited in `CREDITS.md`).

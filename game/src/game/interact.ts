@@ -4,7 +4,7 @@
  * E is the main action; G lays a protection at one of the house's openings.
  */
 import { ITEMS, ItemId, NODE, rollLoot, aCharm } from "./data";
-import { balete, doorOf, firePit, hidingSpots, home, house, nodes, openings, well } from "./layout";
+import { doorOf, firePit, hidingSpots, home, house, kapreSpot, nodes, openings, well } from "./layout";
 import { Game, live, mods, rnd } from "./state";
 import { KADYO_DAY, PACING_DAY, PROOF_TEXT, ROSING_SAYS } from "./story";
 
@@ -16,7 +16,8 @@ export type Interactable = {
 const DOOR = doorOf(home);
 const KADYO = doorOf(house("kadyo"));
 const HILOT = doorOf(house("hilot"));
-export const BALETE_ROOTS = { x: balete.x + 2.4, z: balete.z + 3.4 };
+/** Where an offering is left: on the ground at the kapre's feet. */
+export const BALETE_ROOTS = { x: kapreSpot.x + 1.5, z: kapreSpot.z + 1.5 };
 
 function list(found: Partial<Record<ItemId, number>>) {
   return (Object.keys(found) as ItemId[]).map((k) => `${found[k]} ${ITEMS[k].name.toLowerCase()}`).join(", ");
@@ -116,10 +117,10 @@ export function interactables(g: Game): Interactable[] {
   // ---- the balete and what stands in its roots
   if (night && g.kapre !== "friend") out.push({
     key: "roots", button: "E", x: BALETE_ROOTS.x, z: BALETE_ROOTS.z, r: 1.8, hold: 1.4,
-    label: g.bag.tobacco > 0 ? "Leave tobacco at the roots" : "You have nothing to leave at the roots",
+    label: g.bag.tobacco > 0 ? "Leave tobacco at the giant's feet" : "You have nothing to offer him",
     act: g.bag.tobacco > 0 ? () => {
       g.spend("tobacco", 1); g.set({ kapre: "friend" }); g.gainXp(30);
-      g.toast("High in the tree an ember brightens. Then it dips, once, toward the far side of the roots.", "good");
+      g.toast("He takes it without a word. The ember brightens, then dips once toward the far side of the roots.", "good");
       if (e?.id === "kapre" && e.step === 0) g.stepErrand();
     } : undefined,
   });

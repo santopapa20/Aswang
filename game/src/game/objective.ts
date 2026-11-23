@@ -2,7 +2,8 @@
  * What the player should be doing right now, in one line, and where. The interface shows it as a card
  * and an arrow; nothing in the game depends on it.
  */
-import { balete, doorOf, firePit, hidingSpots, home, house, openings, P2, well } from "./layout";
+import { doorOf, firePit, hidingSpots, home, house, openings, P2, well } from "./layout";
+import { BALETE_ROOTS as ROOTS } from "./interact";
 import { Game, live } from "./state";
 
 export type Objective = { title: string; text: string; target: P2 | null; urgent: boolean };
@@ -10,7 +11,6 @@ export type Objective = { title: string; text: string; target: P2 | null; urgent
 const DOOR = doorOf(home);
 const KADYO = doorOf(house("kadyo"));
 const HILOT = doorOf(house("hilot"));
-const ROOTS = { x: balete.x + 2.4, z: balete.z + 3.4 };
 const one = (title: string, text: string, target: P2 | null = null, urgent = false): Objective => ({ title, text, target, urgent });
 
 export function objective(g: Game): Objective {
@@ -43,7 +43,7 @@ export function objective(g: Game): Objective {
     if (e.id === "lana") return one("The albularyo's oil", "Knock at Nong Kadyo's hut and ask for the oil.", KADYO);
     if (e.id === "hilot") return e.step === 0 ? one("Call the hilot", "Take the trail east to the old sitio. Call at her lit window.", HILOT) : one("Call the hilot", "Go home.", DOOR);
     if (e.id === "kapre") {
-      if (e.step === 0) return one("The one in the balete", g.bag.tobacco > 0 ? "Leave tobacco at the roots. Walk. Do not run under the tree." : "You need tobacco. Old chests sometimes hold it.", ROOTS);
+      if (e.step === 0) return one("The one in the balete", g.bag.tobacco > 0 ? "Leave tobacco at the giant's feet. Walk. Do not run under the tree." : "You need tobacco. Old chests sometimes hold it.", ROOTS);
       if (e.step === 1) return one("The one in the balete", "Something stands in the roots on the far side. Look closer.", hidingSpots[0]);
       return one("The one in the balete", "Go home.", DOOR);
     }
