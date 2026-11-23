@@ -5,7 +5,8 @@ until sunrise while creatures from Philippine folklore (aswang, manananggal, wak
 kapre, sigbin) hunt you, each beaten by the counter the old stories give.
 
 Status: asset production. The player is rigged and animated (`assets/player/game/player.glb`, six clips:
-idle, look, walk, run, sneak, caught). The aswang is modelled, textured and prepared for rigging.
+idle, look, walk, run, sneak, caught) and so is the aswang (`assets/aswang/game/aswang.glb`, six clips:
+idle, walk, run, attack, scream, repelled).
 No game code yet; the engine and scope are still to be agreed. Full background is in `HANDOFF.md`.
 
 Current models: `assets/player/player_v2*` (Tripo-textured, the one in use) and `assets/aswang/aswang*`.

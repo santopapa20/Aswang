@@ -35,3 +35,10 @@ rest **Without Skin**. Save into `assets/aswang/mixamo/downloads/` as `idle.fbx`
 
 Expect her long hair to look stiff or stretched in Mixamo's preview. That is fixed afterwards by
 giving the hair its own bones; it is not a reason to stop.
+
+## What was actually downloaded (2026-11-23)
+
+Skeleton: Standard Skeleton (65), fingers included. Clips: `idle` = Zombie Idle (alert),
+`walk` = Zombie Walk (in place), `run` = Zombie Running (in place), `attack` = Zombie Attack
+(overhead two-hand), `scream` = Zombie Scream, `repelled` = Zombie Reaction Hit (stumble back).
+Merged into `assets/aswang/game/aswang.glb` with `tools/blender/merge_mixamo.py`.
