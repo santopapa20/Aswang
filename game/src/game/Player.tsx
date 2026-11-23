@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Group, PointLight, Vector3 } from "three";
+import { Group, Mesh, PointLight, Vector3 } from "three";
 import { live, mods, SHIRT_SECONDS, useGame } from "./state";
 import { pushOut } from "./layout";
 import { actions, moveAxis, held, toggles } from "./input";
@@ -25,6 +25,7 @@ export function Player() {
   const light = useRef<PointLight>(null);
   const fill = useRef<PointLight>(null);
   const blob = useRef<Group>(null);
+  const flame = useRef<Mesh>(null);
   const stillFor = useRef(0);
   const winded = useRef(false);
   const holding = useRef({ key: "", t: 0 });
@@ -32,7 +33,7 @@ export function Player() {
 
   useEffect(() => {
     stillFor.current = 0;
-    live.shirtTurn = 0; live.caught = 0; live.stamina = 1; live.prompt = null;
+    live.shirtTurn = 0; live.caught = 0; live.stamina = 1; live.prompts.E = live.prompts.G = null; live.near = [];
     holding.current = { key: "", t: 0 };
     api.reset();
     api.play("idle", { fade: 0 });
@@ -50,19 +51,24 @@ export function Player() {
 
     if (live.caught > 0) {
       api.play("caught", { once: true, fade: 0.15 });
-      live.playerNoise = 0; live.prompt = null;
+      live.playerNoise = 0; live.prompts.E = live.prompts.G = null; live.near = [];
     } else if (!free) {
       api.play("idle", { fade: 0.4 });
-      live.playerNoise = NOISE.still; live.prompt = null;
+      live.playerNoise = NOISE.still; live.prompts.E = live.prompts.G = null; live.near = [];
       holding.current.t = 0;
     } else {
       // ---- what is within reach (E and G)
       let near: Record<"E" | "G", Interactable | null> = { E: null, G: null };
       let best = { E: 9, G: 9 };
+      const around: typeof live.near = [];
       for (const it of interactables(game)) {
         const d = Math.hypot(it.x - live.player.x, it.z - live.player.z);
         if (d < it.r && d < best[it.button]) { best[it.button] = d; near[it.button] = it; }
+        // one ring per place: the door offers both E and G, and they would draw on top of each other
+        if (d < 7.5 && it.act && around.length < 10 && !around.some((a) => Math.hypot(a.x - it.x, a.z - it.z) < 0.6)) around.push({ x: it.x, z: it.z, r: Math.min(0.8, it.r * 0.45), button: it.button, focus: false });
       }
+      for (const a of around) a.focus = [near.E, near.G].some((n) => n && Math.hypot(n.x - a.x, n.z - a.z) < 0.6);
+      live.near = around;
       const button = held.has("KeyE") && near.E?.act ? "E" : held.has("KeyG") && near.G?.act ? "G" : null;
       const using = button ? near[button]! : null;
       // turning his shirt inside out breaks the tikbalang's hold; he must stand still for it
@@ -103,8 +109,10 @@ export function Player() {
         holding.current.t += dt;
         if (holding.current.t >= using.hold) { holding.current.t = 0; held.delete(button === "E" ? "KeyE" : "KeyG"); using.act!(); sound.blip(); }
       } else holding.current.t = 0;
-      const shown = using ?? near.E ?? near.G;
-      live.prompt = shown ? { key: shown.button, label: shown.label + (near.E && near.G && !using ? `   ·   G: ${near.G.label}` : ""), progress: using ? holding.current.t / Math.max(0.01, using.hold) : shown.act ? 0 : -1 } : null;
+      for (const b of ["E", "G"] as const) {
+        const it = near[b];
+        live.prompts[b] = it ? { label: it.label, progress: !it.act ? -1 : using === it ? holding.current.t / Math.max(0.01, it.hold) : 0 } : null;
+      }
 
       // ---- Q pours a line of salt across the ground just ahead of him
       if (actions.pour) {
@@ -147,6 +155,7 @@ export function Player() {
       light.current.intensity += (want - light.current.intensity) * Math.min(1, dt * 6);
       light.current.distance = 17 * m.lamp;
       if (fill.current) fill.current.intensity = light.current.intensity * 0.3;
+      if (flame.current) flame.current.visible = strength > 0 && dark > 0.2;
     }
   });
 
@@ -164,6 +173,11 @@ export function Player() {
       </group>
       <group ref={lamp}>
         <primitive object={lantern} position={[0, -0.2, 0]} />
+        {/* the flame itself: a small bright core, so the lantern reads as lit from any distance */}
+        <mesh ref={flame} position={[0, -0.06, 0]}>
+          <sphereGeometry args={[0.034, 10, 8]} />
+          <meshBasicMaterial color="#ffc978" fog={false} />
+        </mesh>
         <pointLight
           ref={light}
           color="#ffae5c"

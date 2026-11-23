@@ -8,6 +8,7 @@ import { Manananggal } from "./game/Manananggal";
 import { Tikbalang } from "./game/Tikbalang";
 import { Director, Kapre, Pacing } from "./game/Cast";
 import { Hud } from "./game/Hud";
+import { Guide } from "./game/Guide";
 import { useKeyboard } from "./game/input";
 import { live, useGame } from "./game/state";
 import { home } from "./game/layout";
@@ -18,6 +19,8 @@ const CAMERA_OFFSET = new Vector3(0, 8.6, 7.2);
 function FollowCamera() {
   const target = useRef(new Vector3().copy(live.player));
   const want = useRef(new Vector3());
+  const pull = useRef(1);
+  const aim = useRef(new Vector3());
   useFrame(({ camera, clock }, dt) => {
     const game = useGame.getState();
     if (game.stage === "title") {
@@ -32,8 +35,14 @@ function FollowCamera() {
     if (live.jump) { target.current.x += live.jump; live.jump = 0; }
     if (target.current.distanceTo(live.player) > 30) target.current.copy(live.player);
     const k = 1 - Math.exp(-Math.min(dt, 0.1) * 4);
-    target.current.lerp(live.player, k);
-    want.current.copy(target.current).add(CAMERA_OFFSET);
+    // while she is on the roof and he is nearby, the camera frames the house and him together
+    const roof = game.stage === "night" && game.onRoof && Math.hypot(live.player.x - home.x, live.player.z - home.z) < 16;
+    if (roof) aim.current.set((live.player.x + home.x) / 2, 0, (live.player.z + home.z) / 2 - 0.4); else aim.current.copy(live.player);
+    target.current.lerp(aim.current, roof ? k * 0.5 : k);
+    // when she is on the roof or coming down from the air, the camera draws back so she can be seen
+    const far = game.stage === "night" && (game.onRoof || game.overhead) ? 1.4 : 1;
+    pull.current += (far - pull.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 1.8));
+    want.current.copy(target.current).addScaledVector(CAMERA_OFFSET, pull.current);
     const s = live.shake * 0.16;
     camera.position.set(want.current.x + (Math.random() - 0.5) * s, want.current.y + (Math.random() - 0.5) * s, want.current.z);
     camera.lookAt(target.current.x, target.current.y + 1, target.current.z);
@@ -79,6 +88,7 @@ export default function App() {
           <Tikbalang />
           <Kapre />
           <Pacing />
+          <Guide />
           <Director />
         </Suspense>
         <FollowCamera />

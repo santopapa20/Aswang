@@ -87,7 +87,8 @@ export function Manananggal() {
         api.play("fly", { fade: 0.3 });
         roofIn.current -= dt;
         if (flyTo(goal.current.x, ALTITUDE, goal.current.z, CRUISE) < 1.5) newGoal();
-        if (live.caught <= 0 && timer.current <= 0 && ((lit && flat < SIGHT && fromHome > 10) || flat < 4)) {
+        // near the house she wants the roof, not him: she only dives at someone out in the open
+        if (live.caught <= 0 && timer.current <= 0 && fromHome > 10 && ((lit && flat < SIGHT) || flat < 4)) {
           mode.current = "shriek"; timer.current = api.duration("shriek") * 0.8; game.set({ overhead: true }); sound.shriek();
         } else if (roofIn.current <= 0) mode.current = "toRoof";
         break;

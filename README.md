@@ -30,6 +30,15 @@ npm run dev      # then open http://localhost:5173
 WASD or arrows to move, Shift to run, C to sneak. Hold E to use, search or talk; hold G at a door or window to protect it. Q pours a line of salt, F shutters the lamp, R cracks the whip, T (held) turns your shirt inside out. Tab opens the bag, Esc pauses, M mutes.
 `npm run dev` first copies the finished models from `assets/` into `game/public/models/`.
 
+Checking the game without playing it (the dev server must be running; needs Edge or Chrome installed):
+
+```bash
+npm run selftest   # plays all five nights by script and prints a pass/fail list
+npm run shots      # photographs the main screens into game/shots/
+```
+
+Any single state can be opened in a browser too: `http://localhost:5173/#shot=roof` (the names are in `game/src/devshots.ts`).
+
 ## Folders
 
 - `assets/concept/` art direction sheet

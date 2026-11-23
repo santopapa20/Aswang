@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { Vector3 } from "three";
 import { BASE_CARRY, Charm, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
 import { hidingSpots, home, HUT, OpeningId, START } from "./layout";
+import type { Objective } from "./objective";
 import { ENDINGS, ERRANDS, ErrandId, Form, INTRO, Line, NIGHTS, PACING_DAY, PACING_KNOWS, PACING_TRUSTED, PROOF_TEXT, ROSING_SAYS } from "./story";
 
 export type Stage = "title" | "day" | "night" | "morning" | "over" | "ending";
@@ -63,6 +64,7 @@ type GameState = ReturnType<typeof freshRun> & ReturnType<typeof freshNight> & {
   toasts: Toast[];
   report: string[];
   ending: string | null;  // a key of ENDINGS, or "choice" while he decides
+  banner: { big: string; small: string; id: number } | null;   // the card shown as a day or night begins
 
   newGame: () => void;
   continueGame: () => boolean;
@@ -100,6 +102,7 @@ type GameState = ReturnType<typeof freshRun> & ReturnType<typeof freshNight> & {
 };
 
 let ids = 1;
+export const ROMAN = ["I", "II", "III", "IV", "V"];
 let rndSeed = (Date.now() % 100000) + 7;
 export const rnd = () => { rndSeed = (rndSeed * 16807) % 2147483647; return (rndSeed & 0xffffff) / 0x1000000; };
 
@@ -116,12 +119,14 @@ export const useGame = create<GameState>((set, get) => ({
   toasts: [],
   report: [],
   ending: null,
+  banner: null,
 
   newGame: () => {
     set((s) => ({ ...freshRun(), ...freshNight(), stage: "day", runId: s.runId + 1, dialogue: null, panel: null, caption: null, toasts: [], report: [], ending: null }));
     live.player.set(START.x, 0, START.z);
     live.facing = Math.PI; live.smoke = 0;
     beginClock(NIGHTS[0].daySeconds);
+    set({ banner: { big: "Day I", small: "Before dark", id: ids++ } });
     get().talk(INTRO);
   },
   continueGame: () => {
@@ -147,7 +152,7 @@ export const useGame = create<GameState>((set, get) => ({
     });
     beginClock(plan.seconds);
     live.lampBlown = 0; live.breach = 0; live.breachAt = null; live.loops = 0;      // smoke from a fire fed before dusk carries over
-    get().toast(`Night ${s.night}: ${plan.name}`);
+    set({ banner: { big: `Night ${ROMAN[s.night - 1]}`, small: plan.name, id: ids++ } });
   },
   endNight: (cause) => {
     const s = get();
@@ -159,7 +164,8 @@ export const useGame = create<GameState>((set, get) => ({
       report.push("The house stood unguarded for the rest of the night.");
       rosing -= 1;
     } else report.push("The first cock crows. The night is over.");
-    if (s.errand && !s.errand.done && !(s.errand.id === "legs")) {
+    if (cause === "caught" && s.errand && !s.errand.done) report.push(`${ERRANDS[s.errand.id].title}: abandoned.`);     // being caught is its own cost
+    else if (s.errand && !s.errand.done && !(s.errand.id === "legs")) {
       report.push(`${ERRANDS[s.errand.id].title}: left undone. Rosing paid for it.`);
       rosing -= 1;
     } else if (s.errand?.done && s.errand.id !== "legs") report.push(`${ERRANDS[s.errand.id].title}: done.`);
@@ -176,7 +182,7 @@ export const useGame = create<GameState>((set, get) => ({
     const bonus = 30 + (s.tally.breaches === 0 ? 20 : 0);
     set({ rosing, report, lines: [], hunted: false, overhead: false, onRoof: false, lost: false, carrying: null, dialogue: null, panel: null, caption: null });
     get().gainXp(bonus);
-    live.prompt = null;
+    live.prompts.E = live.prompts.G = null;
     if (rosing <= 0) { set({ stage: "over", ending: "empty" }); return; }
     if (s.night === 5) { set({ stage: "ending", ending: s.mana === "dead" ? "choice" : "remains" }); clearSave(); return; }
     set({ stage: "morning" });
@@ -184,7 +190,7 @@ export const useGame = create<GameState>((set, get) => ({
   nextDay: () => {
     const s = get();
     const night = s.night + 1;
-    set({ ...freshNight(), night, stage: "day", runId: s.runId + 1, report: [] });
+    set({ ...freshNight(), night, stage: "day", runId: s.runId + 1, report: [], banner: { big: `Day ${ROMAN[night - 1]}`, small: "Before dark", id: ids++ } });
     placeAtHome();
     beginClock(NIGHTS[night - 1].daySeconds);
     save();
@@ -267,14 +273,14 @@ export const useGame = create<GameState>((set, get) => ({
   },
   useGarlic: () => get().spend("garlic", 1),
 
-  setErrand: (id) => { set({ errand: { id, step: 0, done: false } }); get().toast(`${ERRANDS[id].title}: ${ERRANDS[id].steps[0]}`); },
+  setErrand: (id) => set({ errand: { id, step: 0, done: false } }),      // the objective card says what it is
   stepErrand: () => {
     const e = get().errand;
     if (!e || e.done) return;
     const step = e.step + 1, done = step >= ERRANDS[e.id].steps.length;
     set({ errand: { ...e, step, done } });
     if (done) { get().gainXp(40); get().toast(`${ERRANDS[e.id].title}: done.`, "good"); }
-    else get().toast(ERRANDS[e.id].steps[step]);
+
   },
   set: (patch) => set(patch),
   say: (who, text) => set({ caption: { who, text, id: ids++ } }),
@@ -368,7 +374,15 @@ export const live = {
   loops: 0,                // times the trail has brought him back
   shake: 0,
   jump: 0,                 // metres the player was moved along X this frame (the camera follows without a glide)
-  prompt: null as null | { key: string; label: string; progress: number },
+  /** What E and G would do right now. `progress` is 0 to 1 while held, or -1 when it cannot be done. */
+  prompts: { E: null, G: null } as Record<"E" | "G", null | { label: string; progress: number }>,
+  /** Things within a few steps that can be used: the 3D view draws a ring under each. */
+  near: [] as { x: number; z: number; r: number; button: "E" | "G"; focus: boolean }[],
+  objective: { title: "", text: "", target: null, urgent: false } as Objective,
+  /** Where the objective is on screen, in percent, for the interface's arrow. */
+  guide: { show: false, x: 50, y: 50, angle: 0, on: false, dist: 0, urgent: false },
+  typing: false,           // a line of speech is still being written out
+  skipTyping: false,
   aswang: { x: 0, z: 0, near: 99, active: false },
   pacing: { x: 0, z: 0, here: false },      // where Nang Pacing is standing by day
   caught: 0,               // seconds left of being struck down, before the night is cut short

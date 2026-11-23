@@ -214,7 +214,7 @@ const clearOfThings = (x: number, z: number, pad: number) =>
   for (let p = 0; p < 4; p++) {
     const base = 37 + p * trail.period;
     for (const [dx, z] of palmPattern) palms.push({ x: base + dx, z, h: 4.8 + ((dx * 7) % 3) * 0.4, lean: z > 0 ? 0.12 : -0.1, solid: false });
-    for (const [dx, z, s] of bushPattern) bushes.push({ x: base + dx, z, s, r: dx });
+    for (const [dx, z, s] of bushPattern) bushes.push({ x: base + dx, z, s: s * (z > 0 ? 0.5 : 0.75), r: dx });      // lower on the camera's side of the trail
   }
   // stones and grass
   for (let i = 0; i < 70; i++) {

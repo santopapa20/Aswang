@@ -81,12 +81,14 @@ function pathGeometry() {
     const curve = new CatmullRomCurve3(p.pts.map(([x, z]) => new Vector3(x, 0, z)), false, "catmullrom", 0.4);
     const n = Math.max(2, Math.ceil(curve.getLength() / 0.9));
     const pts = curve.getSpacedPoints(n);
-    const half = p.w * 1.1, base = pos.length / 3;
+    const base = pos.length / 3;
     let along = 0;
     for (let i = 0; i <= n; i++) {
       const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)];
       const t = new Vector2(b.x - a.x, b.z - a.z).normalize();
       if (i > 0) along += pts[i].distanceTo(pts[i - 1]);
+      // a path narrows to nothing over its last few steps, so it fades out and is not cut off square
+      const half = p.w * 1.1 * Math.min(1, (Math.min(i, n - i) + 0.15) / 3.5);
       pos.push(pts[i].x - t.y * half, 0, pts[i].z + t.x * half, pts[i].x + t.y * half, 0, pts[i].z - t.x * half);
       uv.push(0, along / 3, 1, along / 3);        // 3 m per repeat: the trail's 30 m loop is a whole number of them
       if (i < n) { const k = base + i * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
@@ -119,17 +121,18 @@ function tuftGeometry() {
 /** A clump of undergrowth: a few lumpy, overlapping mounds, shaded dark underneath and lighter on top. */
 function bushGeometry() {
   const pos: number[] = [], nor: number[] = [], col: number[] = [];
-  const lumps: [number, number, number, number][] = [[0, 0.55, 0, 1], [0.62, 0.42, 0.18, 0.72], [-0.55, 0.46, -0.3, 0.78], [0.12, 0.36, 0.62, 0.62], [-0.2, 0.4, -0.7, 0.6]];
+  const lumps: [number, number, number, number][] = [[0, 0.5, 0, 0.95], [0.6, 0.4, 0.2, 0.7], [-0.55, 0.44, -0.3, 0.76], [0.1, 0.34, 0.62, 0.6]];
   const hash = (x: number, y: number, z: number) => { const h = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; return h - Math.floor(h); };
   for (const [cx, cy, cz, r] of lumps) {
-    const p = new IcosahedronGeometry(r, 1).getAttribute("position");
+    const p = new IcosahedronGeometry(r, 2).getAttribute("position");
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i), y = p.getY(i), z = p.getZ(i), len = Math.hypot(x, y, z) || 1;
-      const k = 1 + (hash(x + cx, y, z + cz) - 0.5) * 0.42;            // the same point always moves the same way, so no cracks
+      // two sizes of bumps, so the outline reads as leaves and not as a smooth ball (the same point always moves the same way: no cracks)
+      const k = 1 + (hash(x + cx, y, z + cz) - 0.5) * 0.3 + (hash(Math.round(x * 3) + cx, Math.round(y * 3), Math.round(z * 3) + cz) - 0.5) * 0.26;
       const py = Math.max(0, cy + y * k);
       pos.push(cx + x * k, py, cz + z * k);
       nor.push(x / len, y / len, z / len);
-      const light = 0.42 + 0.58 * Math.min(1, py / 1.3) * (0.8 + 0.4 * hash(z, x, y));
+      const light = 0.3 + 0.7 * Math.min(1, py / 1.2) * (0.55 + 0.75 * hash(Math.round(z * 4), Math.round(x * 4), Math.round(y * 4)));
       col.push(0.62 * light, 0.9 * light, 0.5 * light);
     }
   }
@@ -401,6 +404,13 @@ function Dressing() {
   const shrubs = useProp("/models/shrub.glb", 1.5, "y", of("shrub").length, shadows);
   const ferns = useProp("/models/fern.glb", 1.0, "y", of("fern").length, shadows);
   const piles = useProp("/models/rocks.glb", 1.3, "x", of("rocks").length, shadows);
+  // the gallery models are lit for a studio: taken down so they sit in this light and do not glare by day
+  useMemo(() => {
+    const tone = (o: Object3D, k: number) => o.traverse((m) => { const mat = (m as Mesh).material as MeshStandardMaterial | undefined; if (mat?.color) mat.color.setScalar(k); });
+    if (piles[0]) tone(piles[0], 0.36);
+    if (shrubs[0]) tone(shrubs[0], 0.52);
+    if (ferns[0]) tone(ferns[0], 0.8);
+  }, [piles, shrubs, ferns]);
   const sets: [string, Object3D[]][] = [["shrub", shrubs], ["fern", ferns], ["rocks", piles]];
   return (
     <>

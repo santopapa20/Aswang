@@ -28,7 +28,9 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 | Bag and learning | Seven supplies with a carry limit, charms with four rarities (wear two), levels, nine perks on three paths |
 | Proofs | The salted door, the boiling oil, the patadyong. All three and Kadyo's trust open the third ending |
 | Sound | All made in the browser, no files: crickets, wind, steps, the tiktik (loud when far, faint when near), heartbeat, scratching, shrieks, a rooster |
-| Screens | Title, pause, bag, trade, dialogue, cockcrow report, endings. Progress saved at each dusk and morning |
+| Screens | Title, pause, bag, trade, dialogue with a typewriter and letterbox, a card naming each day and night, cockcrow report, endings. Progress saved at each dusk and morning |
+| Guidance | A card that always says what to do next, an arrow to where it is (with distance), soft rings under things you can use, key-cap prompts with a hold ring, and the house's four openings shown top-left, turning red when one is attacked |
+| Look | Two bundled typefaces (Cinzel, Cormorant Garamond), line icons drawn in code, film grain, a vignette that reddens with danger, a camera that draws back when she is on the roof |
 
 ## Not built yet
 
@@ -44,10 +46,13 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 
 ## How it was tested
 
-Scripted runs in the browser (`window.__aswang.run(seconds)` plays the game forward): every errand,
-each creature's rule, the cockcrow report, saving and continuing, and the path to the endings. No
-person has played it through yet, and it has only been seen at about one frame a second in a
-background tab, so frame rate and feel are unmeasured.
+`npm run selftest` (in `game/`, with the dev server running) plays all five nights by script in a
+headless browser and checks 68 things: movement, every item, every errand, each creature's rule,
+trade, charms, levels, saving, the endings and losing. `npm run shots` photographs the main screens
+into `game/shots/`. Both run on the real graphics card and reported 45 to 80 frames a second.
+
+What that does not cover: nobody has played it by hand, so difficulty and feel are a first guess,
+and the sound (all synthesized) has not been listened to.
 
 ## How it is built
 

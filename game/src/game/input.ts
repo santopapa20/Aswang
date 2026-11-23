@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useGame } from "./state";
+import { live, useGame } from "./state";
 import { sound } from "./audio";
 
 /** Keys currently held, by KeyboardEvent.code. */
@@ -27,7 +27,8 @@ export function useKeyboard() {
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Tab"].includes(e.code)) e.preventDefault();
       if (e.code === "KeyM") g.toggleMute();
       if (g.dialogue) {
-        if (["Enter", "Space", "KeyE"].includes(e.code)) g.advance();
+        // while a line is still being written out, the first press finishes it
+        if (["Enter", "Space", "KeyE"].includes(e.code)) { if (live.typing) live.skipTyping = true; else g.advance(); }
         if (e.code.startsWith("Digit")) choose(Number(e.code.slice(5)) - 1);
         return;
       }
