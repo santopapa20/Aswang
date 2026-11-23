@@ -3,7 +3,10 @@
 # puts it in a few hand-set poses (walk, run, crouch, arms up) and renders them, so we can see how
 # the mesh bends before spending time in Mixamo. It also prints how much the surface stretches.
 #
-# usage: blender -b --factory-startup --python test_rig.py -- <model_rigready.blend> <landmarks.json> <out_dir> <mode>
+# usage: blender -b --factory-startup --python test_rig.py -- <model_rigready.blend> <landmarks.json> <out_dir> <mode> [weights_from.blend]
+#   weights_from  another rig-ready model of the same character with a cleaner surface. Blender's automatic
+#                 weights are worked out on that one and copied across by nearest point. Use it when the
+#                 automatic weights fail on the model itself (they need a clean, closed surface).
 #   mode  auto    automatic weights untouched
 #         rigid   hanging props (garlic, sash tails) follow the hip bone only
 #         follow  hanging props follow the hips at the top and the thigh on their side at the bottom
@@ -12,6 +15,7 @@ from mathutils import Vector, Quaternion, Matrix
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 SRC, LMK, OUT, MODE = argv[0], argv[1], argv[2], argv[3]
+WFROM = argv[4] if len(argv) > 4 else None
 os.makedirs(OUT, exist_ok=True)
 L = json.load(open(LMK))
 P = lambda k, side=1: Vector((L[k][0] * side, L[k][1], L[k][2]))
@@ -58,10 +62,31 @@ bpy.ops.object.mode_set(mode="OBJECT")
 
 # ---- 3. automatic weights
 for g in list(ob.vertex_groups): ob.vertex_groups.remove(g)      # props are remembered in prop_of
+skin = ob
+if WFROM:
+    with bpy.data.libraries.load(os.path.abspath(WFROM)) as (lib_src, lib_dst):
+        lib_dst.objects = list(lib_src.objects)
+    skin = next(o for o in lib_dst.objects if o and o.type == "MESH")
+    scene.collection.objects.link(skin)
+    for g in list(skin.vertex_groups): skin.vertex_groups.remove(g)
 bpy.ops.object.select_all(action="DESELECT")
-ob.select_set(True); arm.select_set(True)
+skin.select_set(True); arm.select_set(True)
 bpy.context.view_layer.objects.active = arm
 bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+if WFROM:
+    mod = ob.modifiers.new("copy_weights", "DATA_TRANSFER")
+    mod.object = skin; mod.use_vert_data = True; mod.data_types_verts = {"VGROUP_WEIGHTS"}
+    mod.vert_mapping = "POLYINTERP_NEAREST"
+    mod.layers_vgroup_select_src = "ALL"; mod.layers_vgroup_select_dst = "NAME"
+    bpy.ops.object.select_all(action="DESELECT")
+    ob.select_set(True); bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.datalayout_transfer(modifier=mod.name)
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    ob.parent = arm
+    ob.modifiers.new("Armature", "ARMATURE").object = arm
+    skin_me = skin.data
+    bpy.data.objects.remove(skin); bpy.data.meshes.remove(skin_me)
+    print("WEIGHTS copied from", os.path.basename(WFROM))
 unweighted = sum(1 for v in me.vertices if not any(g.weight > 0 for g in v.groups))
 print("AUTO WEIGHTS groups %d, vertices with no weight %d of %d" % (len(ob.vertex_groups), unweighted, len(me.vertices)))
 if unweighted > len(me.vertices) * 0.5:

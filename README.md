@@ -4,8 +4,12 @@ A top-down 3D survival horror game set in a remote Visayan barrio in the 1950s. 
 until sunrise while creatures from Philippine folklore (aswang, manananggal, wakwak, tikbalang,
 kapre, sigbin) hunt you, each beaten by the counter the old stories give.
 
-Status: asset production. The player character is modelled, coloured and prepared for rigging.
+Status: asset production. The player and the aswang are modelled, textured and prepared for rigging.
 No game code yet; the engine and scope are still to be agreed. Full background is in `HANDOFF.md`.
+
+Current models: `assets/player/player_v2*` (Tripo-textured, the one in use) and `assets/aswang/aswang*`.
+The older `player_textured` / `player_rigready` files are the first player; they are kept because the
+new one borrows its garlic and sash labels and its test skin weights from them.
 
 ## Folders
 
@@ -45,14 +49,16 @@ B="/c/Program Files/Blender Foundation/Blender 5.3/blender.exe"
 # quick grey renders from four angles
 "$B" -b --factory-startup --python tools/blender/render_views.py -- <model.glb> <out_prefix> <single|random>
 
-# weld seams, detach and cap hanging props, save the rig-ready file and (optional) a Mixamo FBX
+# close the surface, mark the hanging props, save the rig-ready file and (optional) a Mixamo FBX
 "$B" -b --factory-startup --python tools/blender/prepare_for_rig.py -- \
-  assets/player/player_textured.blend assets/player/rig_landmarks.json \
-  assets/player/player_rigready.blend assets/player/mixamo/player_for_mixamo.fbx 1.65
+  assets/player/player_v2.blend assets/player/rig_landmarks.json assets/player/player_v2_rigready.blend \
+  --labels-from assets/player/player_textured.blend --keep-fused \
+  --fbx assets/player/mixamo/player_for_mixamo.fbx --height 1.65
 
 # bend test: throwaway skeleton, a few poses, renders (mode: auto | rigid | follow)
 "$B" -b --factory-startup --python tools/blender/test_rig.py -- \
-  assets/player/player_rigready.blend assets/player/rig_landmarks.json <out_dir> rigid
+  assets/player/player_v2_rigready.blend assets/player/rig_landmarks.json <out_dir> auto \
+  assets/player/player_rigready.blend
 ```
 
 `rig_landmarks.json` holds a character's measured joint positions and names which parts are hanging

@@ -54,5 +54,6 @@ Download settings for every clip: **Format: FBX Binary (.fbx)**, **Frames per se
 Save all the downloaded `.fbx` files into `assets/player/mixamo/downloads/` and name them
 `idle.fbx`, `walk.fbx`, `run.fbx`, `sneak.fbx`, `look.fbx`, `caught.fbx`. Then say they are there.
 
-They then get merged into one `player.glb` with named clips, a WebP texture, and the garlic braid
-and sash tails given their own small bones so they hang and swing instead of sticking to the leg.
+They then get merged into one `player.glb` with named clips and WebP textures. On this model the
+garlic braid and sash tails are part of the trousers, so they follow the leg; a small sway can be
+added to them afterwards.
