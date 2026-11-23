@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, PointLight, Vector3 } from "three";
-import { live, pushOut, useGame } from "./state";
+import { live, LOWER_HALF, pushOut, useGame } from "./state";
 import { actions, moveAxis, held, toggles } from "./input";
 import { useCharacter } from "./useCharacter";
 import { useProp } from "./useProp";
@@ -72,7 +72,10 @@ export function Player() {
         if (Math.hypot(item.x - live.player.x, item.z - live.player.z) < 0.9) game.collect(item.id);
       }
       // E pours a line of salt across the ground just ahead of him
-      if (actions.pour) {
+      const nearHalf = Math.hypot(LOWER_HALF.x - live.player.x, LOWER_HALF.z - live.player.z) < 1.6;
+      if (actions.pour && nearHalf && game.mana !== "ended") {
+        game.saltLowerHalf();
+      } else if (actions.pour) {
         const fx = Math.sin(facing.current), fz = Math.cos(facing.current);
         const cx = live.player.x + fx * 0.9, cz = live.player.z + fz * 0.9;
         const half = 1.4;

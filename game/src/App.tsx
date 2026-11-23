@@ -4,6 +4,7 @@ import { Vector3 } from "three";
 import { World } from "./game/World";
 import { Player } from "./game/Player";
 import { Aswang } from "./game/Aswang";
+import { Manananggal } from "./game/Manananggal";
 import { Hud } from "./game/Hud";
 import { Items } from "./game/Items";
 import { useKeyboard } from "./game/input";
@@ -40,6 +41,7 @@ export default function App() {
           <World />
           <Player />
           <Aswang />
+          <Manananggal />
           <Items />
         </Suspense>
         <FollowCamera />

@@ -7,6 +7,8 @@ export type Phase = "playing" | "caught" | "survived";
 export type Pickup = { id: number; kind: "salt" | "garlic"; x: number; z: number };
 /** A line of salt on the ground, from point A to point B. The aswang cannot cross it. */
 export type SaltLine = { ax: number; az: number; bx: number; bz: number };
+/** Where the manananggal left her lower half: half hidden beside the balete tree. */
+export const LOWER_HALF = { x: -17.6, z: -15.6 };
 
 const PICKUPS: Pickup[] = [
   { id: 1, kind: "salt", x: -8.2, z: -3.4 },      // by the first hut
@@ -27,6 +29,11 @@ type GameState = {
   garlic: number;
   pickups: Pickup[];
   lines: SaltLine[];
+  mana: "absent" | "hunting" | "ended";   // the manananggal this night
+  overhead: boolean;                      // she has seen the player and is about to dive
+  setMana: (m: "absent" | "hunting" | "ended") => void;
+  setOverhead: (o: boolean) => void;
+  saltLowerHalf: () => boolean;
   setPhase: (p: Phase) => void;
   setHunted: (h: boolean) => void;
   toggleShadows: () => void;
@@ -36,7 +43,7 @@ type GameState = {
   restart: () => void;
 };
 
-const fresh = () => ({ phase: "playing" as Phase, hunted: false, salt: 1, garlic: 1, pickups: PICKUPS, lines: [] as SaltLine[] });
+const fresh = () => ({ phase: "playing" as Phase, hunted: false, salt: 1, garlic: 1, pickups: PICKUPS, lines: [] as SaltLine[], mana: "absent" as "absent" | "hunting" | "ended", overhead: false });
 
 export const useGame = create<GameState>((set, get) => ({
   ...fresh(),
@@ -57,6 +64,13 @@ export const useGame = create<GameState>((set, get) => ({
   pourSalt: (line) => {
     if (get().salt <= 0 || get().phase !== "playing") return false;
     set((s) => ({ salt: s.salt - 1, lines: [...s.lines, line] }));
+    return true;
+  },
+  setMana: (mana) => set({ mana }),
+  setOverhead: (overhead) => set({ overhead }),
+  saltLowerHalf: () => {
+    if (get().salt <= 0 || get().mana === "ended" || get().phase !== "playing") return false;
+    set((s) => ({ salt: s.salt - 1, mana: "ended", overhead: false }));
     return true;
   },
   useGarlic: () => {

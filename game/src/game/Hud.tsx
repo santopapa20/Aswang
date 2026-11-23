@@ -8,6 +8,8 @@ export function Hud() {
   const shadows = useGame((s) => s.shadows);
   const salt = useGame((s) => s.salt);
   const garlic = useGame((s) => s.garlic);
+  const mana = useGame((s) => s.mana);
+  const overhead = useGame((s) => s.overhead);
   const [, tick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => tick((n) => n + 1), 250);
@@ -20,7 +22,9 @@ export function Hud() {
   return (
     <div className="hud">
       <div className="top">UNTIL SUNRISE <b>{clock}</b></div>
-      {hunted && phase === "playing" && <div className="warn">IT HAS SEEN YOU</div>}
+      {phase === "playing" && (overhead ? <div className="warn">WINGS OVERHEAD · RUN</div> : hunted ? <div className="warn">IT HAS SEEN YOU</div> : null)}
+      {mana === "hunting" && phase === "playing" && <div className="note">A manananggal is flying. Find the legs she left behind and salt them.</div>}
+      {mana === "ended" && phase === "playing" && <div className="note good">Her body is salted. She cannot return tonight.</div>}
       <div className="bag">
         <span>Salt <b>{salt}</b></span>
         <span>Garlic <b>{garlic}</b></span>
