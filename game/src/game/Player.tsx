@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, PointLight, Vector3 } from "three";
 import { live, pushOut, useGame } from "./state";
-import { moveAxis, held, toggles } from "./input";
+import { actions, moveAxis, held, toggles } from "./input";
 import { useCharacter } from "./useCharacter";
 
 const SPEED = { sneak: 0.85, walk: 1.5, run: 3.4 };
@@ -64,7 +64,20 @@ export function Player() {
         api.play(stillFor.current > 5 || game.hunted ? "look" : "idle", { fade: 0.4 });
       }
       live.playerNoise = NOISE[mode];
+
+      // walk over a bowl of salt or a garlic braid to take it
+      for (const item of game.pickups) {
+        if (Math.hypot(item.x - live.player.x, item.z - live.player.z) < 0.9) game.collect(item.id);
+      }
+      // E pours a line of salt across the ground just ahead of him
+      if (actions.pour) {
+        const fx = Math.sin(facing.current), fz = Math.cos(facing.current);
+        const cx = live.player.x + fx * 0.9, cz = live.player.z + fz * 0.9;
+        const half = 1.4;
+        game.pourSalt({ ax: cx - fz * half, az: cz + fx * half, bx: cx + fz * half, bz: cz - fx * half });
+      }
     }
+    actions.pour = false;
 
     g.position.copy(live.player);
     g.rotation.y = facing.current;

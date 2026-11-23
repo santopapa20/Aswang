@@ -6,6 +6,8 @@ export function Hud() {
   const phase = useGame((s) => s.phase);
   const hunted = useGame((s) => s.hunted);
   const shadows = useGame((s) => s.shadows);
+  const salt = useGame((s) => s.salt);
+  const garlic = useGame((s) => s.garlic);
   const [, tick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => tick((n) => n + 1), 250);
@@ -19,8 +21,13 @@ export function Hud() {
     <div className="hud">
       <div className="top">UNTIL SUNRISE <b>{clock}</b></div>
       {hunted && phase === "playing" && <div className="warn">IT HAS SEEN YOU</div>}
+      <div className="bag">
+        <span>Salt <b>{salt}</b></span>
+        <span>Garlic <b>{garlic}</b></span>
+      </div>
       <div className="help">
         WASD or arrows: move · Shift: run · C: sneak on/off<br />
+        E: pour a line of salt (she cannot cross it) · garlic drives her back by itself<br />
         L: lamp shadows {shadows ? "on" : "off"} · R: restart
       </div>
       <div className="stats">{live.fps.toFixed(0)} fps</div>

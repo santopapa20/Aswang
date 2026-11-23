@@ -6,6 +6,8 @@ canvas { display: block; }
 .hud .top { position: absolute; top: 14px; left: 0; right: 0; text-align: center; letter-spacing: 0.18em; font-size: 15px; text-shadow: 0 0 8px #000; }
 .hud .top b { font-size: 22px; font-weight: normal; color: #d89a3a; }
 .hud .help { position: absolute; left: 16px; bottom: 14px; font-size: 13px; line-height: 1.6; opacity: 0.75; text-shadow: 0 0 6px #000; }
+.hud .bag { position: absolute; top: 14px; left: 16px; display: flex; gap: 18px; font-size: 15px; letter-spacing: 0.08em; text-shadow: 0 0 8px #000; }
+.hud .bag b { font-weight: normal; font-size: 20px; color: #d89a3a; margin-left: 4px; }
 .hud .stats { position: absolute; right: 16px; bottom: 14px; font: 12px/1.5 Consolas, monospace; opacity: 0.7; text-align: right; }
 .hud .banner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(0,0,0,0.15), rgba(0,0,0,0.75)); }
 .hud .banner h1 { margin: 0; font-size: 64px; font-weight: normal; letter-spacing: 0.12em; }

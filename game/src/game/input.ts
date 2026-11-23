@@ -4,6 +4,8 @@ import { useGame } from "./state";
 /** Keys currently held, by KeyboardEvent.code. */
 export const held = new Set<string>();
 export const toggles = { sneak: false };
+/** One-shot actions: set on key press, cleared by whoever handles them. */
+export const actions = { pour: false };
 
 export function useKeyboard() {
   useEffect(() => {
@@ -13,6 +15,7 @@ export function useKeyboard() {
       if (e.code === "KeyC") toggles.sneak = !toggles.sneak;
       if (e.code === "KeyR") { toggles.sneak = false; useGame.getState().restart(); }
       if (e.code === "KeyL") useGame.getState().toggleShadows();
+      if (e.code === "KeyE") actions.pour = true;
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
     };
     const up = (e: KeyboardEvent) => held.delete(e.code);
