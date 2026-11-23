@@ -172,7 +172,7 @@ const clearOfThings = (x: number, z: number, pad: number) =>
   const rnd = seeded(1953);
   const addPalm = (x: number, z: number, solid: boolean) => {
     if (palms.some((p) => Math.hypot(p.x - x, p.z - z) < 3.1)) return false;
-    palms.push({ x, z, h: 5.4 + rnd() * 3.2, lean: (rnd() - 0.5) * 0.3, solid });
+    palms.push({ x, z, h: 4.4 + rnd() * 1.6, lean: (rnd() - 0.5) * 0.3, solid });      // h is the whole height in metres
     return true;
   };
   // groves: a few clusters inside the barrio and the sitio, never on a path or in a yard
@@ -201,8 +201,8 @@ const clearOfThings = (x: number, z: number, pad: number) =>
       else { t -= w; x = r.x0; z = r.z1 - t; nx = -1; }
       if (skip(x, z)) continue;
       const out = 1.2 + rnd() * 2.4;
-      bushes.push({ x: x + nx * out + (rnd() - 0.5), z: z + nz * out + (rnd() - 0.5), s: 1.5 + rnd() * 1.5, r: rnd() * 6 });
-      if (rnd() < 0.55) bushes.push({ x: x + nx * (out + 3.2), z: z + nz * (out + 3.2), s: 2 + rnd() * 1.6, r: rnd() * 6 });
+      bushes.push({ x: x + nx * out + (rnd() - 0.5), z: z + nz * out + (rnd() - 0.5), s: 1.0 + rnd() * 0.9, r: rnd() * 6 });
+      if (rnd() < 0.55) bushes.push({ x: x + nx * (out + 3.2), z: z + nz * (out + 3.2), s: 1.4 + rnd() * 1.0, r: rnd() * 6 });
       if (rnd() < 0.62) addPalm(x + nx * (2.2 + rnd() * 5), z + nz * (2.2 + rnd() * 5), false);
     }
   };
@@ -213,7 +213,7 @@ const clearOfThings = (x: number, z: number, pad: number) =>
   const bushPattern: [number, number, number][] = [[0.5, 4.4, 1.9], [3.5, -4.6, 2.2], [5.8, 4.9, 1.6], [8, -4.3, 1.7], [10.5, 4.5, 2.3], [12.6, -4.8, 2.0], [14, -7.5, 2.6], [7, 7.6, 2.6]];
   for (let p = 0; p < 4; p++) {
     const base = 37 + p * trail.period;
-    for (const [dx, z] of palmPattern) palms.push({ x: base + dx, z, h: 6.2 + ((dx * 7) % 3), lean: z > 0 ? 0.12 : -0.1, solid: false });
+    for (const [dx, z] of palmPattern) palms.push({ x: base + dx, z, h: 4.8 + ((dx * 7) % 3) * 0.4, lean: z > 0 ? 0.12 : -0.1, solid: false });
     for (const [dx, z, s] of bushPattern) bushes.push({ x: base + dx, z, s, r: dx });
   }
   // stones and grass

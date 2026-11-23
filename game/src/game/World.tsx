@@ -219,7 +219,7 @@ export function World() {
     const px = live.player.x, pz = live.player.z;
     for (let i = 0; i < palms.length; i++) {
       const dx = palms[i].x - px, dz = palms[i].z - pz;
-      palmModels[i].visible = !(dz > 0.8 && dz < 9.5 && Math.abs(dx) < 3.4);
+      palmModels[i].visible = !(dz > 0.8 && dz < 1.6 + palms[i].h && Math.abs(dx) < 2.6);
     }
     for (let i = 0; i < houses.length; i++) {
       const dx = houses[i].x - px, dz = houses[i].z - pz;
@@ -275,7 +275,7 @@ export function World() {
         <primitive key={`fence${i}`} object={fenceModels[i]} position={[f.x, 0, f.z]} rotation-y={f.rot} />
       ))}
       {palms.map((t, i) => (
-        <primitive key={`palm${i}`} object={palmModels[i]} position={[t.x, 0, t.z]} rotation-y={i * 2.4} rotation-z={t.lean * 0.4} scale={t.h + 2} />
+        <primitive key={`palm${i}`} object={palmModels[i]} position={[t.x, 0, t.z]} rotation-y={i * 2.4} rotation-z={t.lean * 0.4} scale={[t.h * 0.82, t.h, t.h * 0.82]} />
       ))}
       <primitive object={wellModels[0]} position={[well.x, 0, well.z]} rotation-y={0.6} />
       <primitive object={baleteModels[0]} position={[balete.x, 0, balete.z]} rotation-y={0.9} />
