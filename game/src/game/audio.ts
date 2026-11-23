@@ -113,6 +113,8 @@ export const sound = {
   breach() { tone("sawtooth", 180, 60, 0.5, 1.2, 0, 400); burst(500, 0.6, 0.5, 0.9, "lowpass"); tone("sawtooth", 1300, 500, 0.25, 0.9, 0.1, 1500); },
   shriek() { tone("sawtooth", 900, 2300, 0.3, 0.5, 0, 2200); tone("sawtooth", 2300, 1100, 0.3, 0.9, 0.45, 2400); tone("square", 1700, 2100, 0.08, 1.2, 0.05, 3000); },
   roar() { tone("sawtooth", 150, 55, 0.6, 1.6, 0, 300); tone("sawtooth", 97, 48, 0.4, 1.8, 0.05, 240); burst(260, 0.5, 0.4, 1.4, "lowpass"); },
+  growl() { tone("sawtooth", 118, 72, 0.3, 0.9, 0, 260); tone("sawtooth", 83, 60, 0.2, 1.0, 0.05, 200); burst(210, 0.5, 0.22, 0.8, "lowpass"); },
+  yelp() { tone("sawtooth", 620, 1250, 0.28, 0.12, 0, 1800); tone("sawtooth", 1250, 420, 0.25, 0.3, 0.1, 1600); },
   wings() { for (let i = 0; i < 3; i++) burst(380, 0.7, 0.3, 0.22, "lowpass", i * 0.3); },
   whoosh() { burst(700, 0.6, 0.6, 0.7, "lowpass"); tone("sine", 320, 70, 0.3, 0.6); },
   rooster() {

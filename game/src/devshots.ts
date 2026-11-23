@@ -50,6 +50,15 @@ const SHOTS: Record<string, () => Promise<void>> = {
   trail: async () => { await dusk(3); at(61, 0.6); dev().run(2); },
   balete: async () => { await dusk(4); at(-26.2, -14.2); dev().run(22); at(-26, -14); },
   kapre: async () => { await dusk(4); at(-27, -15); key("ShiftLeft"); key("KeyA"); dev().run(1.0); key("KeyA", false); key("ShiftLeft", false); dev().run(1.6); },
+  sigbin: async () => {
+    await dusk(5); at(-11, 17); live.elapsed = 45; dev().run(1);
+    live.sigbin.x = live.player.x + 4.2; live.sigbin.z = live.player.z + 1.2; dev().run(6);
+  },
+  sigbinDark: async () => {
+    await dusk(5); at(-11, 17); live.elapsed = 45; dev().run(1);
+    live.sigbin.x = live.player.x + 4.2; live.sigbin.z = live.player.z + 1.2; dev().run(5);
+    G().set({ lampOn: false }); dev().run(2.5);
+  },
   bag: async () => { await begin(3); for (let i = 0; i < 4; i++) G().addCharm(i * 0.03); G().gainXp(150); G().set({ hasWhip: true, proofs: { salt: true, oil: false, skirt: false } }); G().setPanel("bag"); },
   trade: async () => { await begin(2); at(24, -18.7); G().setPanel("trade"); },
   pause: async () => { await dusk(1); G().setPanel("pause"); },

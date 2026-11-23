@@ -1,6 +1,6 @@
 # Aswang Night: what is built, and what is next
 
-Updated 2026-11-23. The design is `DESIGN_PROPOSAL.md` (direction B, the vigil) with a loot-and-level
+Updated 2026-11-24. The design is `DESIGN_PROPOSAL.md` (direction B, the vigil) with a loot-and-level
 loop added on top, as Keith asked. This file tracks the state of the build.
 
 ## The game in one paragraph
@@ -22,6 +22,7 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 | Manananggal (nights 2, 4, 5) | Settles on the roof unless smoke stops her; striking the house post drives her off and brings her down on you; dives at your lamp away from the house; ended by salting her lower half |
 | Tikbalang (trail, night 3 on) | Does not kill. The trail loops until you turn your shirt inside out (hold T) |
 | Kapre | A three-metre giant standing in the balete's roots after dark, lit by his cigar. Run under the tree and he roars and blows out your lamp; leave tobacco at his feet and on the last night his ember shows where the legs are |
+| Sigbin (night 5) | Her hound, let out 40 seconds into the last night. It walks backwards toward your lit lamp and drinks your shadow: five seconds of that and you go down. Shutter the lamp (F) and it loses you; it will not step over salt; the whip drives it off |
 | Nang Pacing | Walks the barrio by day, visits each morning, makes her offer on day 3 |
 | Nong Kadyo | Heard at his door (no model yet): advice each day, trade, charms, a tonic for Rosing, the whip |
 | Loot | 20 places to search (chests, jars, sacks, fronds, herbs), refilled each day and each night; the old sitio is richer |
@@ -35,8 +36,7 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 ## Not built yet
 
 - **The amalanhig** (the enemy you can fight and loot). Needs a model, so there is no combat beyond the whip.
-- **Models still missing:** Nong Kadyo, the hilot and the sigbin. Kadyo and the hilot are voices at a
-  door for now.
+- **Models still missing:** Nong Kadyo and the hilot. They are voices at a door for now.
 - **A few props are still stand-ins:** the fire pit and the trail marker are simple shapes built in
   code. Chests, pots, sacks, firewood, herbs, shrubs, ferns and rock piles are gallery models
   (`assets/props/`, credited in `CREDITS.md`).
@@ -47,7 +47,7 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 ## How it was tested
 
 `npm run selftest` (in `game/`, with the dev server running) plays all five nights by script in a
-headless browser and checks 68 things: movement, every item, every errand, each creature's rule,
+headless browser and checks 76 things: movement, every item, every errand, each creature's rule,
 trade, charms, levels, saving, the endings and losing. `npm run shots` photographs the main screens
 into `game/shots/`. Both run on the real graphics card and reported 45 to 80 frames a second.
 

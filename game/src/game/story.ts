@@ -111,6 +111,8 @@ export const KADYO_DAY: Record<number, Line[]> = {
   ],
   5: [
     { who: "Nong Kadyo", text: "She will hide them somewhere new tonight. If the old one in the tree owes you, watch for its ember on the ground." },
+    { who: "Nong Kadyo", text: "She keeps a thing on four legs under her floor, and tonight she will let it out. It walks backwards. It does not want you. It wants your shadow." },
+    { who: "Nong Kadyo", text: "No lamp, no shadow: shutter the light and it has nothing to drink. It will not step over salt, and it fears the whip." },
     { who: "Nong Kadyo", text: "Salt them before the cock crows, and it is finished. Bring me what is left of her, after." },
   ],
 };

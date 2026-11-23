@@ -6,6 +6,7 @@ import { Player } from "./game/Player";
 import { Aswang } from "./game/Aswang";
 import { Manananggal } from "./game/Manananggal";
 import { Tikbalang } from "./game/Tikbalang";
+import { Sigbin } from "./game/Sigbin";
 import { Director, Kapre, Pacing } from "./game/Cast";
 import { Hud } from "./game/Hud";
 import { Guide } from "./game/Guide";
@@ -86,6 +87,7 @@ export default function App() {
           <Aswang />
           <Manananggal />
           <Tikbalang />
+          <Sigbin />
           <Kapre />
           <Pacing />
           <Guide />

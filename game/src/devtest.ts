@@ -192,6 +192,22 @@ async function play() {
   check("night 5: the legs are hidden somewhere new", G().legsAt > 0 && G().errand?.id === "legs", G().legsAt);
   run(0.3);
   check("the kapre's ember shows the way", live.objective.target?.x === hidingSpots[G().legsAt].x, live.objective);
+  // her hound
+  at(DOOR.x + 3, DOOR.z + 4); live.elapsed = Math.max(live.elapsed, 41); run(0.5);
+  check("night 5: the sigbin is let out", live.sigbin.out, live.sigbin);
+  live.sigbin.x = live.player.x + 6; live.sigbin.z = live.player.z; run(6);
+  check("lamp lit: it closes on him", live.sigbin.near < 2.6, live.sigbin.near.toFixed(1));
+  run(2.5);
+  const drunk = live.sigbin.drain;
+  check("it drinks his shadow, and the card says so", live.sigbin.feeding && drunk > 0.2 && live.objective.title === "Your shadow", { ...live.sigbin, card: live.objective.title });
+  key("KeyF"); key("KeyF", false); run(2.5);
+  check("shuttering the lamp loses it", !G().lampOn && !live.sigbin.feeding && live.sigbin.drain < drunk, { lamp: G().lampOn, ...live.sigbin });
+  key("KeyF"); key("KeyF", false); run(1.5);
+  check("lamp lit again: it comes back", live.sigbin.feeding, live.sigbin);
+  G().add("salt", 1); live.sigbin.x = live.player.x + Math.sin(live.facing) * 5; live.sigbin.z = live.player.z + Math.cos(live.facing) * 5; key("KeyQ"); run(0.2); key("KeyQ", false); run(4);
+  check("it will not step over salt", live.sigbin.near < 2.6 && !live.sigbin.feeding, live.sigbin);
+  G().set({ lines: [], hasWhip: true }); live.whipWait = 0; live.stamina = 1; run(1); key("KeyR"); run(0.2); key("KeyR", false); run(3);
+  check("the whip drives it off", live.sigbin.near > 6 && !live.sigbin.feeding, live.sigbin.near.toFixed(1));
   const s = hidingSpots[G().legsAt]; at(s.x + 0.4, s.z + 1.2); hold("KeyE", 1.4); hold("KeyE", 1.7);
   check("salting them on the last night finishes her", G().mana === "dead" && !!G().errand?.done, G().mana);
   await toDawn();
@@ -205,6 +221,13 @@ async function play() {
   G().toTitle(); await sleep(100); G().newGame(); await sleep(200); await skipTalk(); G().startNight(); await sleep(300);
   G().set({ rosing: 1 }); G().breach("test"); await sleep(200);
   check("three breaches lose the game", G().stage === "over" && G().ending === "empty", G().stage);
+
+  // ---------- a shadow drunk dry
+  G().toTitle(); await sleep(100); G().newGame(); await sleep(200); await skipTalk();
+  G().set({ night: 5, bag: { salt: 0, garlic: 0, oil: 6, kindling: 0, tobacco: 0, herbs: 0, coins: 0 } }); G().startNight(); await sleep(300);
+  at(DOOR.x + 3, DOOR.z + 4); live.smoke = 150; live.elapsed = 41; run(0.5);
+  live.sigbin.x = live.player.x + 1.4; live.sigbin.z = live.player.z; run(9);
+  check("a shadow drunk dry puts him down", live.caught > 0 || G().stage !== "night", { caught: live.caught, drain: live.sigbin.drain, stage: G().stage });
 
 }
 

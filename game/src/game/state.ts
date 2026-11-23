@@ -389,5 +389,7 @@ export const live = {
   struck: false,           // he has just struck the house post (the manananggal listens for it)
   whipCrack: false,        // he has just cracked the whip (the aswang listens for it)
   ember: { x: 0, z: 0, on: false },         // where the kapre's ember is pointing, if it owes him
+  /** Her hound on the last night: where it is, whether it is at his shadow, and how much it has drunk (0 to 1). */
+  sigbin: { x: 0, z: 0, near: 99, out: false, feeding: false, drain: 0 },
   fps: 0,
 };

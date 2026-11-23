@@ -33,6 +33,7 @@ export function objective(g: Game): Objective {
     const o = openings.find((x) => x.id === live.breachAt)!;
     return one("At the house", `It is at ${o.name}. Bring your lamp to it.`, o, true);
   }
+  if (live.sigbin.feeding) return one("Your shadow", g.hasWhip ? "It is drinking your shadow. Shutter the lamp (F), or crack the whip (R)." : "It is drinking your shadow. Shutter the lamp (F), or walk away from it.", null, true);
   if (g.lost && live.loops >= 3) return one("Led astray", "Stop walking. Hold T to turn your shirt inside out.", null, true);
 
   const e = g.errand;

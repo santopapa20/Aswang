@@ -151,6 +151,7 @@ function Play() {
   const warn = !night ? null
     : live.caught > 0 ? "It has you"
     : g.overhead ? "Wings overhead · run sideways"
+    : live.sigbin.feeding ? "It is at your shadow · F shutters the lamp"
     : g.hunted ? "It has seen you"
     : live.lampBlown > 0 ? `Your lamp is out · ${Math.ceil(live.lampBlown)}s`
     : night && g.bag.oil <= 0 ? "The lamp is dry"
@@ -165,7 +166,7 @@ function Play() {
   return (
     <>
       <div className="vignette" />
-      <div className="fear" style={{ opacity: Math.max(fear * 0.85, attacked ? 0.35 : 0, g.hunted ? 0.6 : 0) }} />
+      <div className="fear" style={{ opacity: Math.max(fear * 0.85, attacked ? 0.35 : 0, g.hunted ? 0.6 : 0, night ? live.sigbin.drain * 0.9 : 0) }} />
       <div className="blackout" style={{ opacity: live.caught > 0 ? Math.min(1, 1.25 - live.caught / 2.6) : 0 }} />
 
       <header className="topbar">

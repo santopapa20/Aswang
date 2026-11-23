@@ -240,7 +240,7 @@ export function Director() {
       dark: 1 - live.daylight,
       tiktik: hearing ? live.aswang.near : null,
       scratch: night && live.breach > 0,
-      fear: hearing ? Math.max(0, 1 - live.aswang.near / 9) : 0,
+      fear: Math.max(hearing ? Math.max(0, 1 - live.aswang.near / 9) : 0, night ? live.sigbin.drain : 0),
       smoke: live.smoke > 0,
       muted: game.muted || game.stage === "title",
     });
