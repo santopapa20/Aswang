@@ -14,6 +14,8 @@ const files = [
   ["fence", join("assets", "village", "fence.glb")],
   ["palm", join("assets", "village", "palm.glb")],
   ["well", join("assets", "village", "well.glb")],
+  ["balete", join("assets", "village", "balete.glb")],
+  ["rosary", join("assets", "items", "rosary.glb")],
   ["lantern", join("assets", "items", "lantern.glb")],
   ["garlic", join("assets", "items", "garlic.glb")],
 ];

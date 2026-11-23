@@ -28,6 +28,8 @@ const huts: Hut[] = [
   { x: 5, z: 14, rot: 2.6 },
 ];
 const well = { x: -3, z: 2 };
+/** The balete: an old strangler fig at the edge of the barrio. The kapre will live here. */
+const balete = { x: -21, z: -19, height: 12 };
 
 /** Fence runs: start point, direction in radians, number of sections. */
 const fenceRuns: [number, number, number, number][] = [
@@ -54,7 +56,8 @@ const trees: Tree[] = [];
     const clear = Math.hypot(x, z - 6) > 5
       && huts.every((h) => Math.hypot(x - h.x, z - h.z) > 5.5)
       && fence.every((f) => Math.hypot(x - f.x, z - f.z) > 2)
-      && Math.hypot(x - well.x, z - well.z) > 3;
+      && Math.hypot(x - well.x, z - well.z) > 3
+      && Math.hypot(x - balete.x, z - balete.z) > 9;
     if (clear) trees.push({ x, z, h: 4.5 + rnd() * 3.5, lean: (rnd() - 0.5) * 0.25 });
   }
   obstacles.length = 0;
@@ -64,6 +67,7 @@ const trees: Tree[] = [];
     for (const k of [-0.75, 0, 0.75]) obstacles.push({ x: f.x + Math.cos(f.rot) * k, z: f.z - Math.sin(f.rot) * k, r: 0.45 });
   }
   obstacles.push({ x: well.x, z: well.z, r: 1.0 });
+  obstacles.push({ x: balete.x, z: balete.z, r: 2.4 });
 }
 
 function useGroundTexture() {
@@ -101,6 +105,7 @@ export function World() {
   const fenceModels = useProp("/models/fence.glb", FENCE_LENGTH, "x", fence.length, shadows);
   const palmModels = useProp("/models/palm.glb", 1, "y", trees.length, shadows);     // 1 m tall, scaled per tree below
   const wellModels = useProp("/models/well.glb", 2.5, "y", 1, shadows);
+  const baleteModels = useProp("/models/balete.glb", balete.height, "y", 1, shadows);
   const hemi = useRef<HemisphereLight>(null);
   const moon = useRef<DirectionalLight>(null);
   const fog = useMemo(() => new FogExp2(NIGHT.sky.getHex(), 0.03), []);
@@ -119,6 +124,11 @@ export function World() {
     for (let i = 0; i < trees.length; i++) {
       const dx = trees[i].x - live.player.x, dz = trees[i].z - live.player.z;
       palmModels[i].visible = !(dz > 0.8 && dz < 9.5 && Math.abs(dx) < 3.4);
+    }
+
+    {
+      const dx = balete.x - live.player.x, dz = balete.z - live.player.z;
+      baleteModels[0].visible = !(dz > 1.5 && dz < 13 && Math.abs(dx) < 7);
     }
 
     const game = useGame.getState();
@@ -160,6 +170,7 @@ export function World() {
         <primitive key={`palm${i}`} object={palmModels[i]} position={[t.x, 0, t.z]} rotation-y={i * 2.4} rotation-z={t.lean * 0.4} scale={t.h + 2} />
       ))}
       <primitive object={wellModels[0]} position={[well.x, 0, well.z]} rotation-y={0.6} />
+      <primitive object={baleteModels[0]} position={[balete.x, 0, balete.z]} rotation-y={0.9} />
     </>
   );
 }
@@ -168,3 +179,4 @@ useGLTF.preload("/models/hut.glb");
 useGLTF.preload("/models/fence.glb");
 useGLTF.preload("/models/palm.glb");
 useGLTF.preload("/models/well.glb");
+useGLTF.preload("/models/balete.glb");
