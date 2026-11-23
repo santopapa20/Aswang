@@ -2,6 +2,9 @@
 
 Written 2026-11-23. This is the working plan; change it when decisions change.
 
+**Under review:** `DESIGN_PROPOSAL.md` proposes replacing the five-nights survival idea below with a
+story-led vigil. Until Keith decides, this file describes what is built, not where the game is going.
+
 ## The game in one paragraph
 
 A top-down 3D survival horror game in a remote Visayan barrio in the 1950s. You are a young
