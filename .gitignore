@@ -32,3 +32,6 @@ assets/village/source/
 
 assets/items/source/
 assets/manananggal/source/
+
+# Raw Tripo files for every character and prop are large; the shrunk versions are tracked
+assets/*/source/
