@@ -100,3 +100,4 @@ export const SHOP: { item: ItemId; cost: number }[] = [
 export const HERB_PRICE = 2;        // centavos he gives for one bundle of herbs
 export const CHARM_HERBS = 6;       // herbs he binds into one charm
 export const WHIP_COST = 30;
+export const TONIC = { herbs: 4, coins: 6 };  // Rosing's tonic: gives back one of her strength, once a day

@@ -116,8 +116,32 @@ function tuftGeometry() {
   return g;
 }
 
-function Scatter({ items, geometry, colour, squash, vary, flat, sway }: {
-  items: Blob[]; geometry: BufferGeometry; colour: string; squash: [number, number, number]; vary: number; flat?: boolean; sway?: boolean;
+/** A clump of undergrowth: a few lumpy, overlapping mounds, shaded dark underneath and lighter on top. */
+function bushGeometry() {
+  const pos: number[] = [], nor: number[] = [], col: number[] = [];
+  const lumps: [number, number, number, number][] = [[0, 0.55, 0, 1], [0.62, 0.42, 0.18, 0.72], [-0.55, 0.46, -0.3, 0.78], [0.12, 0.36, 0.62, 0.62], [-0.2, 0.4, -0.7, 0.6]];
+  const hash = (x: number, y: number, z: number) => { const h = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; return h - Math.floor(h); };
+  for (const [cx, cy, cz, r] of lumps) {
+    const p = new IcosahedronGeometry(r, 1).getAttribute("position");
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i), len = Math.hypot(x, y, z) || 1;
+      const k = 1 + (hash(x + cx, y, z + cz) - 0.5) * 0.42;            // the same point always moves the same way, so no cracks
+      const py = Math.max(0, cy + y * k);
+      pos.push(cx + x * k, py, cz + z * k);
+      nor.push(x / len, y / len, z / len);
+      const light = 0.42 + 0.58 * Math.min(1, py / 1.3) * (0.8 + 0.4 * hash(z, x, y));
+      col.push(0.62 * light, 0.9 * light, 0.5 * light);
+    }
+  }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
+  g.setAttribute("normal", new BufferAttribute(new Float32Array(nor), 3));
+  g.setAttribute("color", new BufferAttribute(new Float32Array(col), 3));
+  return g;
+}
+
+function Scatter({ items, geometry, colour, squash, vary, flat, sway, tinted }: {
+  items: Blob[]; geometry: BufferGeometry; colour: string; squash: [number, number, number]; vary: number; flat?: boolean; sway?: boolean; tinted?: boolean;
 }) {
   const ref = useRef<InstancedMesh>(null);
   useLayoutEffect(() => {
@@ -136,7 +160,7 @@ function Scatter({ items, geometry, colour, squash, vary, flat, sway }: {
   }, [items, colour, squash, vary]);
   return (
     <instancedMesh ref={ref} args={[geometry, undefined, items.length]} frustumCulled={false} receiveShadow={!sway}>
-      <meshLambertMaterial vertexColors={!!sway} side={sway ? DoubleSide : undefined} flatShading={flat} />
+      <meshLambertMaterial vertexColors={!!sway || !!tinted} side={sway ? DoubleSide : undefined} flatShading={flat} />
     </instancedMesh>
   );
 }
@@ -159,7 +183,7 @@ export function World() {
     return { grass, dirt, dirtPatch, edge: pathEdge(), round: patchEdge() };
   }, []);
   const geo = useMemo(() => ({
-    path: pathGeometry(), tuft: tuftGeometry(), bush: new IcosahedronGeometry(1, 1), rock: new IcosahedronGeometry(1, 0),
+    path: pathGeometry(), tuft: tuftGeometry(), bush: bushGeometry(), rock: new IcosahedronGeometry(1, 0),
   }), []);
 
   const hutModels = useProp("/models/hut.glb", HUT.height, "y", houses.length, shadows);
@@ -226,7 +250,7 @@ export function World() {
       </mesh>
 
       <Scatter items={tufts} geometry={geo.tuft} colour="#ffffff" squash={[1, 1, 1]} vary={0.5} sway />
-      <Scatter items={bushes} geometry={geo.bush} colour="#26381f" squash={[1, 0.72, 1]} vary={0.45} />
+      <Scatter items={bushes} geometry={geo.bush} colour="#3a5230" squash={[0.72, 0.62, 0.72]} vary={0.35} tinted />
       <Scatter items={rocks} geometry={geo.rock} colour="#6f6a62" squash={[1, 0.55, 0.8]} vary={0.3} flat />
 
       {houses.map((h, i) => (
@@ -361,6 +385,7 @@ function HomeYard() {
 function LootNodes() {
   const searched = useGame((s) => s.searched);
   const jar = useMemo(() => new LatheGeometry([[0.001, 0], [0.16, 0], [0.26, 0.16], [0.27, 0.34], [0.18, 0.5], [0.13, 0.56], [0.17, 0.62]].map(([x, y]) => new Vector2(x, y)), 14), []);
+  const sack = useMemo(() => new LatheGeometry([[0.001, 0], [0.24, 0.01], [0.33, 0.14], [0.31, 0.36], [0.2, 0.5], [0.08, 0.56], [0.07, 0.6], [0.15, 0.68], [0.001, 0.66]].map(([x, y]) => new Vector2(x, y)), 12), []);
   return (
     <>
       {nodes.map((n) => {
@@ -384,8 +409,8 @@ function LootNodes() {
               </mesh>
             )}
             {n.kind === "sako" && (
-              <mesh position={[0, done ? 0.1 : 0.3, 0]} scale={done ? [0.5, 0.1, 0.45] : [0.4, 0.34, 0.36]}>
-                <icosahedronGeometry args={[1, 2]} /><meshStandardMaterial color="#8d7b56" roughness={1} />
+              <mesh geometry={sack} rotation-z={done ? 1.45 : 0.06} position={[0, done ? 0.3 : 0, 0]} scale={done ? [1, 0.75, 1] : 1}>
+                <meshStandardMaterial color="#75633f" roughness={1} side={DoubleSide} />
               </mesh>
             )}
             {n.kind === "kindling" && !done && [0, 1, 2, 3, 4].map((i) => (

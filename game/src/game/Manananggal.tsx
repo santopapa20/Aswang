@@ -36,9 +36,10 @@ export function Manananggal() {
   const timer = useRef(0);
   const roofIn = useRef(30);
   const goal = useRef(new Vector3());
+  const angry = useRef(false);        // driven off the roof by noise: her next move is to come down on him
 
   useEffect(() => {
-    mode.current = "absent"; timer.current = 0; roofIn.current = 30;
+    mode.current = "absent"; timer.current = 0; roofIn.current = 30; angry.current = false;
     api.reset();
     api.play("hover", { fade: 0 });
   }, [runId, api]);
@@ -110,8 +111,11 @@ export function Manananggal() {
           game.say("Rosing", ROSING_SAYS.smoke); game.gainXp(10); game.set({ tally: { ...game.tally, held: game.tally.held + 1 } });
           leaveRoof(nextRoof()); mode.current = "recover"; timer.current = 3; sound.wings();
         } else if (live.struck) {
-          sound.strike(); game.gainXp(10);
-          leaveRoof(nextRoof()); mode.current = "shriek"; timer.current = api.duration("shriek") * 0.55; game.set({ overhead: true }); sound.shriek();
+          // she lifts off, swings wide, and comes back down on whoever made the noise
+          sound.strike(); sound.wings(); game.gainXp(10);
+          leaveRoof(nextRoof()); angry.current = true;
+          dir.current.set(p.x - live.player.x, 0.4, p.z - live.player.z).normalize();
+          mode.current = "recover"; timer.current = 2.3;
         } else if (live.breach >= 1) {
           sound.breach(); game.breach("It came through the roof.");
           leaveRoof(nextRoof() + 10); mode.current = "recover"; timer.current = 4;
@@ -139,7 +143,10 @@ export function Manananggal() {
         // missed, or turned away: climb, then go back to circling
         api.play("fly", { fade: 0.3 });
         flyTo(p.x + dir.current.x * 6, ALTITUDE, p.z + dir.current.z * 6, CRUISE * 1.2);
-        if (timer.current <= 0) { mode.current = "patrol"; newGoal(); timer.current = 5; }
+        if (timer.current <= 0 && angry.current && live.caught <= 0) {
+          angry.current = false;
+          mode.current = "shriek"; timer.current = api.duration("shriek") * 0.7; game.set({ overhead: true }); sound.shriek();
+        } else if (timer.current <= 0) { mode.current = "patrol"; newGoal(); timer.current = 5; }
         break;
       case "ended":
         // her body is salted: she screams and flees into the sky

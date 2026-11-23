@@ -32,6 +32,7 @@ export function Aswang() {
   const target = useRef<Opening>(openings[0]);
   const stage2 = useRef(false);       // on the way to an opening: past the approach point
   const chaseFor = useRef(0);
+  const sated = useRef(false);        // she has just been inside: she keeps away for a good while, however far he is
 
   useEffect(() => {
     mode.current = "away";
@@ -49,8 +50,10 @@ export function Aswang() {
     const present = game.stage === "night" && game.form === "foot" && !(night === 3 && game.trusted) && live.caught <= 0;
     if (!present) {
       if (mode.current !== "away" && game.stage === "night" && live.caught > 0) { api.play("idle", { fade: 0.6 }); return; }
+      // (only clear what is hers: on other nights the manananggal uses the same breach meter)
+      if (mode.current !== "away") { live.breach = 0; live.breachAt = null; live.aswang.active = false; }
+      if (game.stage !== "night" || game.form === "foot") live.aswang.active = false;
       mode.current = "away"; g.visible = false; if (blob.current) blob.current.visible = false;
-      live.aswang.active = false; live.breach = 0; live.breachAt = null;
       return;
     }
     const p = pos.current;
@@ -138,11 +141,11 @@ export function Aswang() {
         api.play("attack", { fade: 0.3, speed: 0.6 });
         turnTo(home.x - p.x, home.z - p.z, 6);
         live.breach += dt / (night === 1 ? 10 : 7.5);
-        if (lit && dist < LIGHT) { lurkAway(12 + rnd() * 8); mode.current = "withdraw"; game.gainXp(8); break; }
+        if (lit && dist < LIGHT) { lurkAway((night === 1 ? 18 : 12) + rnd() * 8); mode.current = "withdraw"; game.gainXp(8); break; }
         if (live.breach >= 1) {
           sound.breach();
           game.breach(`It got in through ${target.current.name}.`);
-          lurkAway(34); mode.current = "withdraw";
+          lurkAway(60); mode.current = "withdraw"; sated.current = true;
         }
         break;
       case "recoil":
@@ -152,7 +155,10 @@ export function Aswang() {
       case "withdraw": {
         api.play("run", { fade: 0.3, speed: 0.8 });
         const wait = timer.current;
-        if (stepTo(goal.current.x, goal.current.z, STALK * 1.15) !== "going") { mode.current = "lurk"; timer.current = Math.max(4, wait) * (guarding ? 1 : 0.5); }
+        if (stepTo(goal.current.x, goal.current.z, STALK * 1.15) !== "going") {
+          // with nobody at the house she comes back sooner, unless she has just fed
+          mode.current = "lurk"; timer.current = Math.max(4, wait) * (guarding || sated.current ? 1 : 0.6); sated.current = false;
+        }
         break;
       }
       case "scream":

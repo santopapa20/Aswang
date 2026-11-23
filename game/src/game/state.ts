@@ -32,6 +32,7 @@ const freshRun = () => ({
   kapre: "unknown" as "unknown" | "angry" | "friend",
   trusted: null as boolean | null,             // did he let Pacing sit with Rosing on the third night
   kadyoTrust: 0,
+  tonicOn: 0,                                  // the day he last bought Rosing a tonic (one a day)
   seen: [] as string[],                        // one-time hints already shown
 });
 /** Everything that belongs to the current day or night only. */
@@ -119,7 +120,7 @@ export const useGame = create<GameState>((set, get) => ({
   newGame: () => {
     set((s) => ({ ...freshRun(), ...freshNight(), stage: "day", runId: s.runId + 1, dialogue: null, panel: null, caption: null, toasts: [], report: [], ending: null }));
     live.player.set(START.x, 0, START.z);
-    live.facing = Math.PI;
+    live.facing = Math.PI; live.smoke = 0;
     beginClock(NIGHTS[0].daySeconds);
     get().talk(INTRO);
   },
@@ -145,7 +146,7 @@ export const useGame = create<GameState>((set, get) => ({
       mana: "absent",
     });
     beginClock(plan.seconds);
-    live.smoke = 0; live.lampBlown = 0; live.breach = 0; live.loops = 0;
+    live.lampBlown = 0; live.breach = 0; live.breachAt = null; live.loops = 0;      // smoke from a fire fed before dusk carries over
     get().toast(`Night ${s.night}: ${plan.name}`);
   },
   endNight: (cause) => {

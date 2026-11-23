@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { carried, endingText, hasSave, live, mods, useGame } from "./state";
-import { CHARM_HERBS, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
+import { CHARM_HERBS, charmName, HERB_PRICE, TONIC, ITEM_ORDER, ITEMS, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
 import { ERRANDS, NIGHTS } from "./story";
 import { openings } from "./layout";
 import { choose } from "./input";
@@ -209,6 +209,11 @@ function Trade() {
         </button>
         <button className="perk" disabled={g.bag.herbs < CHARM_HERBS} onClick={() => { if (g.spend("herbs", CHARM_HERBS)) { const c = g.addCharm(0.05); g.toast(`Nong Kadyo binds a ${charmName(c)}.`, "good"); } }}>
           <b>Have a charm bound</b><span className="rank">{CHARM_HERBS} herbs</span><p>He knots herbs, a prayer and a little oil into a habak. No two come out alike.</p>
+        </button>
+        <button className="perk" disabled={g.rosing >= 3 || g.tonicOn === g.night || g.bag.herbs < TONIC.herbs || g.bag.coins < TONIC.coins}
+          onClick={() => { if (g.spend("herbs", TONIC.herbs) && g.spend("coins", TONIC.coins)) { g.set({ rosing: Math.min(3, g.rosing + 1), tonicOn: g.night }); g.toast("A tonic for Rosing. She will be stronger tonight.", "good"); } }}>
+          <b>A tonic for Rosing</b><span className="rank">{TONIC.herbs} herbs + {TONIC.coins} c</span>
+          <p>{g.rosing >= 3 ? "She does not need it." : g.tonicOn === g.night ? "One a day is all she can take." : "Bitter leaves boiled down. It gives her back some of her strength."}</p>
         </button>
         {!g.hasWhip && (
           <button className="perk" disabled={g.bag.coins < WHIP_COST} onClick={() => { if (g.spend("coins", WHIP_COST)) { g.set({ hasWhip: true }); g.toast("A stingray-tail whip. Press R when she is close.", "good"); } }}>

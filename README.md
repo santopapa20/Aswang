@@ -27,7 +27,7 @@ npm install      # first time only
 npm run dev      # then open http://localhost:5173
 ```
 
-WASD or arrows to move, Shift to run, C to sneak, L to switch lamp shadows, R to restart.
+WASD or arrows to move, Shift to run, C to sneak. Hold E to use, search or talk; hold G at a door or window to protect it. Q pours a line of salt, F shutters the lamp, R cracks the whip, T (held) turns your shirt inside out. Tab opens the bag, Esc pauses, M mutes.
 `npm run dev` first copies the finished models from `assets/` into `game/public/models/`.
 
 ## Folders
