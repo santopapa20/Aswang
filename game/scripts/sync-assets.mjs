@@ -10,6 +10,7 @@ mkdirSync(out, { recursive: true });
 const files = [
   ["player", join("assets", "player", "game", "player.glb")],
   ["aswang", join("assets", "aswang", "game", "aswang.glb")],
+  ["aswang_human", join("assets", "aswang_human", "game", "aswang_human.glb")],
   ["manananggal", join("assets", "manananggal", "game", "manananggal.glb")],
   ["lower_half", join("assets", "manananggal", "lower_half.glb")],
   ["tikbalang", join("assets", "tikbalang", "game", "tikbalang.glb")],
