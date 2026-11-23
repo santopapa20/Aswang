@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { CanvasTexture, CatmullRomCurve3, ClampToEdgeWrapping, LinearFilter, LinearMipmapLinearFilter, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, Vector3 } from "three";
+import { CanvasTexture, CatmullRomCurve3, ClampToEdgeWrapping, LinearFilter, LinearMipmapLinearFilter, MeshLambertMaterial, RepeatWrapping, SRGBColorSpace, Vector3 } from "three";
 import { live } from "./state";
 import { balete, bushes, decor, fences, FENCE_LENGTH, firePit, houses, HUT, nodes, palms, patches, paths, seeded, well } from "./layout";
 
@@ -11,8 +11,7 @@ import { balete, bushes, decor, fences, FENCE_LENGTH, firePit, houses, HUT, node
  * Nothing is laid on top of anything else, so there are no seams where paths meet.
  */
 const RECT = { x0: -46, z0: -42, w: 184, d: 86.25 };       // the part of the world the picture covers, in metres
-const PX = 2048 / RECT.w;                                   // pixels per metre
-const W = 2048, H = Math.round(RECT.d * PX);
+const W = 1280, PX = W / RECT.w, H = Math.round(RECT.d * PX);      // about seven pixels to the metre: enough for a ragged edge, quick to paint
 /** Which way shadows fall on the ground (the sun and the moon stand in the north-west). */
 export const SHADOW_DIR = { x: 0.87, z: 0.5 };
 
@@ -56,7 +55,7 @@ function paintGround() {
     }
     for (const p of patches) dot(g, p.x, p.z, p.r * 0.86);
     dot(g, firePit.x, firePit.z, 1.5);
-  }, 7);
+  }, 4.5);
   // where it lies dark and damp: under trees, houses, fences and undergrowth
   const damp = layer((g) => {
     for (const t of palms) dot(g, t.x, t.z, 1.25);
@@ -67,7 +66,7 @@ function paintGround() {
     for (const n of nodes) dot(g, n.x, n.z, 0.6);
     dot(g, balete.x, balete.z, balete.height * 0.72);
     dot(g, well.x, well.z, 1.5);
-  }, 9);
+  }, 5.5);
   // where shadows fall: everything tall throws one to the south-east
   const shade = layer((g) => {
     const { x: sx, z: sz } = SHADOW_DIR;
@@ -89,7 +88,7 @@ function paintGround() {
     for (const n of nodes) dot(g, n.x + sx * 0.25, n.z + sz * 0.25, 0.5);
     for (let k = 0; k < 9; k++) dot(g, balete.x + sx * 3.4 + Math.cos(k * 0.7) * 2.2, balete.z + sz * 3.4 + Math.sin(k * 0.7) * 2.2, balete.height * 0.36, balete.height * 0.2, k * 0.7);
     dot(g, well.x + sx * 1.1, well.z + sz * 1.1, 1.3);
-  }, 4);
+  }, 2.5);
 
   const c = document.createElement("canvas");
   c.width = W; c.height = H;
@@ -184,7 +183,9 @@ let made: { grass: CanvasTexture; earth: CanvasTexture; paint: CanvasTexture } |
 function painted() {
   if (!made) {
     const grass = grassTile(); grass.repeat.set(420 / 6, 240 / 6);       // 6 m a repeat: the trail's 30 m loop is five of them
+    const t0 = performance.now();
     made = { grass, earth: earthTile(), paint: paintGround() };
+    console.debug(`ground painted in ${Math.round(performance.now() - t0)} ms`);
   }
   return made;
 }
@@ -193,7 +194,7 @@ export function Ground() {
   const tex = painted();
   const shade = useRef({ value: 0.3 });
   const material = useMemo(() => {
-    const m = new MeshStandardMaterial({ map: tex.grass, roughness: 1, metalness: 0 });
+    const m = new MeshLambertMaterial({ map: tex.grass });
     m.onBeforeCompile = (sh) => {
       sh.uniforms.uPaint = { value: tex.paint };
       sh.uniforms.uEarth = { value: tex.earth };

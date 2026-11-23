@@ -243,7 +243,7 @@ const clearOfThings = (x: number, z: number, pad: number) =>
 }
 
 // ---- set dressing: real models, placed on purpose ---------------------------------------------
-export type Decor = { kind: "rocks" | "shrub" | "fern"; x: number; z: number; s: number; r: number };
+export type Decor = { kind: "rocks" | "shrub" | "fern" | "logs" | "pot"; x: number; z: number; s: number; r: number };
 export const decor: Decor[] = [];
 for (const h of houses) {
   if (!h.lit) continue;
@@ -253,6 +253,17 @@ for (const h of houses) {
 for (const [x, z, s] of [[7.6, 9.2, 1.2], [-4.6, -1.2, 1.0], [30.2, 4.6, 1.3], [96.4, 4.4, 1.2], [112, -19, 1.3], [-31, 14, 1.3]]) decor.push({ kind: "shrub", x, z, s, r: x * z });
 for (const [x, z, s] of [[5.4, 20.5, 1.0], [-6.6, 9.4, 0.8], [9.2, -3.4, 0.9], [27.4, 3.4, 1.1], [-10.4, -10.6, 0.9], [21.6, -12, 0.8], [97.2, -3.8, 1.0], [108.6, 4.6, 0.9], [116.2, 3.2, 1.1], [-2.6, 26, 0.9]]) {
   decor.push({ kind: "rocks", x, z, s, r: x + z });
+}
+// lived-in houses keep their water jars by the ladder and their firewood under the eaves (Rosing's yard is kept clear: it is fought over)
+for (const h of houses) {
+  if (!h.lit) continue;
+  decor.push({ kind: "pot", x: h.x + 1.75, z: h.z + HUT.hz + 0.42, s: 1, r: h.x }, { kind: "pot", x: h.x + 2.3, z: h.z + HUT.hz + 0.2, s: 0.8, r: h.z });
+  if (h.id !== "home") decor.push({ kind: "logs", x: h.x - HUT.hx - 0.95, z: h.z + 0.9, s: 1, r: 1.57 }, { kind: "pot", x: h.x - 1.9, z: h.z + HUT.hz + 0.5, s: 1.1, r: 2 });
+}
+// the old sitio is going back to the forest: growth has come up against the empty houses
+for (const h of houses) {
+  if (h.lit || h.id === "shut") continue;
+  for (const [dx, dz, s] of [[-2.9, 2.6, 1.0], [2.8, 2.9, 0.8], [-3.1, -0.6, 1.2], [3.2, -1.4, 1.1], [0.9, 3.3, 0.6]]) bushes.push({ x: h.x + dx, z: h.z + dz, s, r: dx * 3 + h.x });
 }
 palms.filter((p) => p.solid).slice(0, 26).forEach((p, i) => decor.push({ kind: "fern", x: p.x + Math.cos(i * 2.4) * 1.1, z: p.z + Math.sin(i * 2.4) * 1.1, s: 0.7 + (i % 3) * 0.12, r: i }));
 for (let p = 0; p < 4; p++) {
@@ -271,7 +282,7 @@ export const solids: Circle[] = [
   { x: kapreSpot.x, z: kapreSpot.z, r: 0.95 },
   ...nodes.filter((n) => n.kind !== "herbs").map((n) => ({ x: n.x, z: n.z, r: 0.45 })),
   { x: trail.marker.x, z: trail.marker.z, r: 0.3 },
-  ...decor.filter((d) => d.kind !== "fern").map((d) => ({ x: d.x, z: d.z, r: d.kind === "rocks" ? 0.5 * d.s : 0.8 * d.s })),
+  ...decor.filter((d) => d.kind !== "fern").map((d) => ({ x: d.x, z: d.z, r: (d.kind === "rocks" ? 0.5 : d.kind === "pot" ? 0.32 : d.kind === "logs" ? 0.5 : 0.8) * d.s })),
 ];
 export const boxes = houses.map((h) => ({ x: h.x, z: h.z, hx: HUT.hx + 0.1, hz: HUT.hz + 0.1 }));
 

@@ -218,7 +218,7 @@ function LowerHalf() {
       {ended && (
         <mesh position={[0, 0.03, 0]} rotation-x={-Math.PI / 2}>
           <circleGeometry args={[0.5, 20]} />
-          <meshStandardMaterial color="#d9d5ca" emissive="#dfe6ff" emissiveIntensity={0.18} roughness={1} transparent opacity={0.85} />
+          <meshLambertMaterial color="#d9d5ca" emissive="#dfe6ff" emissiveIntensity={0.18} transparent opacity={0.85} />
         </mesh>
       )}
     </group>

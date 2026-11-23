@@ -61,7 +61,9 @@ function Warmup() {
         if (!m) return;
         for (const k of ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap"]) { const t = m[k] as { isTexture?: boolean } | undefined; if (t?.isTexture) gl.initTexture(t as never); }
       });
+      const t0 = performance.now();
       gl.compile(scene, camera);
+      console.debug(`materials prepared in ${Math.round(performance.now() - t0)} ms`);
     }, 300);
     return () => clearTimeout(id);
   }, [gl, scene, camera]);

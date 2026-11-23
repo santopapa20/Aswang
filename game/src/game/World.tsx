@@ -3,7 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import {
   BufferAttribute, BufferGeometry, Color, DirectionalLight, DoubleSide, FogExp2, Group,
-  HemisphereLight, IcosahedronGeometry, InstancedMesh, Mesh, MeshStandardMaterial, Object3D, PointLight,
+  HemisphereLight, IcosahedronGeometry, InstancedMesh, Mesh, MeshLambertMaterial, Object3D, PointLight,
 } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Ground } from "./Ground";
@@ -91,13 +91,13 @@ function bushGeometry() {
 
 /** Gives one copy of a model its own materials, drawn as a fine screen of dots when faded, so it can thin out without its twins. */
 function seeThrough(o: Object3D) {
-  if (o.userData.mats) return o.userData.mats as MeshStandardMaterial[];      // asked twice for the same copy: the same answer
-  const mats: MeshStandardMaterial[] = [];
+  if (o.userData.mats) return o.userData.mats as MeshLambertMaterial[];      // asked twice for the same copy: the same answer
+  const mats: MeshLambertMaterial[] = [];
   o.userData.mats = mats;
   o.traverse((m) => {
     const mesh = m as Mesh;
     if (!mesh.isMesh) return;
-    const mat = (mesh.material as MeshStandardMaterial).clone();
+    const mat = (mesh.material as MeshLambertMaterial).clone();
     mat.alphaHash = true;
     mesh.material = mat; mats.push(mat);
   });
@@ -180,7 +180,12 @@ export function World() {
   const wellModels = useProp("/models/well.glb", 2.5, "y", 1, shadows);
   const baleteModels = useProp("/models/balete.glb", balete.height, "y", 1, shadows);
 
-  const see = useMemo(() => ({ palms: palmModels.map(seeThrough), huts: hutModels.map(seeThrough), balete: seeThrough(baleteModels[0]) }), [palmModels, hutModels, baleteModels]);
+  const see = useMemo(() => {
+    const huts = hutModels.map(seeThrough);
+    // houses nobody lives in have gone grey with weather
+    houses.forEach((h, i) => { if (!h.lit) for (const m of huts[i]) m.color.setRGB(0.56, 0.58, 0.55); });
+    return { palms: palmModels.map(seeThrough), huts, balete: seeThrough(baleteModels[0]) };
+  }, [palmModels, hutModels, baleteModels]);
 
   const hemi = useRef<HemisphereLight>(null);
   const sun = useRef<DirectionalLight>(null);
@@ -196,7 +201,7 @@ export function World() {
     // anything tall standing between the camera and the player would cover him, so hide those
     const px = live.player.x, pz = live.player.z;
     const k = Math.min(1, dt * 7);
-    const thin = (mats: MeshStandardMaterial[], hides: boolean, to = 0.16) => { for (const m of mats) m.opacity += ((hides ? to : 1) - m.opacity) * k; };
+    const thin = (mats: MeshLambertMaterial[], hides: boolean, to = 0.16) => { for (const m of mats) m.opacity += ((hides ? to : 1) - m.opacity) * k; };
     for (let i = 0; i < palms.length; i++) {
       const dx = palms[i].x - px, dz = palms[i].z - pz;
       if (Math.abs(dx) > 12 || Math.abs(dz) > 14) continue;
@@ -261,12 +266,12 @@ export function World() {
 
 /** What the hut model lacks: a doorway, a ladder up to it, and a window that glows after dark. */
 function HouseFront({ lit, beacon }: { lit: boolean; beacon: boolean }) {
-  const pane = useRef<MeshStandardMaterial>(null);
+  const pane = useRef<MeshLambertMaterial>(null);
   const glow = useRef<PointLight>(null);
   useFrame(({ clock }) => {
     const dark = 1 - live.daylight;
     const f = 0.9 + 0.1 * Math.sin(clock.elapsedTime * 7.3 + (beacon ? 0 : 2));
-    if (pane.current) pane.current.emissiveIntensity = lit ? 1.5 * dark * f : 0;
+    if (pane.current) pane.current.emissiveIntensity = lit ? 0.75 * dark * f : 0;
     if (glow.current) glow.current.intensity = 9 * dark * f;
   });
   const z = HUT.hz + 0.02, floor = 1.12;
@@ -274,23 +279,23 @@ function HouseFront({ lit, beacon }: { lit: boolean; beacon: boolean }) {
     <group>
       <mesh position={[-0.55, floor + 0.8, z]}>
         <planeGeometry args={[0.85, 1.6]} />
-        <meshStandardMaterial color="#2b1c10" roughness={1} />
+        <meshLambertMaterial color="#2b1c10" />
       </mesh>
       {[-1.0, -0.1].map((x) => (
-        <mesh key={x} position={[x, floor + 0.8, z + 0.02]}><boxGeometry args={[0.07, 1.7, 0.05]} /><meshStandardMaterial color="#8a6a3a" roughness={0.9} /></mesh>
+        <mesh key={x} position={[x, floor + 0.8, z + 0.02]}><boxGeometry args={[0.07, 1.7, 0.05]} /><meshLambertMaterial color="#8a6a3a" /></mesh>
       ))}
-      <mesh position={[-0.55, floor + 1.66, z + 0.02]}><boxGeometry args={[1.0, 0.07, 0.05]} /><meshStandardMaterial color="#8a6a3a" roughness={0.9} /></mesh>
+      <mesh position={[-0.55, floor + 1.66, z + 0.02]}><boxGeometry args={[1.0, 0.07, 0.05]} /><meshLambertMaterial color="#8a6a3a" /></mesh>
       <mesh position={[0.95, floor + 1.05, z]}>
         <planeGeometry args={[0.72, 0.62]} />
-        <meshStandardMaterial ref={pane} color={lit ? "#4a371f" : "#241a10"} emissive="#ff9a3d" emissiveIntensity={0} roughness={1} />
+        <meshLambertMaterial ref={pane} color={lit ? "#4a371f" : "#241a10"} emissive="#ff9a3d" emissiveIntensity={0} />
       </mesh>
       {/* bamboo ladder */}
       <group position={[-0.55, 0, HUT.hz + 0.05]} rotation-x={0.62}>
         {[-0.3, 0.3].map((x) => (
-          <mesh key={x} position={[x, 0.72, 0]}><cylinderGeometry args={[0.035, 0.04, 1.5, 6]} /><meshStandardMaterial color="#8a6a3a" roughness={0.9} /></mesh>
+          <mesh key={x} position={[x, 0.72, 0]}><cylinderGeometry args={[0.035, 0.04, 1.5, 6]} /><meshLambertMaterial color="#8a6a3a" /></mesh>
         ))}
         {[0.25, 0.6, 0.95, 1.3].map((y) => (
-          <mesh key={y} position={[0, y, 0]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.028, 0.028, 0.66, 6]} /><meshStandardMaterial color="#9a7a46" roughness={0.9} /></mesh>
+          <mesh key={y} position={[0, y, 0]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.028, 0.028, 0.66, 6]} /><meshLambertMaterial color="#9a7a46" /></mesh>
         ))}
       </group>
       {beacon && <pointLight ref={glow} position={[0.95, 2.2, HUT.hz + 0.9]} color="#ffae5c" intensity={0} distance={8} decay={1.7} />}
@@ -316,7 +321,7 @@ function HomeYard() {
         const k = (t * 0.32 + i / smoke.current!.children.length) % 1;
         c.position.set(Math.sin(i * 2.3 + t * 0.6) * 0.3 * k - k * 2.6, 0.4 + k * 4.2, -k * 2.2);
         c.scale.setScalar(0.25 + k * 0.9);
-        ((c as Mesh).material as MeshStandardMaterial).opacity = 0.3 * (1 - k);
+        ((c as Mesh).material as MeshLambertMaterial).opacity = 0.3 * (1 - k);
       });
     }
   });
@@ -328,13 +333,13 @@ function HomeYard() {
           <group key={o.id} position={[o.x, 0, o.z]}>
             <mesh position={[side * 0.55 || 0.75, 0.55, side ? 0.5 : 0.1]}>
               <cylinderGeometry args={[0.035, 0.045, 1.1, 6]} />
-              <meshStandardMaterial color="#8a6a3a" roughness={0.9} />
+              <meshLambertMaterial color="#8a6a3a" />
             </mesh>
             {wards[o.id] === "garlic" && <primitive object={garlic[i]} position={[side * 0.55 || 0.75, 0.55, side ? 0.62 : 0.22]} />}
             {wards[o.id] === "salt" && (
               <mesh position={[0, 0.03, side ? 0 : -0.25]} rotation-y={side ? Math.PI / 2 : 0}>
                 <boxGeometry args={[1.5, 0.03, 0.16]} />
-                <meshStandardMaterial color="#f6f4ee" emissive="#dfe6ff" emissiveIntensity={0.7} roughness={1} />
+                <meshLambertMaterial color="#f6f4ee" emissive="#dfe6ff" emissiveIntensity={0.7} />
               </mesh>
             )}
           </group>
@@ -343,10 +348,10 @@ function HomeYard() {
       <group position={[firePit.x, 0, firePit.z]}>
         {Array.from({ length: 9 }, (_, i) => (
           <mesh key={i} geometry={stoneGeometry()} position={[Math.cos(i * 0.7) * 0.46, 0.06, Math.sin(i * 0.7) * 0.46]} rotation-y={i * 1.9} scale={[0.15 + (i % 3) * 0.02, 0.1, 0.12 + (i % 2) * 0.03]}>
-            <meshStandardMaterial color="#a39c90" roughness={1} vertexColors />
+            <meshLambertMaterial color="#a39c90" vertexColors />
           </mesh>
         ))}
-        <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}><circleGeometry args={[0.36, 14]} /><meshStandardMaterial color="#1a1614" roughness={1} /></mesh>
+        <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}><circleGeometry args={[0.36, 14]} /><meshLambertMaterial color="#1a1614" /></mesh>
         <group ref={flame} position={[0, 0.08, 0]} visible={false}>
           {[0, Math.PI / 2].map((r) => (
             <mesh key={r} position={[0, 0.22, 0]} rotation-y={r}><coneGeometry args={[0.16, 0.5, 5, 1, true]} /><meshBasicMaterial color="#ff9a3c" transparent opacity={0.85} side={DoubleSide} /></mesh>
@@ -354,7 +359,7 @@ function HomeYard() {
         </group>
         <group ref={smoke} visible={false}>
           {Array.from({ length: 7 }, (_, i) => (
-            <mesh key={i}><icosahedronGeometry args={[0.5, 1]} /><meshStandardMaterial color="#9a958c" transparent opacity={0.2} depthWrite={false} roughness={1} /></mesh>
+            <mesh key={i}><icosahedronGeometry args={[0.5, 1]} /><meshLambertMaterial color="#9a958c" transparent opacity={0.2} depthWrite={false} /></mesh>
           ))}
         </group>
         <pointLight ref={fire} position={[0, 0.5, 0]} color="#ff8a3a" intensity={0} distance={6} decay={1.8} />
@@ -370,14 +375,16 @@ function Dressing() {
   const shrubs = useProp("/models/shrub.glb", 1.5, "y", of("shrub").length, shadows);
   const ferns = useProp("/models/fern.glb", 1.0, "y", of("fern").length, shadows);
   const piles = useProp("/models/rocks.glb", 1.3, "x", of("rocks").length, shadows);
+  const stacks = useProp("/models/logs.glb", 1.05, "x", of("logs").length, shadows);
+  const jars = useProp("/models/pot.glb", 0.66, "y", of("pot").length, shadows);
   // the gallery models are lit for a studio: taken down so they sit in this light and do not glare by day
   useMemo(() => {
-    const tone = (o: Object3D, k: number) => o.traverse((m) => { const mat = (m as Mesh).material as MeshStandardMaterial | undefined; if (mat?.color) mat.color.setScalar(k); });
+    const tone = (o: Object3D, k: number) => o.traverse((m) => { const mat = (m as Mesh).material as MeshLambertMaterial | undefined; if (mat?.color) mat.color.setScalar(k); });
     if (piles[0]) tone(piles[0], 0.36);
-    if (shrubs[0]) shrubs[0].traverse((m) => { const mat = (m as Mesh).material as MeshStandardMaterial | undefined; if (mat?.color) mat.color.setRGB(0.3, 0.36, 0.24); });      // it came lime green
+    if (shrubs[0]) shrubs[0].traverse((m) => { const mat = (m as Mesh).material as MeshLambertMaterial | undefined; if (mat?.color) mat.color.setRGB(0.3, 0.36, 0.24); });      // it came lime green
     if (ferns[0]) tone(ferns[0], 0.8);
   }, [piles, shrubs, ferns]);
-  const sets: [string, Object3D[]][] = [["shrub", shrubs], ["fern", ferns], ["rocks", piles]];
+  const sets: [string, Object3D[]][] = [["shrub", shrubs], ["fern", ferns], ["rocks", piles], ["logs", stacks], ["pot", jars]];
   return (
     <>
       {sets.map(([kind, models]) => of(kind).map((d, i) => (
@@ -428,7 +435,7 @@ function SaltLines() {
         return (
           <mesh key={i} position={[(l.ax + l.bx) / 2, 0.035, (l.az + l.bz) / 2]} rotation-y={-Math.atan2(dz, dx)}>
             <boxGeometry args={[Math.hypot(dx, dz), 0.03, 0.16]} />
-            <meshStandardMaterial color="#f6f4ee" emissive="#dfe6ff" emissiveIntensity={0.7} roughness={1} />
+            <meshLambertMaterial color="#f6f4ee" emissive="#dfe6ff" emissiveIntensity={0.7} />
           </mesh>
         );
       })}
@@ -440,10 +447,10 @@ function SaltLines() {
 function TrailMarker() {
   return (
     <group position={[trail.marker.x, 0, trail.marker.z]}>
-      <mesh position={[0, 0.8, 0]} rotation-z={0.08}><cylinderGeometry args={[0.05, 0.07, 1.6, 6]} /><meshStandardMaterial color="#6d5535" roughness={1} /></mesh>
-      <mesh position={[0.2, 1.4, 0.05]} rotation-z={-0.5}><boxGeometry args={[0.42, 0.26, 0.02]} /><meshStandardMaterial color="#a32a22" emissive="#5a0f0a" emissiveIntensity={0.5} roughness={1} side={DoubleSide} /></mesh>
+      <mesh position={[0, 0.8, 0]} rotation-z={0.08}><cylinderGeometry args={[0.05, 0.07, 1.6, 6]} /><meshLambertMaterial color="#6d5535" /></mesh>
+      <mesh position={[0.2, 1.4, 0.05]} rotation-z={-0.5}><boxGeometry args={[0.42, 0.26, 0.02]} /><meshLambertMaterial color="#a32a22" emissive="#5a0f0a" emissiveIntensity={0.5} side={DoubleSide} /></mesh>
       {[0, 1, 2].map((i) => (
-        <mesh key={i} geometry={stoneGeometry()} position={[0.3 + i * 0.16, 0.06, 0.3 - i * 0.1]} rotation-y={i * 2.2} scale={[0.15 - i * 0.02, 0.1, 0.12]}><meshStandardMaterial color="#a39c90" vertexColors roughness={1} /></mesh>
+        <mesh key={i} geometry={stoneGeometry()} position={[0.3 + i * 0.16, 0.06, 0.3 - i * 0.1]} rotation-y={i * 2.2} scale={[0.15 - i * 0.02, 0.1, 0.12]}><meshLambertMaterial color="#a39c90" vertexColors /></mesh>
       ))}
     </group>
   );

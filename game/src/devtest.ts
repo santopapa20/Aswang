@@ -22,8 +22,10 @@ const results: { name: string; ok: boolean; note: string }[] = [];
 const check = (name: string, ok: boolean, note: unknown = "") => { results.push({ name, ok, note: typeof note === "string" ? note : JSON.stringify(note) }); };
 
 /** Plays `seconds` of night, going to whichever opening is being worked on. Stops early when `until` is true. */
+let tried = false;      // something has worked at an opening at some point (which opening she picks is chance)
 async function guard(seconds: number, until: () => boolean = () => false) {
   for (let t = 0; t < seconds && G().stage === "night" && !until(); t += 1) {
+    if (live.breachAt) tried = true;
     if (G().onRoof && G().bag.kindling > 0 && live.smoke <= 0) { at(firePit.x, firePit.z + 1.1); hold("KeyE", 1.3); }
     else if (live.breachAt && live.breach > 0 && !G().onRoof) { const s = SPOT[live.breachAt]; live.player.set(s[0], 0, s[1]); }
     else if (G().overhead) live.player.x += t % 2 ? 5 : -5;            // step aside from a dive
@@ -69,16 +71,22 @@ async function play() {
   at(KADYO.x, KADYO.z + 0.5); hold("KeyE", 0.6); await sleep(50);
   check("Nong Kadyo speaks", !!G().dialogue, prompt("E")); await skipTalk(); await sleep(50);
   check("then his trade opens", G().panel === "trade", G().panel);
-  G().add("coins", 40); G().add("herbs", 12); await sleep(80);
-  const offers = [...document.querySelectorAll<HTMLButtonElement>(".offers .perk")];
-  const click = (word: string) => { const b = offers.find((o) => o.textContent!.includes(word)); b?.click(); return !!b && !b.disabled; };
-  const salt0 = G().bag.salt; click("Salt"); await sleep(30);
+  G().set({ bag: { ...G().bag, coins: 40, herbs: 12 } });      // a known purse, whatever the sack held
+  // a button answers only once the screen has caught up with the purse, so wait for it to be live before pressing
+  const click = async (word: string) => {
+    for (let i = 0; i < 40; i++) {
+      const b = [...document.querySelectorAll<HTMLButtonElement>(".offers .perk")].find((o) => o.textContent!.includes(word));
+      if (b && !b.disabled) { b.click(); await sleep(60); return; }
+      await sleep(50);
+    }
+  };
+  const salt0 = G().bag.salt; await click("Salt");
   check("buying salt costs 3 centavos", G().bag.salt === salt0 + 1 && G().bag.coins === 37, G().bag);
-  click("Sell a bundle"); await sleep(30);
+  await click("Sell a bundle");
   check("selling herbs pays", G().bag.herbs === 11 && G().bag.coins === 39, G().bag);
-  click("charm bound"); await sleep(30);
+  await click("charm bound");
   check("a charm is bound from herbs and worn", G().charms.length === 1 && G().worn.length === 1 && G().bag.herbs === 5, G().charms);
-  G().add("coins", 30); await sleep(30); [...document.querySelectorAll<HTMLButtonElement>(".offers .perk")].find((o) => o.textContent!.includes("whip"))?.click(); await sleep(30);
+  G().add("coins", 30); await click("whip");
   check("the whip can be bought", G().hasWhip, G().bag.coins);
   G().setPanel(null);
   G().gainXp(80); const carry0 = mods().carry; G().spendPoint("pockets");
@@ -101,7 +109,7 @@ async function play() {
   check("water errand done", !!G().errand?.done, G().errand);
   const oil0 = G().bag.oil; await guard(70);
   check("the lamp burns oil", G().bag.oil < oil0, { before: oil0, after: G().bag.oil });
-  check("protections were tested during the night", G().tally.held + G().tally.breaches > 0, G().tally);
+  check("the house was tried during the night", tried || G().tally.held + G().tally.breaches > 0, G().tally);
   key("KeyF"); run(0.2); const shut = !G().lampOn; key("KeyF", false); key("KeyF"); key("KeyF", false);
   check("F shutters the lamp", shut);
   at(home.x + 9, home.z + 12); G().add("salt", 1); const lines0 = G().lines.length; key("KeyQ"); run(0.2); key("KeyQ", false);

@@ -23,6 +23,7 @@ export function Kapre() {
   const ember = useRef<Mesh>(null);
   const halo = useRef<Mesh>(null);
   const glow = useRef<PointLight>(null);
+  const guideGlow = useRef<PointLight>(null);
   const guide = useRef<Group>(null);
   const cool = useRef(0);
   const roaring = useRef(0);
@@ -45,6 +46,7 @@ export function Kapre() {
     g.visible = night;
     if (blob.current) blob.current.visible = night;
     if (cigar.current) cigar.current.visible = night;
+    if (glow.current && !night) glow.current.intensity = 0;
 
     const dx = live.player.x - kapreSpot.x, dz = live.player.z - kapreSpot.z;
     const d = Math.hypot(live.player.x - balete.x, live.player.z - balete.z);
@@ -77,6 +79,7 @@ export function Kapre() {
       if (head && cigar.current) {
         head.getWorldPosition(mouth);
         cigar.current.position.set(mouth.x + Math.sin(facing.current) * 0.42, mouth.y + 0.12, mouth.z + Math.cos(facing.current) * 0.42);
+        glow.current?.position.copy(cigar.current.position);
       }
       const draw = Math.max(0, Math.sin(t * 0.9)) ** 6;
       if (ember.current) { (ember.current.material as MeshBasicMaterial).color.setRGB(1, 0.18 + 0.4 * draw, 0.05); ember.current.scale.setScalar(0.8 + 0.7 * draw); }
@@ -88,9 +91,11 @@ export function Kapre() {
     const guiding = night && game.night === 5 && game.kapre === "friend" && game.mana === "hunting";
     if (guide.current) {
       guide.current.visible = guiding;
+      if (guideGlow.current) guideGlow.current.intensity = guiding ? 5 : 0;
       if (guiding) {
         const s = hidingSpots[game.legsAt];
         guide.current.position.set(s.x + Math.sin(t * 0.7) * 0.5, 2.3 + Math.sin(t * 1.3) * 0.3, s.z + Math.cos(t * 0.5) * 0.5);
+        guideGlow.current?.position.copy(guide.current.position);
         if (!told.current) { told.current = true; game.toast("A red ember drifts away from the balete and out over the barrio. Follow it.", "good"); }
       }
     }
@@ -110,13 +115,14 @@ export function Kapre() {
       <group ref={cigar} visible={false}>
         <mesh ref={ember}><sphereGeometry args={[0.06, 10, 8]} /><meshBasicMaterial color="#ff4a12" fog={false} /></mesh>
         <mesh ref={halo}><sphereGeometry args={[0.34, 12, 10]} /><meshBasicMaterial color="#ff3a0a" transparent opacity={0.15} depthWrite={false} fog={false} /></mesh>
-        <pointLight ref={glow} color="#ff5a2a" intensity={1.5} distance={5.5} decay={1.7} />
       </group>
       <group ref={guide} visible={false}>
         <mesh><sphereGeometry args={[0.09, 10, 8]} /><meshBasicMaterial color="#ff5a1a" fog={false} /></mesh>
         <mesh><sphereGeometry args={[0.5, 12, 10]} /><meshBasicMaterial color="#ff3a0a" transparent opacity={0.22} depthWrite={false} fog={false} /></mesh>
-        <pointLight color="#ff5a2a" intensity={5} distance={7} decay={1.8} />
       </group>
+      {/* the two lights stay in the scene always and are only dimmed to nothing: switching a light on or off makes every material be rebuilt, which freezes the game for a moment */}
+      <pointLight ref={glow} color="#ff5a2a" intensity={0} distance={5.5} decay={1.7} />
+      <pointLight ref={guideGlow} color="#ff5a2a" intensity={0} distance={7} decay={1.8} />
     </>
   );
 }
