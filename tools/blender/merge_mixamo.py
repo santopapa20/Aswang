@@ -8,12 +8,21 @@
 # different arm position on each, so every animation-only clip is retargeted: each frame is played
 # on its own skeleton and the resulting joint placements are copied onto the character's skeleton.
 #
-# usage: blender -b --factory-startup --python merge_mixamo.py -- <downloads_dir> <material_source.blend> <out.glb>
-import bpy, sys, os, glob
+# usage: blender -b --factory-startup --python merge_mixamo.py -- <downloads_dir> <material_source.blend> <out.glb> [--pronate DEG] [--arms-in DEG]
+#   --pronate  for a model that was made with its palms facing forward. Mixamo expects palms facing the
+#              thighs, so such a model hangs its hands palm-forward. This reshapes the model itself:
+#              each forearm is turned about its own length, 0 degrees at the elbow rising smoothly to
+#              DEG at the wrist, and the hand turns with it. Usually 90. The animations are untouched.
+#   --arms-in  brings both upper arms DEG closer to the body in every clip. Mixamo leaves a model that was
+#              rigged in an A-pose holding its arms slightly away from its sides; 6 to 10 looks natural.
+import bpy, sys, os, glob, math
+from mathutils import Quaternion
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 DIR, MATSRC, OUT = argv[0], argv[1], argv[2]
 NAME = os.path.splitext(os.path.basename(OUT))[0]
+PRONATE = float(argv[argv.index("--pronate") + 1]) if "--pronate" in argv else 0.0
+ARMS_IN = float(argv[argv.index("--arms-in") + 1]) if "--arms-in" in argv else 0.0
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -98,6 +107,60 @@ for clip, objs, act in pending:
     remove_objects(objs)
     bpy.data.actions.remove(act)
 clips.sort(key=lambda c: c[0])
+
+if PRONATE:
+    def bone_like(part):
+        return next((b for b in arm.data.bones if b.name.replace(":", "").replace("mixamorig", "").lower() == part.lower()), None)
+    me = mesh.data
+    to_arm = arm.matrix_world.inverted() @ mesh.matrix_world      # mesh space -> skeleton space
+    to_mesh = to_arm.inverted()
+    moved = 0
+    for side, sign in (("Left", 1.0), ("Right", -1.0)):
+        fore, hand = bone_like(side + "ForeArm"), bone_like(side + "Hand")
+        if not fore or not hand: continue
+        elbow, wrist = fore.head_local.copy(), hand.head_local.copy()
+        axis = (wrist - elbow); length = axis.length; axis.normalize()
+        groups = {mesh.vertex_groups[b.name].index for b in [fore, hand] + list(hand.children_recursive) if b.name in mesh.vertex_groups}
+        for v in me.vertices:
+            w = sum(g.weight for g in v.groups if g.group in groups)
+            if w <= 0.0: continue
+            pos = to_arm @ v.co
+            t = max(0.0, min(1.0, (pos - elbow).dot(axis) / length))
+            t = t * t * (3 - 2 * t)                                # ease in and out along the forearm
+            angle = math.radians(PRONATE * sign * t * min(1.0, w))
+            if abs(angle) < 1e-5: continue
+            on_axis = elbow + axis * (pos - elbow).dot(axis)
+            v.co = to_mesh @ (on_axis + Quaternion(axis, angle) @ (pos - on_axis))
+            moved += 1
+    me.update()
+    print("PRONATE forearms turned %.0f degrees at the wrist, %d vertices reshaped" % (PRONATE, moved))
+
+if ARMS_IN:
+    # the skeleton's own axes: Y is up, +X is its left, +Z is forward. Turning an upper arm about the
+    # forward axis swings the hand towards (or away from) the body.
+    from mathutils import Vector
+    upper = [(b.name, -1.0 if "Left" in b.name else 1.0) for b in arm.data.bones
+             if b.name.replace(":", "").replace("mixamorig", "") in ("LeftArm", "RightArm")]
+    ad1 = arm.animation_data or arm.animation_data_create()
+    for clip, act in clips:
+        ad1.action = act
+        try:
+            if act.slots: ad1.action_slot = act.slots[0]
+        except Exception:
+            pass
+        for f in range(int(act.frame_range[0]), int(act.frame_range[1]) + 1):
+            scene.frame_set(f)
+            for name, sign in upper:
+                pb = arm.pose.bones[name]
+                M = pb.matrix.to_3x3().to_quaternion()            # where the arm points now, in skeleton space
+                Q = Quaternion(Vector((0, 0, 1)), math.radians(ARMS_IN * sign))
+                pb.rotation_mode = "QUATERNION"
+                pb.rotation_quaternion = pb.rotation_quaternion @ (M.conjugated() @ Q @ M)
+                pb.keyframe_insert("rotation_quaternion", frame=f)
+    ad1.action = None
+    for pb in arm.pose.bones:
+        pb.rotation_quaternion = (1, 0, 0, 0); pb.location = (0, 0, 0)
+    print("ARMS IN upper arms brought %.0f degrees closer to the body in %d clips" % (ARMS_IN, len(clips)))
 
 arm.name = NAME; arm.data.name = NAME + "_rig"
 mesh.name = NAME + "_mesh"; mesh.data.name = NAME + "_mesh"
