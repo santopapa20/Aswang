@@ -1,0 +1,23 @@
+{
+  "_comment": "Joint positions measured on player_textured.blend (Blender units, character faces -Y, his left is +X). Left side only; the right side is mirrored. Used by tools/blender/test_rig.py.",
+  "hips": [0.0, 0.010, 0.530],
+  "spine": [0.0, 0.012, 0.610],
+  "chest": [0.0, 0.018, 0.700],
+  "neck": [0.0, 0.012, 0.825],
+  "head": [0.0, 0.005, 0.865],
+  "head_top": [0.0, 0.005, 0.975],
+  "clavicle": [0.020, 0.020, 0.795],
+  "shoulder": [0.095, 0.030, 0.785],
+  "elbow": [0.155, 0.047, 0.665],
+  "wrist": [0.224, 0.030, 0.560],
+  "hand_tip": [0.255, 0.020, 0.470],
+  "hip": [0.055, 0.010, 0.510],
+  "knee": [0.080, 0.012, 0.280],
+  "ankle": [0.103, 0.027, 0.065],
+  "toe": [0.115, -0.045, 0.015],
+  "toe_tip": [0.118, -0.090, 0.012],
+  "props": {
+    "garlic": {"parts": ["part_17"], "side": "R"},
+    "sash_tails": {"parts": ["part_06", "part_20"], "side": "L"}
+  }
+}
