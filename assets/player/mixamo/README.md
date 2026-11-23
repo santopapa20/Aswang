@@ -57,3 +57,10 @@ Save all the downloaded `.fbx` files into `assets/player/mixamo/downloads/` and 
 They then get merged into one `player.glb` with named clips and WebP textures. On this model the
 garlic braid and sash tails are part of the trousers, so they follow the leg; a small sway can be
 added to them afterwards.
+
+## What was actually downloaded (2026-11-23)
+
+Skeleton: No Fingers (25). Clips: `idle` = Breathing Idle, `walk` = Standard Walk (in place),
+`run` = Slow Run (in place), `sneak` = Sneak Walk, male (in place), `look` = Nervously Look Around,
+`caught` = Falling Back Death. Mixamo also has "Standing Torch Idle" clips that may suit carrying
+the lamp later.

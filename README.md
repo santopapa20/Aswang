@@ -4,7 +4,8 @@ A top-down 3D survival horror game set in a remote Visayan barrio in the 1950s. 
 until sunrise while creatures from Philippine folklore (aswang, manananggal, wakwak, tikbalang,
 kapre, sigbin) hunt you, each beaten by the counter the old stories give.
 
-Status: asset production. The player and the aswang are modelled, textured and prepared for rigging.
+Status: asset production. The player is rigged and animated (`assets/player/game/player.glb`, six clips:
+idle, look, walk, run, sneak, caught). The aswang is modelled, textured and prepared for rigging.
 No game code yet; the engine and scope are still to be agreed. Full background is in `HANDOFF.md`.
 
 Current models: `assets/player/player_v2*` (Tripo-textured, the one in use) and `assets/aswang/aswang*`.
@@ -59,6 +60,14 @@ B="/c/Program Files/Blender Foundation/Blender 5.3/blender.exe"
 "$B" -b --factory-startup --python tools/blender/test_rig.py -- \
   assets/player/player_v2_rigready.blend assets/player/rig_landmarks.json <out_dir> auto \
   assets/player/player_rigready.blend
+```
+
+```bash
+# merge Mixamo downloads (one "With Skin", the rest without) into one animated GLB with named clips
+"$B" -b --factory-startup --python tools/blender/merge_mixamo.py --   assets/player/mixamo/downloads assets/player/player_v2.blend assets/player/game/player.glb
+
+# render every clip of an animated GLB to frames (then ffmpeg makes a video or contact sheet)
+"$B" -b --factory-startup --python tools/blender/preview_clips.py -- assets/player/game/player.glb <out_dir>
 ```
 
 `rig_landmarks.json` holds a character's measured joint positions and names which parts are hanging
