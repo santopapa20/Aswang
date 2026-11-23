@@ -81,7 +81,7 @@ export const paths: Path[] = [
   { pts: [[2, 40], [2, 22], [3, 9]], w: 2.6 },                                        // the way in from the south
   { pts: [[-2, 6], [-9, 14.5], [-15, 16.2], [-18, 13.4]], w: 2.0 },                   // to Rosing's house
   { pts: [[1, 0], [-2, -8], [-4, -13]], w: 2.0 },                                     // to Pacing's
-  { pts: [[6, 3.5], [20, 1], [34, 0], [92, 0], [99, 0]], w: 2.6 },                    // east, and the trail
+  { pts: [[6, 3.5], [20, 1], [31, 0], [36, 0], [50, 0], [64, 0], [78, 0], [90, 0], [99, 0]], w: 2.6 },   // east, and the trail (dead straight)
   { pts: [[12, 2.6], [14, 13], [18, 15.4], [18, 13.2]], w: 1.8 },                     // to the shut house
   { pts: [[20, 1], [23, -9], [24, -18.6]], w: 1.8 },                                  // to Kadyo
   { pts: [[-2, -8], [-13, -13.5], [-21.5, -17.5]], w: 1.6 },                          // to the balete
@@ -220,16 +220,21 @@ const clearOfThings = (x: number, z: number, pad: number) =>
   for (let i = 0; i < 70; i++) {
     const area = i % 3 === 2 ? SITIO : BARRIO;
     const x = area.x0 + rnd() * (area.x1 - area.x0), z = area.z0 + rnd() * (area.z1 - area.z0);
-    if (clearOfThings(x, z, 0.8)) rocks.push({ x, z, s: 0.18 + rnd() * 0.34, r: rnd() * 6 });
+    if (clearOfThings(x, z, 0.8)) rocks.push({ x, z, s: 0.12 + rnd() * 0.2, r: rnd() * 6 });
   }
-  for (let i = 0; i < 5200; i++) {
-    const pick = rnd();
-    const area = pick < 0.62 ? BARRIO : pick < 0.9 ? SITIO : { x0: 34, x1: 92, z0: -3.4, z1: 3.4 };
+  // grass on the trail repeats with the trees, so nothing gives the loop away
+  for (let i = 0; i < 130; i++) {
+    const dx = rnd() * trail.period, z = (rnd() - 0.5) * 15, s = 0.4 + rnd() * 0.45, r = rnd() * 6;
+    if (Math.abs(z) < 1.5) continue;
+    for (let p = 0; p < 4; p++) tufts.push({ x: 37 + p * trail.period + dx, z, s, r });
+  }
+  for (let i = 0; i < 6000; i++) {
+    const area = rnd() < 0.68 ? BARRIO : SITIO;
     const x = area.x0 + rnd() * (area.x1 - area.x0), z = area.z0 + rnd() * (area.z1 - area.z0);
     const worn = distToPath(x, z);
     if (worn < 0.25 || patches.some((p) => Math.hypot(x - p.x, z - p.z) < p.r * 0.86)) continue;
     if (houses.some((h) => Math.abs(x - h.x) < HUT.hx + 0.2 && Math.abs(z - h.z) < HUT.hz + 0.2)) continue;
-    tufts.push({ x, z, s: 0.5 + rnd() * 0.7 + Math.min(0.5, worn * 0.08), r: rnd() * 6 });
+    tufts.push({ x, z, s: 0.36 + rnd() * 0.4 + Math.min(0.25, worn * 0.04), r: rnd() * 6 });
   }
 }
 

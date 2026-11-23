@@ -12,7 +12,7 @@ type Mode = "away" | "lurk" | "prowl" | "approach" | "test" | "recoil" | "withdr
 const WALK = 0.9, STALK = 2.1;
 const REACH = 1.25;           // metres at which she strikes
 const GARLIC_RANGE = 2.6;     // metres at which carried garlic drives her back
-const LIGHT = 4.6;            // she will not work at the house with a lit lamp this close
+const LIGHT = 3.3;            // she will not work at the house with a lit lamp this close (less than door to window)
 
 /**
  * The aswang on foot. She is not hunting him; she wants the house. She waits outside the lamplight,

@@ -329,6 +329,17 @@ export function mods(s: Pick<GameState, "perks" | "charms" | "worn"> = useGame.g
 }
 
 export const endingText = (key: string) => ENDINGS[key];
+
+/** True if walking from (x1,z1) to (x2,z2) would step over the salt line. */
+export function crossesLine(x1: number, z1: number, x2: number, z2: number, l: SaltLine) {
+  const side = (px: number, pz: number, qx: number, qz: number, rx: number, rz: number) =>
+    (qx - px) * (rz - pz) - (qz - pz) * (rx - px);
+  const d1 = side(l.ax, l.az, l.bx, l.bz, x1, z1);
+  const d2 = side(l.ax, l.az, l.bx, l.bz, x2, z2);
+  const d3 = side(x1, z1, x2, z2, l.ax, l.az);
+  const d4 = side(x1, z1, x2, z2, l.bx, l.bz);
+  return d1 * d2 < 0 && d3 * d4 < 0;
+}
 export type Game = GameState;
 /** Something has him. He goes down, and the rest of the night is lost. */
 export function catchPlayer() {
@@ -361,6 +372,7 @@ export const live = {
   pacing: { x: 0, z: 0, here: false },      // where Nang Pacing is standing by day
   caught: 0,               // seconds left of being struck down, before the night is cut short
   struck: false,           // he has just struck the house post (the manananggal listens for it)
+  whipCrack: false,        // he has just cracked the whip (the aswang listens for it)
   ember: { x: 0, z: 0, on: false },         // where the kapre's ember is pointing, if it owes him
   fps: 0,
 };

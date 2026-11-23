@@ -66,7 +66,7 @@ export function interactables(g: Game): Interactable[] {
   else if (e && ((e.id === "hilot" && e.step === 1) || (e.id === "kapre" && e.step === 2))) door("Tell Rosing you are back", 0.8, () => { g.say("Rosing", ROSING_SAYS.home); g.stepErrand(); });
   else if (day && !g.rationTaken) door("Take salt, garlic and oil from the kitchen", 1, () => {
     g.set({ rationTaken: true });
-    const got = { salt: g.add("salt", g.night === 1 ? 1 : 2), garlic: g.add("garlic", 1), oil: g.add("oil", 3) };
+    const got = { salt: g.add("salt", g.night === 1 ? 1 : 2), garlic: g.add("garlic", 1), oil: g.add("oil", 5) };
     g.toast(`From the kitchen: ${list(got)}`, "good");
     g.hint("wards", "Stand at the door or beside a window and hold G to protect it. You never have enough for all three.");
   });

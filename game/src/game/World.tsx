@@ -26,15 +26,16 @@ function canvasTexture(size: number, paint: (g: CanvasRenderingContext2D, size: 
 }
 const grassTexture = () => canvasTexture(512, (g, s) => {
   const rnd = seeded(11);
-  g.fillStyle = "#3d3f27"; g.fillRect(0, 0, s, s);
+  g.fillStyle = "#363a22"; g.fillRect(0, 0, s, s);
   for (let i = 0; i < 260; i++) {                           // broad mottling: damp and dry ground
     g.fillStyle = `rgba(${rnd() < 0.5 ? "30,34,18" : "86,78,44"},${0.05 + rnd() * 0.07})`;
-    g.beginPath(); g.arc(rnd() * s, rnd() * s, 14 + rnd() * 46, 0, 7); g.fill();
+    const x = rnd() * s, y = rnd() * s, r = 14 + rnd() * 46;
+    for (const ox of [-s, 0, s]) for (const oy of [-s, 0, s]) { g.beginPath(); g.arc(x + ox, y + oy, r, 0, 7); g.fill(); }
   }
-  for (let i = 0; i < 15000; i++) {                         // blades
-    const x = rnd() * s, y = rnd() * s, l = 3 + rnd() * 7, a = -Math.PI / 2 + (rnd() - 0.5) * 1.4;
+  for (let i = 0; i < 9000; i++) {                          // blades
+    const x = rnd() * s, y = rnd() * s, l = 3 + rnd() * 6, a = -Math.PI / 2 + (rnd() - 0.5) * 1.4;
     const v = rnd();
-    g.strokeStyle = `rgba(${60 + v * 70},${78 + v * 70},${30 + v * 30},${0.25 + rnd() * 0.35})`;
+    g.strokeStyle = `rgba(${52 + v * 44},${66 + v * 46},${28 + v * 22},${0.14 + rnd() * 0.2})`;
     g.lineWidth = 0.7 + rnd() * 0.8;
     g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
   }
@@ -57,11 +58,13 @@ const dirtTexture = () => canvasTexture(256, (g, s) => {
 const pathEdge = () => canvasTexture(128, (g, s) => {
   const rnd = seeded(5);
   g.fillStyle = "#000"; g.fillRect(0, 0, s, s);
+  void rnd;
   for (let y = 0; y < s; y++) {
-    const l = 0.2 + 0.08 * Math.sin(y * 0.21) + rnd() * 0.05, r = 0.8 + 0.07 * Math.sin(y * 0.17 + 2) - rnd() * 0.05;
+    const a = (y / s) * Math.PI * 2;
+    const l = 0.27 + 0.035 * Math.sin(a) + 0.02 * Math.sin(a * 3 + 1), r = 0.73 + 0.035 * Math.sin(a + 2) + 0.02 * Math.sin(a * 2 + 4);
     const grad = g.createLinearGradient(0, 0, s, 0);
-    grad.addColorStop(Math.max(0, l - 0.16), "#000"); grad.addColorStop(l, "#fff");
-    grad.addColorStop(r, "#fff"); grad.addColorStop(Math.min(1, r + 0.16), "#000");
+    grad.addColorStop(Math.max(0, l - 0.22), "#000"); grad.addColorStop(l - 0.08, "#777"); grad.addColorStop(l, "#fff");
+    grad.addColorStop(r, "#fff"); grad.addColorStop(r + 0.08, "#777"); grad.addColorStop(Math.min(1, r + 0.22), "#000");
     g.fillStyle = grad; g.fillRect(0, y, s, 1);
   }
 }, false);
@@ -78,14 +81,14 @@ function pathGeometry() {
     const curve = new CatmullRomCurve3(p.pts.map(([x, z]) => new Vector3(x, 0, z)), false, "catmullrom", 0.4);
     const n = Math.max(2, Math.ceil(curve.getLength() / 0.9));
     const pts = curve.getSpacedPoints(n);
-    const half = p.w * 0.85, base = pos.length / 3;
+    const half = p.w * 1.1, base = pos.length / 3;
     let along = 0;
     for (let i = 0; i <= n; i++) {
       const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)];
       const t = new Vector2(b.x - a.x, b.z - a.z).normalize();
       if (i > 0) along += pts[i].distanceTo(pts[i - 1]);
       pos.push(pts[i].x - t.y * half, 0, pts[i].z + t.x * half, pts[i].x + t.y * half, 0, pts[i].z - t.x * half);
-      uv.push(0, along / 3.2, 1, along / 3.2);
+      uv.push(0, along / 3, 1, along / 3);        // 3 m per repeat: the trail's 30 m loop is a whole number of them
       if (i < n) { const k = base + i * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
     }
   }
@@ -100,11 +103,11 @@ function pathGeometry() {
 /** Three bent blades of grass. */
 function tuftGeometry() {
   const pos: number[] = [], col: number[] = [];
-  for (let b = 0; b < 3; b++) {
-    const a = b * 2.1, lean = 0.12 + b * 0.05, h = 0.34 + b * 0.07, w = 0.035;
+  for (let b = 0; b < 5; b++) {
+    const a = b * 1.26, lean = 0.1 + (b % 3) * 0.06, h = 0.2 + (b % 3) * 0.08, w = 0.05;
     const cx = Math.cos(a), cz = Math.sin(a);
     pos.push(-cz * w, 0, cx * w, cz * w, 0, -cx * w, cx * lean, h, cz * lean);
-    col.push(0.1, 0.13, 0.05, 0.1, 0.13, 0.05, 0.42, 0.5, 0.2);
+    col.push(0.08, 0.11, 0.045, 0.08, 0.11, 0.045, 0.24, 0.31, 0.12);
   }
   const g = new BufferGeometry();
   g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
@@ -264,11 +267,15 @@ function HouseFront({ lit, beacon }: { lit: boolean; beacon: boolean }) {
     <group>
       <mesh position={[-0.55, floor + 0.8, z]}>
         <planeGeometry args={[0.85, 1.6]} />
-        <meshStandardMaterial color="#120c07" roughness={1} />
+        <meshStandardMaterial color="#2b1c10" roughness={1} />
       </mesh>
+      {[-1.0, -0.1].map((x) => (
+        <mesh key={x} position={[x, floor + 0.8, z + 0.02]}><boxGeometry args={[0.07, 1.7, 0.05]} /><meshStandardMaterial color="#8a6a3a" roughness={0.9} /></mesh>
+      ))}
+      <mesh position={[-0.55, floor + 1.66, z + 0.02]}><boxGeometry args={[1.0, 0.07, 0.05]} /><meshStandardMaterial color="#8a6a3a" roughness={0.9} /></mesh>
       <mesh position={[0.95, floor + 1.05, z]}>
         <planeGeometry args={[0.72, 0.62]} />
-        <meshStandardMaterial ref={pane} color={lit ? "#3a2a16" : "#0d0906"} emissive="#ffb055" emissiveIntensity={0} roughness={1} />
+        <meshStandardMaterial ref={pane} color={lit ? "#4a371f" : "#241a10"} emissive="#ffb055" emissiveIntensity={0} roughness={1} />
       </mesh>
       {/* bamboo ladder */}
       <group position={[-0.55, 0, HUT.hz + 0.05]} rotation-x={0.62}>

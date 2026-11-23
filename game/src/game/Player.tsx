@@ -13,7 +13,7 @@ const SPEED = { sneak: 0.9, walk: 1.7, run: 3.6 };
 // how far away each way of moving can be noticed, in metres
 const NOISE = { still: 4.5, sneak: 4, walk: 9, run: 15 };
 const RUN_SECONDS = 7;        // how long he can run on a full breath
-const OIL_SECONDS = 34;       // how long one unit of oil burns
+const OIL_SECONDS = 50;       // how long one unit of oil burns
 const hand = new Vector3();
 
 export function Player() {
@@ -81,7 +81,7 @@ export function Player() {
       mode = !moving ? "still" : toggles.sneak ? "sneak" : running ? "run" : "walk";
       live.stamina = Math.max(0, Math.min(1, live.stamina + (running ? -dt / (RUN_SECONDS * m.stamina) : dt / 8)));
       if (moving) {
-        const speed = SPEED[mode] * m.speed * (game.carrying === "water" ? 0.85 : 1);
+        const speed = SPEED[mode as keyof typeof SPEED] * m.speed * (game.carrying === "water" ? 0.85 : 1);
         live.player.x += want.x * speed * dt;
         live.player.z += want.z * speed * dt;
         pushOut(live.player, 0.35);
@@ -113,7 +113,7 @@ export function Player() {
         if (!game.pourSalt({ ax: cx - fz * half, az: cz + fx * half, bx: cx + fz * half, bz: cz - fx * half })) game.toast("You have no salt.", "bad");
       }
       // ---- R cracks the whip: she falls back if she is close (Aswang.tsx listens for `whipWait`)
-      if (actions.whip && game.hasWhip && live.whipWait <= 0 && live.stamina > 0.2) { live.whipWait = 8 * m.whip; live.stamina -= 0.2; sound.whip(); }
+      if (actions.whip && game.hasWhip && live.whipWait <= 0 && live.stamina > 0.2) { live.whipWait = 8 * m.whip; live.whipCrack = true; live.stamina -= 0.2; sound.whip(); }
     }
     actions.pour = false; actions.whip = false;
     live.whipWait = Math.max(0, live.whipWait - dt);
@@ -143,7 +143,7 @@ export function Player() {
       const flicker = 0.9 + 0.06 * Math.sin(t * 11.3) + 0.04 * Math.sin(t * 23.7 + 1.3);
       const dark = 1 - live.daylight;
       const strength = !lit ? 0 : dry ? 5 : live.caught > 0 ? 12 : 36;
-      const want = strength * flicker * (0.15 + 0.85 * dark);
+      const want = strength * flicker * Math.max(0, dark * 1.15 - 0.15);
       light.current.intensity += (want - light.current.intensity) * Math.min(1, dt * 6);
       light.current.distance = 17 * m.lamp;
       if (fill.current) fill.current.intensity = light.current.intensity * 0.3;
