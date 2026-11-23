@@ -29,7 +29,8 @@ const huts: Hut[] = [
 ];
 const well = { x: -3, z: 2 };
 /** The balete: an old strangler fig at the edge of the barrio. The kapre will live here. */
-const balete = { x: -21, z: -19, height: 12 };
+// Its crown is about as wide as it is tall, so everything below is worked out from the height.
+const balete = { x: -21, z: -19, height: 7 };
 
 /** Fence runs: start point, direction in radians, number of sections. */
 const fenceRuns: [number, number, number, number][] = [
@@ -57,7 +58,7 @@ const trees: Tree[] = [];
       && huts.every((h) => Math.hypot(x - h.x, z - h.z) > 5.5)
       && fence.every((f) => Math.hypot(x - f.x, z - f.z) > 2)
       && Math.hypot(x - well.x, z - well.z) > 3
-      && Math.hypot(x - balete.x, z - balete.z) > 9;
+      && Math.hypot(x - balete.x, z - balete.z) > balete.height * 0.75;
     if (clear) trees.push({ x, z, h: 4.5 + rnd() * 3.5, lean: (rnd() - 0.5) * 0.25 });
   }
   obstacles.length = 0;
@@ -67,7 +68,7 @@ const trees: Tree[] = [];
     for (const k of [-0.75, 0, 0.75]) obstacles.push({ x: f.x + Math.cos(f.rot) * k, z: f.z - Math.sin(f.rot) * k, r: 0.45 });
   }
   obstacles.push({ x: well.x, z: well.z, r: 1.0 });
-  obstacles.push({ x: balete.x, z: balete.z, r: 2.4 });
+  obstacles.push({ x: balete.x, z: balete.z, r: balete.height * 0.2 });
 }
 
 function useGroundTexture() {
@@ -128,7 +129,7 @@ export function World() {
 
     {
       const dx = balete.x - live.player.x, dz = balete.z - live.player.z;
-      baleteModels[0].visible = !(dz > 1.5 && dz < 13 && Math.abs(dx) < 7);
+      baleteModels[0].visible = !(dz > 1.2 && dz < 6 + balete.height * 0.6 && Math.abs(dx) < balete.height * 0.6);
     }
 
     const game = useGame.getState();
