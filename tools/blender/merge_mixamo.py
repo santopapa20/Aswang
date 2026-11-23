@@ -3,6 +3,11 @@
 # name is the file name). The character's material is replaced by the full one from our own .blend
 # (Mixamo drops the roughness map), and textures are written as WebP.
 #
+# Important: a "Without Skin" download carries a T-pose skeleton (arms straight out), while the
+# skinned character is rigged in the pose it was uploaded in (arms down). The same numbers mean a
+# different arm position on each, so every animation-only clip is retargeted: each frame is played
+# on its own skeleton and the resulting joint placements are copied onto the character's skeleton.
+#
 # usage: blender -b --factory-startup --python merge_mixamo.py -- <downloads_dir> <material_source.blend> <out.glb>
 import bpy, sys, os, glob
 
@@ -19,30 +24,80 @@ def import_fbx(path):
     bpy.ops.import_scene.fbx(filepath=path, automatic_bone_orientation=False)
     return [o for o in bpy.data.objects if o not in before_obj], [a for a in bpy.data.actions if a not in before_act]
 
+def has_mesh_objects(path_objs): return any(o.type == "MESH" for o in path_objs)
+
+def remove_objects(objs):
+    for o in objs:
+        data = o.data
+        bpy.data.objects.remove(o)
+        if data and data.users == 0:
+            (bpy.data.armatures if isinstance(data, bpy.types.Armature) else bpy.data.meshes).remove(data)
+
+def retarget(src, src_act, clip):
+    """Play src_act on its own skeleton and bake the same joint placements onto the character's skeleton."""
+    new = bpy.data.actions.new(clip)
+    ad = arm.animation_data or arm.animation_data_create()
+    ad.action = new
+    f0, f1 = int(src_act.frame_range[0]), int(src_act.frame_range[1])
+    last = {}
+    worst = 0.0
+    for f in range(f0, f1 + 1):
+        scene.frame_set(f)
+        P = {pb.name: pb.matrix.copy() for pb in src.pose.bones}
+        for pb in arm.pose.bones:                           # parents come before children
+            if pb.name not in P: continue
+            R = pb.bone.matrix_local
+            if pb.parent and pb.parent.name in P:
+                basis = (pb.parent.bone.matrix_local.inverted() @ R).inverted() @ (P[pb.parent.name].inverted() @ P[pb.name])
+            else:
+                basis = R.inverted() @ P[pb.name]
+            q = basis.to_quaternion()
+            if pb.name in last and last[pb.name].dot(q) < 0: q.negate()      # keep rotations continuous
+            last[pb.name] = q
+            pb.rotation_mode = "QUATERNION"
+            pb.rotation_quaternion = q
+            pb.keyframe_insert("rotation_quaternion", frame=f)
+            if not pb.parent:
+                pb.location = basis.to_translation()
+                pb.keyframe_insert("location", frame=f)
+        if f in (f0, (f0 + f1) // 2, f1):                   # check: do the joints land where the source put them?
+            bpy.context.view_layer.update()
+            for pb in arm.pose.bones:
+                if pb.name in P: worst = max(worst, (pb.matrix.translation - P[pb.name].translation).length)
+    ad.action = None
+    for pb in arm.pose.bones:
+        pb.rotation_quaternion = (1, 0, 0, 0); pb.location = (0, 0, 0)
+    print("RETARGET %-8s frames %d, largest joint mismatch %.1f mm" % (clip, f1 - f0 + 1, worst * 1000))
+    return new
+
 files = sorted(glob.glob(os.path.join(DIR, "*.fbx")))
 arm = mesh = None
 clips = []
-pending = []
+pending = []                                                # animation-only clips, retargeted once the character is known
 for f in files:
     clip = os.path.splitext(os.path.basename(f))[0]
     objs, acts = import_fbx(f)
-    has_mesh = any(o.type == "MESH" for o in objs)
-    if has_mesh and arm is None:
-        arm = next(o for o in objs if o.type == "ARMATURE")
-        mesh = next(o for o in objs if o.type == "MESH")
-    else:
-        for o in objs:
-            data = o.data
-            bpy.data.objects.remove(o)
-            if data and data.users == 0:
-                (bpy.data.armatures if isinstance(data, bpy.types.Armature) else bpy.data.meshes).remove(data)
     if len(acts) != 1:
         print("WARNING", clip, "has", len(acts), "actions")
-    acts[0].name = clip
-    acts[0].use_fake_user = True
-    clips.append((clip, acts[0]))
+    if has_mesh_objects(objs) and arm is None:
+        arm = next(o for o in objs if o.type == "ARMATURE")
+        mesh = next(o for o in objs if o.type == "MESH")
+        acts[0].name = clip
+        acts[0].use_fake_user = True
+        clips.append((clip, acts[0]))
+    else:
+        acts[0].name = "src_" + clip
+        pending.append((clip, objs, acts[0]))
 if arm is None:
     print("ERROR no clip in", DIR, "contains the skinned character (download one With Skin)"); sys.exit(1)
+for clip, objs, act in pending:
+    src = next(o for o in objs if o.type == "ARMATURE")
+    new = retarget(src, act, clip)
+    new.use_fake_user = True
+    clips.append((clip, new))
+    remove_objects(objs)
+    bpy.data.actions.remove(act)
+clips.sort(key=lambda c: c[0])
 
 arm.name = NAME; arm.data.name = NAME + "_rig"
 mesh.name = NAME + "_mesh"; mesh.data.name = NAME + "_mesh"
