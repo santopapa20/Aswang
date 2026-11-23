@@ -49,6 +49,8 @@ const trace = async (fn) => {
     return { samples: t.length, path: +len.toFixed(2), straight: +Math.hypot(t.at(-1)[0] - t[0][0], t.at(-1)[1] - t[0][1]).toFixed(2), reversals: back, longestFrameMs: Math.round(window.__gap) };
   });
 };
+// on a slow machine the pictures take long enough for the day to run out: top the day up between steps
+const keepDay = () => page.evaluate(() => { const a = window.__aswang; if (a.useGame.getState().stage === "day") a.live.clock = Math.max(a.live.clock, 90); });
 const body = { x: 480, y: 200, width: 320, height: 320 };       // the middle of the screen, where he stands
 
 await page.goto("http://localhost:5173/", { waitUntil: "domcontentloaded" });
@@ -64,6 +66,7 @@ await talkThrough(); await sleep(3500); await snap("day_start");
 console.log("start", JSON.stringify(await st()));
 
 // ---- moving
+await keepDay();
 await page.keyboard.down("KeyW"); await sleep(900);
 for (let i = 0; i < 4; i++) { await snap(`walk${i}`, body); await sleep(110); }
 await page.keyboard.up("KeyW");
@@ -73,23 +76,28 @@ await page.keyboard.down("ShiftLeft"); await page.keyboard.down("KeyA"); await s
 console.log("diag  ", JSON.stringify(await trace(() => hold(["KeyS", "KeyD"], 1500))));
 await sleep(600); await snap("idle", body);
 // ---- bumping into things
+await keepDay();
 await put(2, 8.5); console.log("into the well ", JSON.stringify(await trace(() => hold(["KeyW"], 2500)))); await snap("well");
 await put(-18, 17); console.log("into the house", JSON.stringify(await trace(() => hold(["KeyW"], 3000)))); await snap("door"); console.log("door", JSON.stringify(await st()));
 await put(-25.5, 3.5); console.log("into the fence", JSON.stringify(await trace(() => hold(["KeyD"], 2500)))); await snap("fence");
 await put(-18, 6); await sleep(900); await snap("behind_house");
 await put(-21, 10); await sleep(900); await snap("beside_house");
 // ---- the door: supplies and a protection
+await keepDay();
 await put(-18, 13.3); await sleep(500);
 await hold(["KeyE"], 1500); await sleep(400); await snap("supplies"); console.log("supplies", JSON.stringify((await st()).bag));
 await hold(["KeyG"], 1500); await sleep(400); await snap("ward"); console.log("wards", JSON.stringify((await st()).wards));
 // ---- panels
+await keepDay();
 await tap("Tab"); await sleep(500); await snap("bag"); await tap("Tab");
 await tap("Escape"); await sleep(500); await snap("pause"); await tap("Escape");
 // ---- Nong Kadyo
+await keepDay();
 await put(24, -19.2); await sleep(600); console.log("kadyo", JSON.stringify(await st()));
 await hold(["KeyE"], 1300); await sleep(600); await snap("kadyo_talk"); await talkThrough(); await sleep(600); await snap("trade");
 await page.evaluate(() => document.querySelector(".offers .perk:not([disabled])")?.click()); await sleep(300); await tap("Escape");
 // ---- searching
+await keepDay();
 await put(6.5, 8.6); await sleep(500); await snap("sack_before"); await hold(["KeyE"], 2600); await sleep(500); await snap("sack_after"); console.log("searched", JSON.stringify((await st()).toasts));
 // ---- dusk and night
 await put(-17, 15);
