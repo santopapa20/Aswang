@@ -1,0 +1,16 @@
+{
+  "_comment": "Joint positions read off the back-view render of manananggal.glb (Blender units, she faces -Y, her left is +X). Left side only; the right is mirrored. Only x and z are given: the script finds y (depth) from the mesh itself. Used by tools/blender/rig_manananggal.py.",
+  "scale_to_metres": 1.7,
+  "spine": [0.0, 0.17],
+  "chest": [0.0, 0.33],
+  "neck": [0.0, 0.47],
+  "head": [0.0, 0.525],
+  "head_top": [0.0, 0.644],
+  "shoulder": [0.124, 0.351],
+  "elbow": [0.194, 0.258],
+  "wrist": [0.252, 0.156],
+  "hand_tip": [0.314, 0.037],
+  "wing_root": [0.093, 0.444],
+  "wing_hub": [0.212, 0.598],
+  "wing_tips": [[0.486, 0.658], [0.473, 0.537], [0.398, 0.400], [0.252, 0.324]]
+}
