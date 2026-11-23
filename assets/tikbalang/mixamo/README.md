@@ -21,7 +21,8 @@ So the skeleton is built here instead:
    | attack | Mutant Swiping |          |
    | roar   | Mutant Roaring |          |
 
-3. `tools/blender/merge_mixamo.py ... --character ../tikbalang_rigged.blend` carries each motion onto
-   the tikbalang's own skeleton and writes `../game/tikbalang.glb`.
+3. `tools/blender/merge_mixamo.py ... --character ../tikbalang_rigged.blend --in-place attack,roar`
+   carries each motion onto the tikbalang's own skeleton and writes `../game/tikbalang.glb`. Mixamo has
+   no "In Place" box for the attack and the roar, so their travel is removed here.
 
 `tikbalang_for_mixamo.fbx` is the file that was uploaded to Mixamo. It is kept only as a record.

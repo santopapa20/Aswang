@@ -92,7 +92,7 @@ B="/c/Program Files/Blender Foundation/Blender 5.3/blender.exe"
 "$B" -b --factory-startup --python tools/blender/rig_humanoid.py -- \
   assets/tikbalang/tikbalang_rigready.blend assets/tikbalang/rig_landmarks.json assets/tikbalang/tikbalang_rigged.blend --height 2.3
 "$B" -b --factory-startup --python tools/blender/merge_mixamo.py -- assets/tikbalang/mixamo/downloads \
-  assets/tikbalang/tikbalang.blend assets/tikbalang/game/tikbalang.glb --character assets/tikbalang/tikbalang_rigged.blend
+  assets/tikbalang/tikbalang.blend assets/tikbalang/game/tikbalang.glb --character assets/tikbalang/tikbalang_rigged.blend \n  --in-place attack,roar
 
 # render every clip of an animated GLB to frames (then ffmpeg makes a video or contact sheet)
 "$B" -b --factory-startup --python tools/blender/preview_clips.py -- assets/player/game/player.glb <out_dir>

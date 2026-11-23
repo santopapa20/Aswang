@@ -3,6 +3,9 @@ import { Vector3 } from "three";
 
 export const NIGHT_SECONDS = 180;
 
+/** How long he must stand still to turn his shirt inside out. */
+export const SHIRT_SECONDS = 2;
+
 export type Phase = "playing" | "caught" | "survived";
 export type Pickup = { id: number; kind: "salt" | "garlic"; x: number; z: number };
 /** A line of salt on the ground, from point A to point B. The aswang cannot cross it. */
@@ -31,6 +34,12 @@ type GameState = {
   lines: SaltLine[];
   mana: "absent" | "hunting" | "ended";   // the manananggal this night
   overhead: boolean;                      // she has seen the player and is about to dive
+  tik: "absent" | "stalking" | "ended";   // the tikbalang this night
+  lost: boolean;                          // the tikbalang has led him astray: his controls are reversed
+  shirt: boolean;                         // his shirt is inside out, which breaks the tikbalang's spell
+  setTik: (t: "absent" | "stalking" | "ended") => void;
+  setLost: (l: boolean) => void;
+  turnShirt: () => void;
   setMana: (m: "absent" | "hunting" | "ended") => void;
   setOverhead: (o: boolean) => void;
   saltLowerHalf: () => boolean;
@@ -43,7 +52,8 @@ type GameState = {
   restart: () => void;
 };
 
-const fresh = () => ({ phase: "playing" as Phase, hunted: false, salt: 1, garlic: 1, pickups: PICKUPS, lines: [] as SaltLine[], mana: "absent" as "absent" | "hunting" | "ended", overhead: false });
+const fresh = () => ({ phase: "playing" as Phase, hunted: false, salt: 1, garlic: 1, pickups: PICKUPS, lines: [] as SaltLine[], mana: "absent" as "absent" | "hunting" | "ended", overhead: false,
+  tik: "absent" as "absent" | "stalking" | "ended", lost: false, shirt: false });
 
 export const useGame = create<GameState>((set, get) => ({
   ...fresh(),
@@ -68,6 +78,9 @@ export const useGame = create<GameState>((set, get) => ({
   },
   setMana: (mana) => set({ mana }),
   setOverhead: (overhead) => set({ overhead }),
+  setTik: (tik) => set({ tik }),
+  setLost: (lost) => { if (get().lost !== lost && !get().shirt) set({ lost }); },
+  turnShirt: () => set({ shirt: true, lost: false, tik: "ended" }),
   saltLowerHalf: () => {
     if (get().salt <= 0 || get().mana === "ended" || get().phase !== "playing") return false;
     set((s) => ({ salt: s.salt - 1, mana: "ended", overhead: false }));
@@ -86,6 +99,7 @@ export const live = {
   player: new Vector3(0, 0, 6),
   playerNoise: 0,          // how far away the player can be noticed, in metres
   timeLeft: NIGHT_SECONDS,
+  shirtTurn: 0,            // seconds he has spent turning his shirt inside out (it takes SHIRT_SECONDS)
   fps: 0,
 };
 

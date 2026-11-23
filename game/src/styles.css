@@ -15,5 +15,9 @@ canvas { display: block; }
 .hud .banner.survived h1 { color: #d89a3a; text-shadow: 0 0 24px #432; }
 .hud .banner p { margin-top: 12px; font-size: 16px; letter-spacing: 0.1em; opacity: 0.85; }
 .hud .warn { position: absolute; top: 52px; left: 0; right: 0; text-align: center; color: #c44; font-size: 14px; letter-spacing: 0.25em; text-shadow: 0 0 10px #000; }
-.hud .note { position: absolute; top: 78px; left: 0; right: 0; text-align: center; font-size: 13px; letter-spacing: 0.08em; opacity: 0.8; text-shadow: 0 0 8px #000; }
+.hud .notes { position: absolute; top: 78px; left: 0; right: 0; display: flex; flex-direction: column; gap: 6px; }
+.hud .note { text-align: center; font-size: 13px; letter-spacing: 0.08em; opacity: 0.8; text-shadow: 0 0 8px #000; }
 .hud .note.good { color: #d89a3a; opacity: 1; }
+.hud .turning { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); text-align: center; font-size: 13px; letter-spacing: 0.14em; text-shadow: 0 0 8px #000; }
+.hud .turning .bar { width: 180px; height: 5px; margin-top: 8px; background: rgba(230, 225, 214, 0.18); border-radius: 3px; overflow: hidden; }
+.hud .turning .bar i { display: block; height: 100%; background: #d89a3a; transition: width 0.1s linear; }

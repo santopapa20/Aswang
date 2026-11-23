@@ -38,7 +38,7 @@ Lose when caught. Restart from the morning of that day.
 | Aswang | Wanders, notices noise, screams, chases, strikes. By day she is a normal villager | Cannot cross a salt line; garlic drives her back | Model and animation done, hunting works |
 | Manananggal | Flies over fences and huts, dives at you. Her lower half stands hidden somewhere | Salt on the lower half ends her for the night; she must return before dawn | Prompts written, model not generated |
 | Wakwak | Mostly heard, rarely seen. Its call is LOUD when far and quiet when close | Listen: when the call goes quiet, get indoors | Not started. Mainly sound plus a small flying shape |
-| Tikbalang | Tall, horse-headed. Near it your controls flip and paths loop | Turn your shirt inside out (hold a key for 2 seconds) | Not started |
+| Tikbalang | Tall, horse-headed. Walks after you all night; within 11 m your controls reverse and it charges. Salt and garlic do nothing | Turn your shirt inside out (stand still, hold T for 2 seconds); it roars and leaves | In the game (arrives 60 s into the test night). Paths do not loop yet |
 | Kapre | A giant smoking in the balete tree. Harmless unless you enter its yard | Stay out of the glowing-ember range; go around | Not started |
 | Sigbin | Low, walks backwards, drains you if it reaches your shadow | Keep your lamp between you and it; it avoids light | Not started |
 

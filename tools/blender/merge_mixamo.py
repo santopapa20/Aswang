@@ -14,6 +14,8 @@
 #              be downloaded on any Mixamo character). Each bone's turning is carried over rather than its
 #              exact placement, so the body keeps its own proportions and stance (horse legs, long neck);
 #              the arms are matched by direction, and the hips' travel is scaled to the leg length.
+#   --in-place  (with --character) clips, comma separated, whose forward and sideways travel is removed, for
+#              motions Mixamo offers no "In Place" box for. The game moves the character itself.
 #   --pronate  for a model that was made with its palms facing forward. Mixamo expects palms facing the
 #              thighs, so such a model hangs its hands palm-forward. This reshapes the model itself:
 #              each forearm is turned about its own length, 0 degrees at the elbow rising smoothly to
@@ -29,6 +31,7 @@ DIR, MATSRC, OUT = argv[0], argv[1], argv[2]
 NAME = os.path.splitext(os.path.basename(OUT))[0]
 PRONATE = float(argv[argv.index("--pronate") + 1]) if "--pronate" in argv else 0.0
 CHARACTER = argv[argv.index("--character") + 1] if "--character" in argv else None
+IN_PLACE = argv[argv.index("--in-place") + 1].split(",") if "--in-place" in argv else []
 ARMS_IN = {}
 if "--arms-in" in argv:
     spec = argv[argv.index("--arms-in") + 1]
@@ -135,6 +138,9 @@ def retarget_onto_own_rig(src, src_act, clip):
             pb.keyframe_insert("rotation_quaternion", frame=f)
             if not pb.parent:
                 where = (src.matrix_world @ src.pose.bones[sn].matrix.translation) * ratio
+                if clip in IN_PLACE:
+                    if f == f0: anchor = where.copy()
+                    where.x, where.y = anchor.x, anchor.y
                 pb.location = pb.bone.matrix_local.inverted() @ (arm.matrix_world.inverted() @ where)
                 pb.keyframe_insert("location", frame=f)
     ad.action = None

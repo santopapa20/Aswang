@@ -5,6 +5,7 @@ import { World } from "./game/World";
 import { Player } from "./game/Player";
 import { Aswang } from "./game/Aswang";
 import { Manananggal } from "./game/Manananggal";
+import { Tikbalang } from "./game/Tikbalang";
 import { Hud } from "./game/Hud";
 import { Items } from "./game/Items";
 import { useKeyboard } from "./game/input";
@@ -16,10 +17,15 @@ const CAMERA_OFFSET = new Vector3(0, 8, 6.8);
 function FollowCamera() {
   const target = useRef(new Vector3().copy(live.player));
   const want = useRef(new Vector3());
+  const pull = useRef(1);
   useFrame(({ camera }, dt) => {
     const k = 1 - Math.exp(-Math.min(dt, 0.1) * 4);
     target.current.lerp(live.player, k);
-    want.current.copy(target.current).add(CAMERA_OFFSET);
+    // while the tikbalang has him, the camera draws back so the thing coming for him can be seen
+    const game = useGame.getState();
+    const far = game.lost && game.phase === "playing" ? 1.4 : 1;
+    pull.current += (far - pull.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 1.5));
+    want.current.copy(target.current).addScaledVector(CAMERA_OFFSET, pull.current);
     camera.position.copy(want.current);
     camera.lookAt(target.current.x, target.current.y + 1, target.current.z);
   });
@@ -42,6 +48,7 @@ export default function App() {
           <Player />
           <Aswang />
           <Manananggal />
+          <Tikbalang />
           <Items />
         </Suspense>
         <FollowCamera />

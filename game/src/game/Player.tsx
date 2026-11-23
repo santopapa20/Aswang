@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, PointLight, Vector3 } from "three";
-import { live, LOWER_HALF, pushOut, useGame } from "./state";
+import { live, LOWER_HALF, pushOut, SHIRT_SECONDS, useGame } from "./state";
 import { actions, moveAxis, held, toggles } from "./input";
 import { useCharacter } from "./useCharacter";
 import { useProp } from "./useProp";
@@ -30,6 +30,7 @@ export function Player() {
     facing.current = Math.PI;
     caughtPlayed.current = false;
     stillFor.current = 0;
+    live.shirtTurn = 0;
     api.reset();
     api.play("idle", { fade: 0 });
   }, [runId, api]);
@@ -44,7 +45,15 @@ export function Player() {
       if (!caughtPlayed.current) { api.play("caught", { once: true, fade: 0.15 }); caughtPlayed.current = true; }
       live.playerNoise = 0;
     } else {
-      const axis = moveAxis();
+      const want0 = moveAxis();
+      // led astray by the tikbalang: his feet go the opposite way. Holding T (he must stand still for
+      // it) turns his shirt inside out, the old way to break the spell.
+      const turningShirt = game.lost && held.has("KeyT");
+      if (turningShirt) {
+        live.shirtTurn += dt;
+        if (live.shirtTurn >= SHIRT_SECONDS) { game.turnShirt(); live.shirtTurn = 0; }
+      } else live.shirtTurn = 0;
+      const axis = turningShirt ? { x: 0, z: 0 } : game.lost ? { x: -want0.x, z: -want0.z } : want0;
       const moving = axis.x !== 0 || axis.z !== 0;
       const running = moving && !toggles.sneak && (held.has("ShiftLeft") || held.has("ShiftRight"));
       const mode: keyof typeof NOISE = !moving ? "still" : toggles.sneak ? "sneak" : running ? "run" : "walk";
@@ -63,7 +72,7 @@ export function Player() {
       } else {
         stillFor.current += dt;
         // after standing a while, or when hunted, he looks around nervously
-        api.play(stillFor.current > 5 || game.hunted ? "look" : "idle", { fade: 0.4 });
+        api.play(stillFor.current > 5 || game.hunted || game.lost ? "look" : "idle", { fade: 0.4 });
       }
       live.playerNoise = NOISE[mode];
 
