@@ -13,6 +13,12 @@ Current models: `assets/player/player_v2*` (Tripo-textured, the one in use) and 
 The older `player_textured` / `player_rigready` files are the first player; they are kept because the
 new one borrows its garlic and sash labels and its test skin weights from them.
 
+## First playable version (agreed 2026-11-23)
+
+One small barrio map and one night: the player with his lamp, one aswang and one manananggal, salt
+and garlic as counters, win at sunrise or lose when caught. Village: one or two Tripo models plus
+free CC0 assets. Engine proposed: browser, React Three Fiber (awaiting Keith's confirmation).
+
 ## Folders
 
 - `assets/concept/` art direction sheet
