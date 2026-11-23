@@ -1,7 +1,7 @@
 # Rigs and animates the manananggal entirely by script, because Mixamo cannot do wings or flying.
 # Builds a skeleton (spine, neck, head, two arms, and for each wing a wing-arm plus four finger
 # bones that carry the membrane), skins the mesh with Blender's automatic weights, then writes the
-# clips as hand-made motion: hover, fly, dive, shriek. Output: <out>.glb with named clips and <out>.blend.
+# clips as hand-made motion: hover, fly, dive, shriek. The wings beat forward and back, not up and down. Output: <out>.glb with named clips and <out>.blend.
 #
 # usage: blender -b --factory-startup --python rig_manananggal.py -- <model.blend> <landmarks.json> <out.glb>
 import bpy, sys, json, math, os
@@ -76,18 +76,22 @@ def set_lift(dz, dy=0.0):
     R = arm.data.bones["Spine"].matrix_local.to_3x3()
     arm.pose.bones["Spine"].location = R.inverted() @ Vector((0, dy, dz))
 
-def wings(flap, lag, spread=0.0, sweep=0.0):
-    """flap: degrees down (+) or up (-). lag: extra bend of the outer wing. sweep: wings pulled back."""
+def wings(beat, lag, spread=0.0, lift=0.0):
+    """
+    beat: degrees the wings swing forward (+) or back (-), like oars. This is the main stroke.
+    lag: the same for the outer wing, which trails behind the wing arm.
+    spread: fans the fingers apart (+) or together (-). lift: raises (-) or lowers (+) the whole wing.
+    """
     for s, sx in (("L", 1), ("R", -1)):
-        set_rot("Wing." + s, [("Y", flap * sx), ("Z", -sweep * sx)])
+        set_rot("Wing." + s, [("Y", lift * sx), ("Z", -beat * sx), ("X", beat * 0.55)])
         for i in range(4):
-            # outer fingers trail behind the wing arm, and fan apart or together
+            outer = lag * (0.6 + 0.2 * i)
             fan = (i - 1.5) * spread
-            set_rot("WingFinger%d.%s" % (i + 1, s), [("Y", (lag * (0.6 + 0.2 * i) + fan) * sx)])
+            set_rot("WingFinger%d.%s" % (i + 1, s), [("Y", fan * sx), ("Z", -outer * sx), ("X", outer * 0.4)])
 
 def pose_hover(t):                       # t goes 0..1 round the loop
     a = math.sin(t * 2 * math.pi); b = math.sin(t * 2 * math.pi - 0.9)
-    wings(26 * a - 4, 16 * b, spread=2 * a)
+    wings(30 * a, 18 * b, spread=2 * a, lift=5 * math.sin(t * 4 * math.pi))
     set_lift(0.018 * math.sin(t * 2 * math.pi - 1.6))
     set_rot("Spine", [("X", 4 + 2 * a)]); set_rot("Chest", [("X", 3 * b)])
     set_rot("Head", [("X", -6 + 2 * b), ("Z", 5 * math.sin(t * 2 * math.pi * 0.5))])
@@ -98,7 +102,7 @@ def pose_hover(t):                       # t goes 0..1 round the loop
 
 def pose_fly(t):
     a = math.sin(t * 2 * math.pi); b = math.sin(t * 2 * math.pi - 1.0)
-    wings(34 * a - 6, 20 * b, spread=3 * a, sweep=8)
+    wings(34 * a - 10, 20 * b, spread=3 * a, lift=-6)
     set_lift(0.014 * math.sin(t * 2 * math.pi - 1.6))
     set_rot("Spine", [("X", 38)]); set_rot("Chest", [("X", 6 + 3 * b)])
     set_rot("Neck", [("X", -18)]); set_rot("Head", [("X", -22)])
@@ -110,7 +114,7 @@ def pose_fly(t):
 def pose_dive(t):                        # plays once: fold, plunge, claws forward
     k = min(1.0, t / 0.35); k = k * k * (3 - 2 * k)
     shake = math.sin(t * 2 * math.pi * 5) * (1 - k) * 2
-    wings(-30 * k + shake, -18 * k, spread=-5 * k, sweep=34 * k)
+    wings(-44 * k + shake, -16 * k, spread=-5 * k, lift=-22 * k)
     set_lift(-0.03 * k, -0.04 * k)
     set_rot("Spine", [("X", 62 * k)]); set_rot("Chest", [("X", 10 * k)])
     set_rot("Neck", [("X", -30 * k)]); set_rot("Head", [("X", -32 * k)])
@@ -122,7 +126,7 @@ def pose_dive(t):                        # plays once: fold, plunge, claws forwa
 def pose_shriek(t):                      # plays once: rear back, wings wide, then settle
     env = math.sin(min(1.0, t / 0.9) * math.pi) ** 0.6
     tremble = math.sin(t * 2 * math.pi * 9) * env
-    wings(-24 * env + 3 * tremble, -10 * env, spread=6 * env)
+    wings(16 * env + 3 * tremble, 8 * env, spread=6 * env, lift=-18 * env)
     set_lift(0.03 * env)
     set_rot("Spine", [("X", -14 * env)]); set_rot("Chest", [("X", -10 * env)])
     set_rot("Neck", [("X", -16 * env)]); set_rot("Head", [("X", -20 * env + 2 * tremble), ("Z", 4 * tremble)])
