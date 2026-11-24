@@ -8,7 +8,7 @@ import { interactables, Interactable } from "./interact";
 import { useCharacter } from "./useCharacter";
 import { useProp } from "./useProp";
 import { sound } from "./audio";
-import { EAT, WHIP } from "./data";
+import { BLADE, EAT, WHIP } from "./data";
 
 const SPEED = { sneak: 0.9, walk: 1.7, run: 3.6 };
 // how far away each way of moving can be noticed, in metres
@@ -139,8 +139,16 @@ export function Player() {
       }
       // ---- R cracks the whip: she falls back if she is close (Aswang.tsx listens for `whipWait`)
       if (actions.whip && game.hasWhip && live.whipWait <= 0 && live.stamina > 0.2) { live.whipWait = WHIP.cooldown * m.whip; live.whipCrack = true; live.stamina -= 0.2; sound.whip(); }
+      // ---- V strikes with the itak (close, in front of him); Z throws a salt pouch in the face of what is in front
+      if (actions.slash && game.kit.itak && live.itakWait <= 0 && live.stamina > BLADE.breath) { live.itakWait = BLADE.cooldown; live.slash = true; live.stamina -= BLADE.breath; sound.slash(); }
+      else if (actions.slash && !game.kit.itak) game.hint("noitak", "You have no itak. Make one at the bench beside the house, by day.");
+      if (actions.pouch) {
+        if (game.kit.pouch > 0) { game.set({ kit: { ...game.kit, pouch: game.kit.pouch - 1 } }); live.saltThrow = true; sound.whoosh(); }
+        else game.hint("nopouch", "You have no salt pouches. Make them at the bench beside the house, by day.");
+      }
     }
-    actions.pour = false; actions.whip = false;
+    actions.pour = false; actions.whip = false; actions.slash = false; actions.pouch = false;
+    live.itakWait = Math.max(0, live.itakWait - dt);
     live.whipWait = Math.max(0, live.whipWait - dt);
     live.hurt = Math.max(0, live.hurt - dt * 1.4);
     live.health = Math.min(live.health, m.health);

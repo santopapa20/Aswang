@@ -4,6 +4,7 @@ import { Group, Quaternion, Vector3 } from "three";
 import { catchPlayer, crossesLine, live, rnd, useGame } from "./state";
 import { doorOf, house, pushOut } from "./layout";
 import { useCharacter } from "./useCharacter";
+import { BLADE, POUCH } from "./data";
 import { sound } from "./audio";
 
 type Mode = "kennel" | "seek" | "feed" | "lost" | "flee" | "sulk";
@@ -86,7 +87,7 @@ export function Sigbin() {
     const barred = game.lines.some((l) => crossesLine(s.x, s.z, live.player.x, live.player.z, l));     // salt lies between them
 
     if (mode.current !== "kennel" && live.caught > 0) { mode.current = "sulk"; timer.current = 30; }
-    if (live.whipCrack && dist < WHIP_RANGE && mode.current !== "kennel" && mode.current !== "flee") {
+    if (((live.whipCrack && dist < WHIP_RANGE) || (live.saltThrow && dist < POUCH.range) || (live.slash && dist < BLADE.range)) && mode.current !== "kennel" && mode.current !== "flee") {
       mode.current = "flee"; timer.current = 4; game.gainXp(8); sound.yelp();
       game.toast("The sigbin yelps and bolts into the dark.", "good");
     }

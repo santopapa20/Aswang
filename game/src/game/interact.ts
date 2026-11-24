@@ -4,7 +4,7 @@
  * E is the main action; G lays a protection at one of the house's openings.
  */
 import { ITEMS, ItemId, NODE, rollLoot, aCharm } from "./data";
-import { doorOf, firePit, hidingSpots, home, house, kapreSpot, nodes, openings, well } from "./layout";
+import { benchSpot, doorOf, firePit, hidingSpots, home, house, kapreSpot, nodes, openings, well } from "./layout";
 import { Game, live, mods, rnd } from "./state";
 import { KADYO_DAY, PACING_DAY, PROOF_TEXT, ROSING_SAYS } from "./story";
 
@@ -73,6 +73,13 @@ export function interactables(g: Game): Interactable[] {
   });
   else if (day && !g.dialogue) door("Wait for dusk", 1.8, () => g.startNight());
   else door("Speak to Rosing", 0.5, () => g.say("Rosing", ROSING_SAYS.idle[Math.floor(rnd() * ROSING_SAYS.idle.length)]));
+
+  // ---- the workbench beside the house: by day
+  out.push({
+    key: "bench", button: "E", x: benchSpot.x, z: benchSpot.z + 0.7, r: 1.4, hold: 0.4,
+    label: day ? "Work at the bench" : "The bench is for the day",
+    act: day ? () => g.setPanel("bench") : undefined,
+  });
 
   // ---- the smudge fire
   out.push({

@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Mesh, MeshStandardMaterial, Vector3 } from "three";
-import { crossesLine, hurt, live, mods, rnd, useGame } from "./state";
-import { AMALANHIG, WHIP } from "./data";
+import { crossesLine, hurt, live, rnd, useGame } from "./state";
+import { AMALANHIG } from "./data";
+import { strikesAt } from "./combat";
 import { HealthBar, HealthBarHandle } from "./HealthBar";
 import { amalanhigGraves, amalanhigSolids, pushOut } from "./layout";
 import { useCharacter } from "./useCharacter";
@@ -94,16 +95,18 @@ export function Amalanhig({ index }: { index: number }) {
       if (stall.current > 0.5) { detour.current = { t: 1.6, side: detour.current.t > 0 ? -detour.current.side : rnd() < 0.5 ? 1 : -1 }; stall.current = 0; }
       return true;
     };
+    const blow = strikesAt(p.x, p.z);
     const struck = () => {
+      if (blow.damage <= 0) { mode.current = "hit"; timer.current = blow.stun; shove.current = { x: 0, z: 0 }; api.play("hit", { once: true, fade: 0.08 }); return; }   // salt in its face
       hits.current += 1;
-      hp.current -= WHIP.damage * mods(game).damage;
+      hp.current -= blow.damage;
       sound.strike(); game.gainXp(4);
       const n = Math.max(dist, 0.01);
       shove.current = { x: (-dx / n) * 2 * A.knockback, z: (-dz / n) * 2 * A.knockback };     // (it eases out over about that far)
       if (hp.current <= 0) { mode.current = "fall"; timer.current = FALL; api.play("hit", { once: true, fade: 0.1 }); return; }
-      mode.current = "hit"; timer.current = A.stagger; api.play("hit", { once: true, fade: 0.08 });
+      mode.current = "hit"; timer.current = Math.max(A.stagger, blow.stun); api.play("hit", { once: true, fade: 0.08 });
     };
-    const whipped = live.whipCrack && dist < WHIP.range;
+    const whipped = blow.damage > 0 || blow.stun > 0;
     grabRest.current = Math.max(0, grabRest.current - dt);
 
     switch (mode.current) {

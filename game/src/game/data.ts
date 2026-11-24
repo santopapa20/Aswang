@@ -46,6 +46,25 @@ export const KIN_AT_ONCE: Record<KinKind, number> = { dog: 2, crawler: 1 };
 export const KIN_FIRST = 25;      // seconds into the night before the first come out
 export const KIN_AGAIN = 40;      // seconds before another comes out in place of one laid down
 
+// ---- the workbench, beside Rosing's house (by day) ------------------------------------------------
+/** The itak (bolo): close and quick. V to strike what is in front of him. */
+export const BLADE = { damage: 45, range: 1.7, cooldown: 1.1, breath: 0.15 };
+/** A salt pouch thrown in the face of what is in front of him (Z): it reels for `stun` seconds. */
+export const POUCH = { range: 3.4, stun: 2.5 };
+export type RecipeId = "itak" | "pouch" | "string" | "barsWest" | "barsEast" | "barbs" | "lash" | "fangCharm" | "clawCharm";
+export type Cost = Partial<Record<ItemId | TrophyId, number>>;
+export const RECIPES: { id: RecipeId; name: string; text: string; cost: Cost; icon: string; once?: boolean; whip?: boolean }[] = [
+  { id: "itak", name: "Itak", text: "A bolo with its handle bound in palm, and a dog's fang set in the pommel against them. V strikes what is in front of you: close, quick, and deep.", cost: { coins: 15, kindling: 2, fang: 1 }, icon: "blade", once: true },
+  { id: "pouch", name: "Salt pouch", text: "A twist of salt and crushed leaves. Z throws it in the face of whatever is in front of you, and it reels.", cost: { salt: 2, herbs: 1 }, icon: "salt" },
+  { id: "string", name: "Garlic string", text: "Worn at the neck. The next bite or grab is turned aside, and the string is spent.", cost: { garlic: 3 }, icon: "garlic" },
+  { id: "barsWest", name: "Bamboo bars, west window", text: "Split bamboo lashed across it. Each night its protection holds once more before it is spent.", cost: { kindling: 4, coins: 4 }, icon: "window", once: true },
+  { id: "barsEast", name: "Bamboo bars, east window", text: "The same across the east window.", cost: { kindling: 4, coins: 4 }, icon: "window", once: true },
+  { id: "barbs", name: "Barbs for the whip", text: "Dog's fangs worked into the lash. Each blow takes a third more.", cost: { fang: 3, herbs: 2 }, icon: "whip", once: true, whip: true },
+  { id: "lash", name: "A longer lash", text: "Crawler's nails knotted along a new length. The whip reaches a metre further.", cost: { claw: 2, coins: 6 }, icon: "whip", once: true, whip: true },
+  { id: "fangCharm", name: "A charm with a fang in it", text: "Herbs and a fang knotted with a prayer. Better than plain ones, more often.", cost: { herbs: 4, fang: 1 }, icon: "charm" },
+  { id: "clawCharm", name: "A charm with a nail in it", text: "Herbs and a crawler's nail. These come out old and strong.", cost: { herbs: 4, claw: 1 }, icon: "charm" },
+];
+
 // ---- Nong Kadyo's bounties -------------------------------------------------------------------
 export type Bounty = { id: number; kind: KinKind; count: number; got: number; coins: number; xp: number; text: string; night: number; state: "offered" | "taken" | "done" };
 /** What he asks for on the day before each night. Each can be done with what comes out that night. */
@@ -143,14 +162,16 @@ export function rollLoot(kind: NodeKind, rich: boolean, more: number, rnd: () =>
 }
 
 // ---- what you learn --------------------------------------------------------------------------
-export type PerkId = "hardy" | "lungs" | "softstep" | "wick" | "firmhand" | "pockets" | "quickhands" | "fleet" | "strongarm" | "scavenger";
+export type PerkId = "keen" | "skinner" | "hardy" | "lungs" | "softstep" | "wick" | "firmhand" | "pockets" | "quickhands" | "fleet" | "strongarm" | "scavenger";
 export const PATHS: { name: string; about: string; perks: PerkId[] }[] = [
   { name: "Bantay", about: "The watchman: breath, quiet and the lamp.", perks: ["hardy", "lungs", "softstep", "wick"] },
   { name: "Tinun-an", about: "The albularyo's pupil: protections and careful hands.", perks: ["firmhand", "pockets", "quickhands"] },
-  { name: "Mangangayam", about: "The hunter: legs, the whip, a nose for what is hidden.", perks: ["fleet", "strongarm", "scavenger"] },
+  { name: "Mangangayam", about: "The hunter: legs, the whip, a nose for what is hidden.", perks: ["keen", "skinner", "fleet", "strongarm", "scavenger"] },
 ];
 export const PERKS: Record<PerkId, { name: string; text: string }> = {
   hardy: { name: "Hardy", text: "25 more health." },
+  keen: { name: "Keen edge", text: "Whip and itak take 15% more." },
+  skinner: { name: "Skinner", text: "25% chance of a second trophy from the kin." },
   lungs: { name: "Long breath", text: "Run 25% longer before tiring." },
   softstep: { name: "Soft step", text: "Heard from 10% less far." },
   wick: { name: "Trimmed wick", text: "The lamp uses 15% less oil." },

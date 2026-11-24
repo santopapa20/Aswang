@@ -252,7 +252,7 @@ export function Director() {
       smoke: live.smoke > 0,
       muted: game.muted || game.stage === "title",
     });
-    live.whipCrack = false; live.struck = false;
+    live.whipCrack = false; live.struck = false; live.slash = false; live.saltThrow = false;
   });
   return null;
 }

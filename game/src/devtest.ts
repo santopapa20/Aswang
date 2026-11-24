@@ -4,7 +4,7 @@
  * It is not a substitute for a person playing: it cannot judge feel, difficulty, sound or looks.
  */
 import { hurt, live, mods, useGame } from "./game/state";
-import { doorOf, firePit, hidingSpots, home, house, well } from "./game/layout";
+import { benchSpot, doorOf, firePit, hidingSpots, home, house, well } from "./game/layout";
 import { BALETE_ROOTS } from "./game/interact";
 
 type Dev = { run: (seconds: number, fps?: number) => void; show: () => void };
@@ -298,6 +298,33 @@ async function play() {
   at(cr.x + 2.2, cr.z); G().set({ lampOn: false }); live.whipWait = 0; live.stamina = 1; const h0 = cr.hp; key("KeyR"); run(0.1); key("KeyR", false); const dark = h0 - cr.hp; run(1.2);      // (a blow while it reels from the last does nothing)
   at(cr.x + 2.2, cr.z); G().set({ lampOn: true }); live.whipWait = 0; live.stamina = 1; const h1 = cr.hp; key("KeyR"); run(0.1); key("KeyR", false); const lit = h1 - cr.hp;
   check("in the dark the whip slides off it; in lamplight it bites", dark > 0 && lit > dark * 3, { dark: dark.toFixed(2), lit: lit.toFixed(2) });
+
+  // ---------- the bench: making things by day, and using them at night
+  G().toTitle(); await sleep(100); G().newGame(); await sleep(200); await skipTalk();
+  G().set({ hasWhip: true, bag: { ...G().bag, coins: 40, kindling: 8, salt: 4, herbs: 6, garlic: 3, oil: 9 }, trophies: { fang: 5, claw: 2 } });
+  at(benchSpot.x, benchSpot.z + 0.7); hold("KeyE", 0.6); await sleep(50);
+  check("the bench opens by day", G().panel === "bench", prompt("E"));
+  for (const id of ["itak", "pouch", "string", "barsWest", "barbs", "lash"] as const) G().craft(id);
+  const kit = G().kit;
+  check("the itak, a pouch, a garlic string, bars, barbs and a longer lash are made", kit.itak && kit.pouch === 1 && kit.string === 1 && kit.bars.west && kit.barbs && kit.lash && G().trophies.fang === 1 && G().trophies.claw === 0, { kit, trophies: G().trophies });
+  check("and the whip is stronger and longer for it", mods().whipDamage > 40 && mods().whipReach > 4.5, { damage: mods().whipDamage, reach: mods().whipReach });
+  G().setPanel(null);
+  G().set({ wards: { door: "salt", west: "garlic", east: null }, rationTaken: true }); G().startNight(); await sleep(300); await skipTalk();
+  G().testWard("west");
+  check("bamboo bars: the barred window holds once without spending its garlic", G().wards.west === "garlic", G().wards);
+  live.health = 100; hurt(20);
+  check("the garlic string turns a bite aside, and is spent", live.health === 100 && G().kit.string === 0, { health: live.health, string: G().kit.string });
+  live.elapsed = 60; at(99.5, 10.3); run(3.2);
+  const am = live.amalanhig[0];
+  for (let k = 0; k < 60 && Math.hypot(am.x - live.player.x, am.z - live.player.z) > 1.5; k++) run(0.1);
+  live.facing = Math.atan2(am.x - live.player.x, am.z - live.player.z); live.stamina = 1;
+  const hpBefore = am.hp; key("KeyV"); run(0.1); key("KeyV", false);
+  check("the itak bites deep at close quarters", hpBefore - am.hp > 0.4, { before: hpBefore.toFixed(2), after: am.hp.toFixed(2) });
+  run(1.3);
+  for (let k = 0; k < 60 && Math.hypot(am.x - live.player.x, am.z - live.player.z) > 2.5; k++) run(0.1);
+  live.facing = Math.atan2(am.x - live.player.x, am.z - live.player.z);
+  const hpPouch = am.hp; key("KeyZ"); run(0.1); key("KeyZ", false); run(0.2);
+  check("a salt pouch in its face makes it reel, without harm", am.mode === "hit" && am.hp === hpPouch && G().kit.pouch === 0, { mode: am.mode, hp: am.hp });
 
 }
 

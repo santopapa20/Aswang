@@ -6,7 +6,7 @@ import { sound } from "./audio";
 export const held = new Set<string>();
 export const toggles = { sneak: false };
 /** One-shot actions: set on key press, cleared by whoever handles them. */
-export const actions = { pour: false, whip: false };
+export const actions = { pour: false, whip: false, slash: false, pouch: false };
 
 /** Picks one of the answers offered at the end of a conversation. */
 export function choose(i: number) {
@@ -41,6 +41,8 @@ export function useKeyboard() {
       if (e.code === "KeyL") g.toggleShadows();
       if (e.code === "KeyQ") actions.pour = true;
       if (e.code === "KeyR") actions.whip = true;
+      if (e.code === "KeyV") actions.slash = true;
+      if (e.code === "KeyZ") actions.pouch = true;
       if (e.code === "KeyF" && g.stage === "night") g.set({ lampOn: !g.lampOn });
     };
     const up = (e: KeyboardEvent) => held.delete(e.code);

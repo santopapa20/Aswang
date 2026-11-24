@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import { crossesLine, hurt, live, mods, rnd, useGame } from "./state";
-import { KIN, KIN_AGAIN, KIN_AT_ONCE, KIN_FIRST, KIN_NIGHTS, KinKind, TROPHIES, WHIP } from "./data";
+import { KIN, KIN_AGAIN, KIN_AT_ONCE, KIN_FIRST, KIN_NIGHTS, KinKind, TROPHIES } from "./data";
+import { strikesAt } from "./combat";
 import { kinRoam, kinSolids, P2, pushOut } from "./layout";
 import { useCharacter } from "./useCharacter";
 import { HealthBar, HealthBarHandle } from "./HealthBar";
@@ -106,23 +107,26 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
       mode.current = "dying"; timer.current = 0.5;
       sound.whoosh();
       const coins = game.add("coins", K.coins[0] + Math.floor(rnd() * (K.coins[1] - K.coins[0] + 1)));
-      game.set({ trophies: { ...game.trophies, [K.trophy]: game.trophies[K.trophy] + 1 } });
+      const two = rnd() < mods(game).skinner;
+      game.set({ trophies: { ...game.trophies, [K.trophy]: game.trophies[K.trophy] + (two ? 2 : 1) } });
       game.gainXp(K.xp);
-      game.toast(`The ${K.name} lies still.${coins ? ` ${coins} centavos,` : ""} and ${TROPHIES[K.trophy].name.toLowerCase()}.`, "good");
+      game.toast(`The ${K.name} lies still.${coins ? ` ${coins} centavos,` : ""} and ${two ? "two lots of " : ""}${TROPHIES[K.trophy].name.toLowerCase()}.`, "good");
       game.laidDown(kind);
     };
+    const blow = strikesAt(p.x, p.z);
     const struck = () => {
+      if (blow.damage <= 0) { mode.current = "hit"; timer.current = blow.stun; shove.current = { x: 0, z: 0 }; api.play("hit", { once: true, fade: 0.08 }); return; }   // salt in its face
       const dark = K.unlit > 0 && !lit;
-      if (dark) game.hint(`dark-${kind}`, "In the dark the whip slides off it. Keep your lamp lit (F) when you strike.");
-      hp.current -= WHIP.damage * mods(game).damage * (dark ? 1 - K.unlit : 1);
+      if (dark) game.hint(`dark-${kind}`, "In the dark your blows slide off it. Keep your lamp lit (F) when you strike.");
+      hp.current -= blow.damage * (dark ? 1 - K.unlit : 1);
       sound.strike(); game.gainXp(3);
       if (hp.current <= 0) { die(); return; }
       const n = Math.max(dist, 0.01);
       shove.current = { x: (-dx / n) * 2 * K.knockback, z: (-dz / n) * 2 * K.knockback };
-      mode.current = "hit"; timer.current = K.stagger; api.play("hit", { once: true, fade: 0.08 });
+      mode.current = "hit"; timer.current = Math.max(K.stagger, blow.stun); api.play("hit", { once: true, fade: 0.08 });
     };
     const awake = mode.current === "prowl" || mode.current === "hunt" || mode.current === "blocked" || mode.current === "bite" || mode.current === "back";
-    if (awake && live.whipCrack && dist < WHIP.range) struck();
+    if (awake && (blow.damage > 0 || blow.stun > 0)) struck();
 
     switch (mode.current) {
       case "away": {

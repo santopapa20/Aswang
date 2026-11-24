@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Vector3 } from "three";
-import { BASE_CARRY, BASE_HEALTH, Bounty, BOUNTY_OFFERS, Charm, KinKind, TrophyId, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
+import { aCharm, BASE_CARRY, BASE_HEALTH, BLADE, Bounty, RECIPES, RecipeId, WHIP, BOUNTY_OFFERS, Charm, KinKind, TrophyId, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
 import { hidingSpots, home, HUT, OpeningId, START } from "./layout";
 import type { Objective } from "./objective";
 import { sound } from "./audio";
@@ -11,13 +11,13 @@ export type WardKind = "salt" | "garlic";
 /** A line of salt on the ground, from point A to point B. The aswang cannot cross it. */
 export type SaltLine = { ax: number; az: number; bx: number; bz: number };
 export type Dialogue = { lines: Line[]; index: number; choices?: { text: string; pick: () => void }[]; then?: () => void };
-export type Panel = null | "bag" | "trade" | "pause";
+export type Panel = null | "bag" | "trade" | "bench" | "pause";
 export type Toast = { id: number; text: string; tone: "good" | "bad" | "plain" };
 export const SHIRT_SECONDS = 2;
 const SAVE_KEY = "aswang-night-save-v1";
 
 const emptyBag = (): Record<ItemId, number> => ({ salt: 0, garlic: 0, oil: 0, kindling: 0, tobacco: 0, herbs: 0, coins: 0 });
-const noPerks = (): Record<PerkId, number> => ({ hardy: 0, lungs: 0, softstep: 0, wick: 0, firmhand: 0, pockets: 0, quickhands: 0, fleet: 0, strongarm: 0, scavenger: 0 });
+const noPerks = (): Record<PerkId, number> => ({ keen: 0, skinner: 0, hardy: 0, lungs: 0, softstep: 0, wick: 0, firmhand: 0, pockets: 0, quickhands: 0, fleet: 0, strongarm: 0, scavenger: 0 });
 
 /** Everything that is kept between sessions. */
 const freshRun = () => ({
@@ -37,12 +37,16 @@ const freshRun = () => ({
   tonicOn: 0,                                  // the day he last bought Rosing a tonic (one a day)
   seen: [] as string[],                        // one-time hints already shown
   trophies: { fang: 0, claw: 0 } as Record<TrophyId, number>,
+  /** What he has made at the bench: the itak, salt pouches and garlic strings (counts), bars on the windows,
+   *  and the whip's barbs and longer lash. */
+  kit: { itak: false, pouch: 0, string: 0, bars: { west: false, east: false }, barbs: false, lash: false },
   bounties: [] as Bounty[],                    // Nong Kadyo's: offered for the coming night, taken, or done and waiting to be paid
   nextBounty: 1,
 });
 /** Everything that belongs to the current day or night only. */
 const freshNight = () => ({
   lines: [] as SaltLine[],
+  barsUsed: { west: false, east: false },       // the bamboo bars have already held once tonight
   searched: [] as number[],
   errand: null as { id: ErrandId; step: number; done: boolean } | null,
   carrying: null as "water" | "lana" | null,
@@ -106,6 +110,8 @@ type GameState = ReturnType<typeof freshRun> & ReturnType<typeof freshNight> & {
   takeBounty: (id: number) => void;
   payBounty: (id: number) => void;
   laidDown: (kind: KinKind) => void;
+  /** Make something at the bench, if he has what it takes. */
+  craft: (id: RecipeId) => boolean;
   toggleMute: () => void;
 };
 
@@ -262,6 +268,12 @@ export const useGame = create<GameState>((set, get) => ({
   testWard: (id) => {
     const s = get();
     if (!s.wards[id]) return "open";
+    // bamboo bars: the first try at a barred window each night does not spend its protection
+    if ((id === "west" || id === "east") && s.kit.bars[id] && !s.barsUsed[id]) {
+      set({ barsUsed: { ...s.barsUsed, [id]: true }, tally: { ...s.tally, held: s.tally.held + 1 } });
+      get().gainXp(10);
+      return "held";
+    }
     const holds = rnd() < mods(s).firm;
     set({ wards: holds ? s.wards : { ...s.wards, [id]: null }, tally: { ...s.tally, held: s.tally.held + 1 } });
     get().gainXp(10);
@@ -320,6 +332,25 @@ export const useGame = create<GameState>((set, get) => ({
     get().add("coins", b.coins); get().gainXp(b.xp);
     get().toast(`Nong Kadyo pays ${b.coins} centavos.`, "good");
   },
+  craft: (id) => {
+    const s = get(), r = RECIPES.find((x) => x.id === id);
+    if (!r || !canCraft(s, id)) return false;
+    const bag = { ...s.bag }, trophies = { ...s.trophies };
+    for (const [k, n] of Object.entries(r.cost)) { if (k in trophies) trophies[k as TrophyId] -= n!; else bag[k as ItemId] -= n!; }
+    const kit = { ...s.kit, bars: { ...s.kit.bars } };
+    if (id === "itak") kit.itak = true;
+    else if (id === "pouch") kit.pouch += 1;
+    else if (id === "string") kit.string += 1;
+    else if (id === "barsWest") kit.bars.west = true;
+    else if (id === "barsEast") kit.bars.east = true;
+    else if (id === "barbs") kit.barbs = true;
+    else if (id === "lash") kit.lash = true;
+    set({ bag, trophies, kit });
+    if (id === "fangCharm" || id === "clawCharm") { const c = get().addCharm(id === "clawCharm" ? 0.25 : 0.12); get().toast(`You bind ${aCharm(c)}.`, "good"); }
+    else get().toast(`Made: ${r.name.toLowerCase()}.`, "good");
+    get().gainXp(6);
+    return true;
+  },
   laidDown: (kind) => {
     let met: Bounty | null = null;
     set((s) => ({
@@ -349,7 +380,14 @@ function save() {
 }
 
 /** What his learning and the charms he wears add up to. */
-export function mods(s: Pick<GameState, "perks" | "charms" | "worn"> = useGame.getState()) {
+/** Whether he has what a recipe takes (and has not already made a thing made only once). */
+export function canCraft(s: Pick<GameState, "bag" | "trophies" | "kit" | "hasWhip">, id: RecipeId) {
+  const r = RECIPES.find((x) => x.id === id)!;
+  if (r.whip && !s.hasWhip) return false;
+  if (r.once && ((id === "itak" && s.kit.itak) || (id === "barsWest" && s.kit.bars.west) || (id === "barsEast" && s.kit.bars.east) || (id === "barbs" && s.kit.barbs) || (id === "lash" && s.kit.lash))) return false;
+  return Object.entries(r.cost).every(([k, n]) => (k in s.trophies ? s.trophies[k as TrophyId] : s.bag[k as ItemId]) >= n!);
+}
+export function mods(s: Pick<GameState, "perks" | "charms" | "worn"> & Partial<Pick<GameState, "kit">> = useGame.getState()) {
   const charm = (stat: string) => s.charms.filter((c) => s.worn.includes(c.id) && c.stat === stat).reduce((n, c) => n + c.value, 0);
   const p = s.perks;
   return {
@@ -365,7 +403,11 @@ export function mods(s: Pick<GameState, "perks" | "charms" | "worn"> = useGame.g
     whip: Math.max(0.3, 1 - 0.2 * p.strongarm),
     health: BASE_HEALTH + 25 * p.hardy,
     guard: Math.min(0.6, 1.5 * charm("tough")),       // share of harm a charm turns aside
-    damage: 1,                                          // what his blows take, times the weapon's own
+    damage: 1 + 0.15 * (p.keen ?? 0),                   // what his blows take, times the weapon's own
+    whipDamage: WHIP.damage * (1 + 0.15 * (p.keen ?? 0)) * (s.kit?.barbs ? 4 / 3 : 1),
+    whipReach: WHIP.range + (s.kit?.lash ? 1 : 0),
+    bladeDamage: BLADE.damage * (1 + 0.15 * (p.keen ?? 0)),
+    skinner: 0.25 * (p.skinner ?? 0),                   // chance of a second trophy
   };
 }
 
@@ -389,6 +431,13 @@ export type Game = GameState;
 export function hurt(amount: number) {
   const s = useGame.getState();
   if (live.caught > 0 || s.stage !== "night") return;
+  if (s.kit.string > 0) {
+    // the garlic string at his neck turns it aside, and is spent
+    s.set({ kit: { ...s.kit, string: s.kit.string - 1 } });
+    s.toast("The garlic string at your neck turns it aside.", "good"); sound.held();
+    live.shake = Math.max(live.shake, 0.3);
+    return;
+  }
   live.health = Math.max(0, live.health - amount * (1 - mods(s).guard));
   live.hurt = 1; live.shake = Math.max(live.shake, 0.55); sound.hurt();
   if (live.health <= 0) catchPlayer();
@@ -438,6 +487,9 @@ export const live = {
   /** The roaming kin (Kin.tsx): each slot's state, and how many of each kind have come out tonight. */
   kin: { dog: [0, 1].map(() => ({ mode: "away", x: 0, z: 0, hp: 1 })), crawler: [0].map(() => ({ mode: "away", x: 0, z: 0, hp: 1 })) },
   kinOut: { dog: 0, crawler: 0 },
+  itakWait: 0,             // seconds until the itak can strike again
+  slash: false,            // he has just struck with the itak (the creatures listen for it, like the whip)
+  saltThrow: false,        // he has just thrown a salt pouch
   hilotOut: 0,             // seconds left that the hilot stands in her open doorway, answering his call
   caught: 0,               // seconds left of being struck down, before the night is cut short
   struck: false,           // he has just struck the house post (the manananggal listens for it)

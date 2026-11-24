@@ -3,7 +3,7 @@
  * headless browser can photograph each screen (see README, "Checking the screens"). Never loaded in a build.
  */
 import { live, useGame } from "./game/state";
-import { doorOf, hilotSpot, house } from "./game/layout";
+import { benchSpot, doorOf, hilotSpot, house } from "./game/layout";
 
 const HILOT = doorOf(house("hilot"));
 
@@ -111,6 +111,11 @@ const SHOTS: Record<string, () => Promise<void>> = {
     ], trophies: { fang: 2, claw: 0 } });
     at(24, -18.7); G().setPanel("trade");
   },
+  bench: async () => {
+    await begin(3); G().set({ hasWhip: true, trophies: { fang: 4, claw: 1 }, kit: { itak: true, pouch: 2, string: 0, bars: { west: false, east: false }, barbs: false, lash: false } });
+    at(benchSpot.x, benchSpot.z + 0.7); G().setPanel("bench");
+  },
+  yard: async () => { await begin(3); at(benchSpot.x + 1.5, benchSpot.z + 2.6); dev().run(0.5); },
   bag: async () => { await begin(3); for (let i = 0; i < 4; i++) G().addCharm(i * 0.03); G().gainXp(150); G().set({ hasWhip: true, proofs: { salt: true, oil: false, skirt: false } }); G().setPanel("bag"); },
   trade: async () => { await begin(2); at(24, -18.7); G().setPanel("trade"); },
   pause: async () => { await dusk(1); G().setPanel("pause"); },

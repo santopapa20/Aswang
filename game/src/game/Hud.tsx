@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useProgress } from "@react-three/drei";
-import { carried, endingText, hasSave, live, mods, ROMAN, useGame } from "./state";
-import { aCharm, Bounty, CHARM_HERBS, EAT, TROPHIES, TrophyId, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
+import { canCraft, carried, endingText, hasSave, live, mods, ROMAN, useGame } from "./state";
+import { aCharm, Bounty, CHARM_HERBS, EAT, RECIPES, TROPHIES, TrophyId, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
 import { NIGHTS } from "./story";
 import { openings } from "./layout";
 import { choose, toggles } from "./input";
@@ -27,6 +27,7 @@ export function Hud() {
           {dialogue && <DialogueBox />}
           {panel === "bag" && <Bag />}
           {panel === "trade" && <Trade />}
+          {panel === "bench" && <Bench />}
           {panel === "pause" && <Pause />}
         </div>
       )}
@@ -36,7 +37,7 @@ export function Hud() {
 
 const KEYS: [string, string][] = [
   ["W A S D", "Move"], ["Shift", "Run"], ["C", "Sneak on or off"], ["E hold", "Use, search, talk"], ["G hold", "Protect a door or window"],
-  ["Q", "Pour a line of salt"], ["F", "Shutter the lamp"], ["R", "Crack the whip"], ["H hold", "Eat herbs to heal"], ["T hold", "Turn your shirt inside out"],
+  ["Q", "Pour a line of salt"], ["F", "Shutter the lamp"], ["R", "Crack the whip"], ["V", "Strike with the itak"], ["Z", "Throw a salt pouch"], ["H hold", "Eat herbs to heal"], ["T hold", "Turn your shirt inside out"],
   ["Tab", "Bag and learning"], ["Esc", "Pause"], ["M", "Sound on or off"],
 ];
 /** What goes on the bar along the bottom: things you use. Herbs and money are shown as a purse beside it. */
@@ -247,6 +248,9 @@ function Play() {
               );
             })}
             {g.hasWhip && <div className={`tile ${live.whipWait > 0 ? "none" : ""}`}><kbd className="key">R</kbd><Icon name="whip" size={22} /><em>{live.whipWait > 0 ? `${Math.ceil(live.whipWait)}s` : "Whip"}</em></div>}
+            {g.kit.itak && <div className={`tile ${live.itakWait > 0 ? "none" : ""}`}><kbd className="key">V</kbd><Icon name="blade" size={22} /><em>Itak</em></div>}
+            {g.kit.pouch > 0 && <div className="tile"><kbd className="key">Z</kbd><Icon name="salt" size={22} /><b>{g.kit.pouch}</b><em>Pouch</em></div>}
+            {g.kit.string > 0 && <div className="tile lit"><Icon name="garlic" size={22} /><b>{g.kit.string}</b><em>String</em></div>}
             {g.carrying && <div className="tile carry"><Icon name={g.carrying === "water" ? "salt" : "oil"} size={22} /><em>{g.carrying === "water" ? "Water" : "The oil"}</em></div>}
           </div>
           <div className="meters">
@@ -377,6 +381,28 @@ function Trade() {
           act={() => { if (g.spend("herbs", TONIC.herbs) && g.spend("coins", TONIC.coins)) { g.set({ rosing: Math.min(3, g.rosing + 1), tonicOn: g.night }); g.toast("A tonic for Rosing. She will be stronger tonight.", "good"); } }} />
         {!g.hasWhip && <Offer icon="whip" name="Stingray-tail whip" price={`${WHIP_COST} c`} text="The old weapon against them. It does not kill her. It makes her let go." off={g.bag.coins < WHIP_COST}
           act={() => { if (g.spend("coins", WHIP_COST)) { g.set({ hasWhip: true }); g.toast("A stingray-tail whip. Press R when she is close.", "good"); } }} />}
+      </section>
+    </div>
+  );
+}
+
+/** The workbench beside the house: what can be made, what it takes, and what he already has. */
+function Bench() {
+  const g = useGame();
+  const have = (k: string) => (k in g.trophies ? g.trophies[k as TrophyId] : g.bag[k as ItemId]);
+  const label = (k: string, n = 2) => (k === "fang" ? (n === 1 ? "dog's fang" : "dog's fangs") : k === "claw" ? (n === 1 ? "crawler's nail" : "crawler's nails") : k === "coins" ? "centavos" : k === "herbs" && n === 1 ? "bundle of herbs" : ITEMS[k as ItemId].name.toLowerCase());
+  const owned = (id: string) => (id === "itak" && g.kit.itak) || (id === "barsWest" && g.kit.bars.west) || (id === "barsEast" && g.kit.bars.east) || (id === "barbs" && g.kit.barbs) || (id === "lash" && g.kit.lash);
+  return (
+    <div className="panel shop">
+      <header><h2>The bench</h2><span><Icon name="star" size={15} /> {g.trophies.fang} fangs · {g.trophies.claw} nails · <Icon name="coins" size={15} /> {g.bag.coins} · <kbd>Esc</kbd> close</span></header>
+      <section className="offers">
+        {RECIPES.map((r) => {
+          const cost = Object.entries(r.cost).map(([k, n]) => `${n} ${label(k, n)}`).join(", ");
+          const short = Object.entries(r.cost).filter(([k, n]) => have(k) < n!).map(([k]) => label(k));
+          const status = owned(r.id) ? "Made." : r.whip && !g.hasWhip ? "You need a whip first (Nong Kadyo sells one)." : short.length ? `Not enough ${short.join(" or ")}.` : "";
+          const count = r.id === "pouch" ? g.kit.pouch : r.id === "string" ? g.kit.string : 0;
+          return <Offer key={r.id} icon={r.icon} name={`${r.name}${count ? ` (${count})` : ""}`} price={owned(r.id) ? "made" : "make"} text={`${owned(r.id) ? "" : `Takes ${cost}. `}${r.text}${status && !owned(r.id) ? ` ${status}` : ""}`} off={!canCraft(g, r.id)} act={() => g.craft(r.id)} />;
+        })}
       </section>
     </div>
   );

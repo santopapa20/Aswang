@@ -71,6 +71,8 @@ export const openings: Opening[] = [
 ];
 /** A smudge fire in the yard. Its smoke keeps anything from settling on the roof. */
 export const firePit: P2 = { x: home.x + 4.6, z: home.z + 5.2 };
+/** The workbench, at the front-west corner of Rosing's house, clear of the door and the west window. */
+export const benchSpot: P2 = { x: home.x - 3.1, z: home.z + HUT.hz + 0.9 };
 /** Where she waits, outside the lamplight, between tries at the house. */
 export const lurkPoints: P2[] = [
   { x: home.x - 12, z: home.z + 9 }, { x: home.x - 4, z: home.z + 14 }, { x: home.x + 6, z: home.z + 13 },
@@ -211,7 +213,7 @@ export const placed: Decor[] = [
   { kind: "bench", x: well.x + 2.9, z: well.z - 0.5, s: 1, r: 1.3 }, { kind: "bench", x: well.x - 2.6, z: well.z + 1.5, s: 1, r: -0.9 },
   // lived-in houses: a seat, a basket by the jars, a bed of flowers, and a cooking fire where nobody fights
   ...lived.flatMap((h): Decor[] => h.id === "home"
-    ? [{ kind: "basket", x: h.x + 2.95, z: h.z + HUT.hz + 0.55, s: 1, r: 0.4 }, { kind: "garden", x: h.x - 6.2, z: h.z + 7.4, s: 1, r: 0.3 }]
+    ? [{ kind: "basket", x: h.x + 2.95, z: h.z + HUT.hz + 0.55, s: 1, r: 0.4 }, { kind: "bench", x: benchSpot.x, z: benchSpot.z, s: 1.1, r: 0.05 }, { kind: "basket", x: benchSpot.x - 1.05, z: benchSpot.z - 0.2, s: 0.8, r: 1.3 }, { kind: "garden", x: h.x - 6.2, z: h.z + 7.4, s: 1, r: 0.3 }]
     : [
       { kind: "bench", x: h.x - 2.7, z: h.z + HUT.hz + 1.2, s: 1, r: 0.2 }, { kind: "basket", x: h.x - 1.25, z: h.z + HUT.hz + 0.45, s: 1, r: h.x },
       { kind: "garden", x: h.x - 4.9, z: h.z + 1.4, s: 1, r: h.z * 0.3 }, { kind: "campfire", x: h.x + 3.6, z: h.z + HUT.hz + 2.3, s: 1, r: h.x * 0.7 },

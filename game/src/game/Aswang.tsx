@@ -5,6 +5,7 @@ import { catchPlayer, crossesLine, live, rnd, useGame } from "./state";
 import { home, lurkPoints, Opening, openings, P2, pushOut } from "./layout";
 import { ROSING_SAYS } from "./story";
 import { useCharacter } from "./useCharacter";
+import { BLADE, POUCH } from "./data";
 import { sound } from "./audio";
 
 type Mode = "away" | "lurk" | "prowl" | "approach" | "test" | "recoil" | "withdraw" | "scream" | "chase" | "attack" | "repelled" | "flee";
@@ -188,7 +189,7 @@ export function Aswang() {
         api.move("run", night === 1 ? 3.0 : 3.25, { fade: 0.2 });
         chaseFor.current -= dt;
         if (dist < GARLIC_RANGE && game.useGarlic()) { game.toast("The garlic at your belt turns her.", "good"); repel(); break; }
-        if (live.whipCrack && dist < 3.8) { repel(); break; }
+        if ((live.whipCrack && dist < 3.8) || (live.slash && dist < BLADE.range) || (live.saltThrow && dist < POUCH.range)) { repel(); break; }
         const s = stepTo(live.player.x, live.player.z, night === 1 ? 3.0 : 3.25);
         if (s === "blocked") { repel(); break; }
         if (dist < REACH) { mode.current = "attack"; timer.current = 0.9; }
