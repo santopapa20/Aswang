@@ -21,7 +21,23 @@ export const BASE_HEALTH = 100;
 export const EAT = { seconds: 1.2, heals: 30 };
 /** The stingray-tail whip: what one blow takes from a thing that can be hurt, how far it reaches, and how
  *  many seconds before it can be cracked again (the Strong arm perk shortens that). */
-export const WHIP = { damage: 34, range: 3.6, cooldown: 5 };
+export const WHIP = { damage: 34, range: 3.6, cooldown: 4 };
+/** The amalanhig (Amalanhig.tsx). Kept here with the whip so the fight is tuned in one place
+ *  (scripts/duel.mjs plays it out with different ways of fighting and reports how each went). */
+export const AMALANHIG = {
+  wake: 8,          // metres from its grave at which it hears him after dark
+  lose: 14,         // how far ahead of it he must get before it gives up and goes back down
+  leash: 28,        // and how far from its grave it will follow him at all
+  speed: 1.9,       // metres a second: a little faster than he walks, much slower than he runs
+  turn: 1.1,        // radians a second: its joints have set, so it turns slowly. Step aside and it lurches past
+  reach: 1.2,       // how close it must be, facing him, to get its hands on him
+  health: 100,      // three whip blows lay it down for the rest of the night
+  grabHarm: 40,     // what its hands take from him; it lets go and he staggers clear
+  grabRest: 2.5,    // seconds before it can get hold of him again
+  letGo: 1.4,       // seconds it stands after a grab before it comes on again: his head start
+  knockback: 2.0,   // metres a whip blow throws it back
+  stagger: 1.2,     // seconds it reels after a blow before it comes on again
+};
 
 // ---- charms: found or made, two can be worn ---------------------------------------------------
 export type StatId = "quiet" | "bright" | "thrifty" | "swift" | "steady" | "lucky" | "firm" | "tough";

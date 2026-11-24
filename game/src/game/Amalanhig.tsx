@@ -2,22 +2,15 @@ import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import { crossesLine, hurt, live, mods, rnd, useGame } from "./state";
-import { WHIP } from "./data";
+import { AMALANHIG, WHIP } from "./data";
 import { HealthBar, HealthBarHandle } from "./HealthBar";
 import { amalanhigGraves, amalanhigSolids, pushOut } from "./layout";
 import { useCharacter } from "./useCharacter";
 import { sound } from "./audio";
 
-type Mode = "grave" | "rise" | "hunt" | "grab" | "hit" | "fall" | "down" | "return" | "sink";
+type Mode = "grave" | "rise" | "hunt" | "grab" | "letgo" | "hit" | "fall" | "down" | "return" | "sink";
 
-const WAKE = 8;               // metres from its grave at which it hears him after dark
-const LOSE = 24;              // and how far it follows him before it gives up and goes back down
-const SPEED = 2.0;            // faster than he walks, slower than he runs
-const TURN = 1.1;             // radians a second: its joints have set, so it turns slowly. Step aside and it lurches past
-const REACH = 1.2;            // how close it must be, facing him, to get its hands on him
-const HEALTH = 100;           // three whip blows lay it down for the rest of the night
-const GRAB_HARM = 40;         // what its hands take from him; it lets go and he staggers clear
-const GRAB_REST = 2.5;        // seconds before it can get hold of him again
+const A = AMALANHIG;
 const RISE = 2.4, FALL = 0.9;
 const HALF_PI = Math.PI / 2;
 
@@ -42,14 +35,15 @@ export function Amalanhig({ index }: { index: number }) {
   const mode = useRef<Mode>("grave");
   const timer = useRef(0);
   const hits = useRef(0);
-  const hp = useRef(HEALTH);
+  const hp = useRef(A.health);
   const grabRest = useRef(0);
   const bar = useRef<HealthBarHandle>(null);
   const shove = useRef({ x: 0, z: 0 });
   const stall = useRef(0);
+  const detour = useRef({ t: 0, side: 1 });
 
   const reset = () => {
-    mode.current = "grave"; hits.current = 0; hp.current = HEALTH; grabRest.current = 0; tilt.current = -HALF_PI; facing.current = 0;
+    mode.current = "grave"; hits.current = 0; hp.current = A.health; grabRest.current = 0; tilt.current = -HALF_PI; facing.current = 0;
     pos.current.set(grave.x, 0, grave.z); solid.r = 0;
   };
   useEffect(() => { reset(); api.reset(); api.play("idle", { fade: 0 }); }, [runId, api]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -94,9 +88,10 @@ export function Amalanhig({ index }: { index: number }) {
       const bx = p.x, bz = p.z;
       p.x += ux * speed * dt; p.z += uz * speed * dt;
       pushOut(p, 0.4);
-      // pressed against something: it leans that way until it turns enough to slide past
+      // pressed against something (a house, a tree): for a while it makes its way round, whichever way it
+      // tried last time failing, instead of leaning on it for ever
       stall.current = Math.hypot(p.x - bx, p.z - bz) < speed * dt * 0.3 ? stall.current + dt : 0;
-      if (stall.current > 0.6) { facing.current += 0.9 * (rnd() < 0.5 ? 1 : -1); stall.current = 0; }
+      if (stall.current > 0.5) { detour.current = { t: 1.6, side: detour.current.t > 0 ? -detour.current.side : rnd() < 0.5 ? 1 : -1 }; stall.current = 0; }
       return true;
     };
     const struck = () => {
@@ -104,16 +99,16 @@ export function Amalanhig({ index }: { index: number }) {
       hp.current -= WHIP.damage * mods(game).damage;
       sound.strike(); game.gainXp(4);
       const n = Math.max(dist, 0.01);
-      shove.current = { x: (-dx / n) * 3.2, z: (-dz / n) * 3.2 };     // knocked back about a metre and a half
+      shove.current = { x: (-dx / n) * 2 * A.knockback, z: (-dz / n) * 2 * A.knockback };     // (it eases out over about that far)
       if (hp.current <= 0) { mode.current = "fall"; timer.current = FALL; api.play("hit", { once: true, fade: 0.1 }); return; }
-      mode.current = "hit"; timer.current = 0.9; api.play("hit", { once: true, fade: 0.08 });
+      mode.current = "hit"; timer.current = A.stagger; api.play("hit", { once: true, fade: 0.08 });
     };
     const whipped = live.whipCrack && dist < WHIP.range;
     grabRest.current = Math.max(0, grabRest.current - dt);
 
     switch (mode.current) {
       case "grave":
-        if (live.caught <= 0 && dist < WAKE) {
+        if (live.caught <= 0 && dist < A.wake) {
           mode.current = "rise"; timer.current = RISE; tilt.current = -HALF_PI; facing.current = 0;
           sound.growl();
           game.hint("amalanhig", "An amalanhig. It cannot bend: it turns slowly, so step aside and run. The whip (R) knocks it back, and three blows lay it down.");
@@ -130,26 +125,42 @@ export function Amalanhig({ index }: { index: number }) {
       case "hunt": {
         if (whipped) { struck(); break; }
         if (live.caught > 0) { api.play("idle", { fade: 0.4 }); break; }
-        if (dist > LOSE || Math.hypot(live.player.x - grave.x, live.player.z - grave.z) > LOSE) { mode.current = "return"; break; }
-        const off = turnToward(dx, dz, TURN);
+        if (dist > A.lose || Math.hypot(live.player.x - grave.x, live.player.z - grave.z) > A.leash) { mode.current = "return"; break; }
+        detour.current.t = Math.max(0, detour.current.t - dt);
+        let off: number;
+        if (detour.current.t > 0) {
+          // going round something: head off to one side of him
+          const s = detour.current.side * 1.3, c = Math.cos(s), n = Math.sin(s);
+          turnToward(dx * c + dz * n, -dx * n + dz * c, A.turn * 1.8);
+          off = 0;
+        } else off = turnToward(dx, dz, A.turn);
         // it only makes headway when it is roughly facing him; badly off, it mostly stands and turns
-        const going = lurch(SPEED * Math.max(0.2, Math.cos(Math.min(off, Math.PI / 2))));
-        api.move(going ? "walk" : "idle", going ? SPEED : 0, { fade: 0.3 });
-        if (dist < REACH && off < 0.6 && grabRest.current <= 0) { mode.current = "grab"; timer.current = 1.0; api.play("grab", { once: true, fade: 0.1 }); sound.growl(); }
+        const going = lurch(A.speed * Math.max(0.2, Math.cos(Math.min(off, Math.PI / 2))));
+        api.move(going ? "walk" : "idle", going ? A.speed : 0, { fade: 0.3 });
+        if (dist < A.reach && off < 0.6 && grabRest.current <= 0) { mode.current = "grab"; timer.current = 1.0; api.play("grab", { once: true, fade: 0.1 }); sound.growl(); }
         break;
       }
       case "grab":
         if (whipped && timer.current > 0.35) { struck(); break; }
-        turnToward(dx, dz, TURN * 2);
+        turnToward(dx, dz, A.turn * 2);
         // the arms close about two thirds of the way through
-        if (timer.current <= 0.35 && timer.current + dt > 0.35 && dist < REACH * 1.5) {
+        if (timer.current <= 0.35 && timer.current + dt > 0.35 && dist < A.reach * 1.5) {
           // its hands close on him: it hurts, and he tears himself loose a stride away
-          hurt(GRAB_HARM);
+          hurt(A.grabHarm);
           const n = Math.max(dist, 0.01);
           live.player.x += (dx / n) * 1.1; live.player.z += (dz / n) * 1.1;
           pushOut(live.player, 0.35);
-          grabRest.current = GRAB_REST;
+          grabRest.current = A.grabRest;
+          mode.current = "letgo"; timer.current = A.letGo;
+          break;
         }
+        if (timer.current <= 0) mode.current = "hunt";
+        break;
+      case "letgo":
+        // it stands where it lost its hold, working its hands, and gives him a head start
+        if (whipped) { struck(); break; }
+        api.play("idle", { fade: 0.3 });
+        turnToward(dx, dz, A.turn);
         if (timer.current <= 0) mode.current = "hunt";
         break;
       case "hit":
@@ -180,11 +191,11 @@ export function Amalanhig({ index }: { index: number }) {
       case "return": {
         // it walks back to its grave and lies down again
         const gx = grave.x - p.x, gz = grave.z - p.z;
-        if (dist < WAKE * 0.6) { mode.current = "hunt"; break; }
+        if (dist < A.wake * 0.6) { mode.current = "hunt"; break; }
         if (Math.hypot(gx, gz) < 0.5) { mode.current = "sink"; timer.current = RISE; break; }
-        turnToward(gx, gz, TURN * 1.5);
-        lurch(SPEED * 0.7);
-        api.move("walk", SPEED * 0.7, { fade: 0.3 });
+        turnToward(gx, gz, A.turn * 1.5);
+        lurch(A.speed * 0.7);
+        api.move("walk", A.speed * 0.7, { fade: 0.3 });
         break;
       }
       case "sink": {
@@ -197,7 +208,7 @@ export function Amalanhig({ index }: { index: number }) {
     }
 
     // place it: tipped about its heels, sunk a little into the ground while it comes out of it or goes back in
-    const standing = mode.current === "hunt" || mode.current === "grab" || mode.current === "hit" || mode.current === "return";
+    const standing = mode.current === "hunt" || mode.current === "grab" || mode.current === "letgo" || mode.current === "hit" || mode.current === "return";
     const lying = -tilt.current / HALF_PI;
     const sunk = mode.current === "rise" || mode.current === "sink" ? -0.3 * lying : mode.current === "down" || mode.current === "fall" ? 0.1 * lying : 0;
     g.visible = mode.current !== "grave";
@@ -205,8 +216,8 @@ export function Amalanhig({ index }: { index: number }) {
     g.rotation.order = "YXZ";
     g.rotation.set(tilt.current, facing.current, 0);
     solid.x = p.x; solid.z = p.z; solid.r = standing ? 0.35 : 0;
-    me.mode = mode.current; me.x = p.x; me.z = p.z; me.hits = hits.current; me.hp = hp.current / HEALTH;
-    bar.current?.set(p.x, 2.05, p.z, hp.current / HEALTH, standing && hp.current < HEALTH);
+    me.mode = mode.current; me.x = p.x; me.z = p.z; me.hits = hits.current; me.hp = hp.current / A.health;
+    bar.current?.set(p.x, 2.05, p.z, hp.current / A.health, standing && hp.current < A.health);
   });
 
   return (

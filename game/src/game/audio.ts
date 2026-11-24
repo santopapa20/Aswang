@@ -108,6 +108,7 @@ export const sound = {
   blip() { tone("sine", 660, 880, 0.05, 0.08); },
   whip() { burst(3200, 0.8, 0.5, 0.09, "highpass"); tone("sawtooth", 900, 140, 0.18, 0.1); },
   knock() { for (let i = 0; i < 3; i++) { tone("triangle", 190, 120, 0.5, 0.09, i * 0.16); burst(700, 1, 0.2, 0.05, "bandpass", i * 0.16); } },
+  hurt() { burst(320, 0.8, 0.55, 0.22, "lowpass"); tone("sawtooth", 220, 120, 0.22, 0.32, 0.02, 700); },
   strike() { tone("triangle", 240, 110, 0.6, 0.14); burst(900, 1, 0.3, 0.07); },
   held() { burst(900, 3, 0.4, 0.3); tone("sawtooth", 700, 180, 0.22, 0.45, 0, 900); },
   breach() { tone("sawtooth", 180, 60, 0.5, 1.2, 0, 400); burst(500, 0.6, 0.5, 0.9, "lowpass"); tone("sawtooth", 1300, 500, 0.25, 0.9, 0.1, 1500); },

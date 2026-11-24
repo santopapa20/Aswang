@@ -3,6 +3,7 @@ import { Vector3 } from "three";
 import { BASE_CARRY, BASE_HEALTH, Charm, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
 import { hidingSpots, home, HUT, OpeningId, START } from "./layout";
 import type { Objective } from "./objective";
+import { sound } from "./audio";
 import { ENDINGS, ERRANDS, ErrandId, Form, INTRO, Line, NIGHTS, PACING_DAY, PACING_KNOWS, PACING_TRUSTED, PROOF_TEXT, ROSING_SAYS } from "./story";
 
 export type Stage = "title" | "day" | "night" | "morning" | "over" | "ending";
@@ -359,7 +360,7 @@ export function hurt(amount: number) {
   const s = useGame.getState();
   if (live.caught > 0 || s.stage !== "night") return;
   live.health = Math.max(0, live.health - amount * (1 - mods(s).guard));
-  live.hurt = 1; live.shake = Math.max(live.shake, 0.55);
+  live.hurt = 1; live.shake = Math.max(live.shake, 0.55); sound.hurt();
   if (live.health <= 0) catchPlayer();
 }
 /** Something has him. He goes down, and the rest of the night is lost. */
