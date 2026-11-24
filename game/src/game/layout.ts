@@ -88,6 +88,13 @@ export const hilotSpot: P2 = { x: house("hilot").x + HUT.doorX - 0.75, z: house(
 export const hilotDoor = { x: house("hilot").x + HUT.doorX, y: HUT.floor, z: house("hilot").z + HUT.wallZ + 0.04 };
 /** She stops you only while she is out in the yard (Hilot.tsx sets its radius to 0 when she goes in). */
 export const hilotSolid: Circle = { x: hilotSpot.x, z: hilotSpot.z, r: 0.3 };
+/**
+ * The two graves in the old sitio that do not rest: where each amalanhig lies, feet to the south and head
+ * under its cross (the first and third crosses of the graveyard). It rises here, pivoting on its feet.
+ */
+export const amalanhigGraves: P2[] = [{ x: 106.4, z: 10.3 }, { x: 110.2, z: 10.6 }];
+/** They stop you while they stand (Amalanhig.tsx sets the radius to 0 while one is buried or lying down). */
+export const amalanhigSolids: Circle[] = amalanhigGraves.map((g) => ({ x: g.x, z: g.z, r: 0 }));
 /** Where the kapre stands after dark: against the balete's trunk, on the side the barrio can see. */
 export const kapreSpot: P2 = { x: balete.x - 2.7, z: balete.z + 2.4 };
 export const START: P2 = { x: 2, z: 30 };
@@ -331,6 +338,7 @@ const SOLID: Record<Decor["kind"], number> = { rocks: 0.5, shrub: 0.8, fern: 0, 
 export const solids: Circle[] = [
   { x: kadyoSpot.x, z: kadyoSpot.z, r: 0.32 },
   hilotSolid,
+  ...amalanhigSolids,
   ...palms.filter((p) => p.solid).map((p) => ({ x: p.x, z: p.z, r: 0.45 })),
   ...fences.flatMap((f) => [-0.75, 0, 0.75].map((k) => ({ x: f.x + Math.cos(f.rot) * k, z: f.z - Math.sin(f.rot) * k, r: 0.45 }))),
   { x: well.x, z: well.z, r: 1.05 },
@@ -348,6 +356,7 @@ export const boxes = houses.map((h) => ({ x: h.x, z: h.z, hx: HUT.hx + 0.1, hz: 
 /** Moves a point out of anything solid and back onto walkable ground. */
 export function pushOut(pos: P2, radius: number) {
   for (const o of solids) {
+    if (o.r <= 0) continue;                    // a circle switched off (someone indoors, or lying down)
     const dx = pos.x - o.x, dz = pos.z - o.z;
     if (Math.abs(dx) > 2 || Math.abs(dz) > 2.6) continue;
     const d = Math.hypot(dx, dz), min = o.r + radius;

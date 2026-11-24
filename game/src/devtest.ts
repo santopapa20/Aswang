@@ -71,7 +71,7 @@ async function play() {
   at(KADYO.x, KADYO.z + 0.5); hold("KeyE", 0.6); await sleep(50);
   check("Nong Kadyo speaks", !!G().dialogue, prompt("E")); await skipTalk(); await sleep(50);
   check("then his trade opens", G().panel === "trade", G().panel);
-  G().set({ bag: { ...G().bag, coins: 40, herbs: 12 } });      // a known purse, whatever the sack held
+  G().set({ bag: { ...G().bag, kindling: 0, tobacco: 0, coins: 40, herbs: 12 } });      // a known purse with room to buy, whatever the sack held
   // a button answers only once the screen has caught up with the purse, so wait for it to be live before pressing
   const click = async (word: string) => {
     for (let i = 0; i < 40; i++) {
@@ -171,6 +171,19 @@ async function play() {
   at(HILOT.x, HILOT.z + 0.5); hold("KeyE", 1.9);
   check("the hilot answers", G().errand?.step === 1, prompt("E"));
   check("she comes to her door", live.hilotOut > 0, live.hilotOut.toFixed(1));
+  // the amalanhig: one rises when he comes near its grave, and three blows of the whip lay it down
+  G().set({ hasWhip: true });
+  at(99.5, 10.3); run(3.2);
+  check("an amalanhig rises from its grave", live.amalanhig[0].mode === "hunt" && live.amalanhig[1].mode === "grave", live.amalanhig.map((a) => a.mode));
+  const coins0 = G().bag.coins;
+  // he stands his ground and cracks the whip each time it comes within reach of it
+  for (let i = 0; i < 3; i++) {
+    const a = live.amalanhig[0];
+    for (let k = 0; k < 60 && Math.hypot(a.x - live.player.x, a.z - live.player.z) > 2.6; k++) run(0.1);
+    live.whipWait = 0; live.stamina = 1; key("KeyR"); run(0.2); key("KeyR", false); run(0.3);
+  }
+  run(1.2);
+  check("three blows of the whip lay it down", live.amalanhig[0].mode === "down" && G().bag.coins > coins0 && live.caught <= 0, { mode: live.amalanhig[0].mode, hits: live.amalanhig[0].hits, coins: G().bag.coins - coins0 });
   at(DOOR.x, DOOR.z + 0.5); hold("KeyE", 1.1);
   check("hilot errand done", !!G().errand?.done);
   await toDawn();

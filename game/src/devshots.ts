@@ -67,6 +67,17 @@ const SHOTS: Record<string, () => Promise<void>> = {
     await dusk(3); live.elapsed = 60; at(HILOT.x + 0.4, HILOT.z + 0.6); dev().run(1);
     live.hilotOut = 10; G().say("The hilot", "Rosing's brother? I know. I will come when it is time."); dev().run(2.5);
   },
+  amalanhig: async () => { await dusk(3); live.elapsed = 60; at(102.6, 6.2); dev().run(3.3); },
+  amalanhigRise: async () => { await dusk(3); live.elapsed = 60; at(102.6, 6.2); dev().run(1.4); },
+  amalanhigDown: async () => {
+    await dusk(3); live.elapsed = 60; G().set({ hasWhip: true }); at(99.5, 10.3); dev().run(3.2);
+    for (let i = 0; i < 3; i++) {
+      const a = live.amalanhig[0];
+      for (let k = 0; k < 60 && Math.hypot(a.x - live.player.x, a.z - live.player.z) > 2.6; k++) dev().run(0.1);
+      live.whipWait = 0; live.stamina = 1; hold("KeyR", 0.2); dev().run(0.3);
+    }
+    dev().run(1.5);
+  },
   bag: async () => { await begin(3); for (let i = 0; i < 4; i++) G().addCharm(i * 0.03); G().gainXp(150); G().set({ hasWhip: true, proofs: { salt: true, oil: false, skirt: false } }); G().setPanel("bag"); },
   trade: async () => { await begin(2); at(24, -18.7); G().setPanel("trade"); },
   pause: async () => { await dusk(1); G().setPanel("pause"); },

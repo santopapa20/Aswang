@@ -10,6 +10,7 @@ import { Sigbin } from "./game/Sigbin";
 import { Director, Kapre, Pacing } from "./game/Cast";
 import { Kadyo } from "./game/Kadyo";
 import { Hilot } from "./game/Hilot";
+import { Amalanhig } from "./game/Amalanhig";
 import { Hud } from "./game/Hud";
 import { Guide } from "./game/Guide";
 import { useKeyboard } from "./game/input";
@@ -113,6 +114,8 @@ export default function App() {
           <Pacing />
           <Kadyo />
           <Hilot />
+          <Amalanhig index={0} />
+          <Amalanhig index={1} />
           <Guide />
           <Director />
           <Warmup />

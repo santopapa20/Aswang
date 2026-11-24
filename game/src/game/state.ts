@@ -385,6 +385,8 @@ export const live = {
   skipTyping: false,
   aswang: { x: 0, z: 0, near: 99, active: false },
   pacing: { x: 0, z: 0, here: false },      // where Nang Pacing is standing by day
+  /** The amalanhig in the old sitio, for the self-test and the hints: what each is doing, where, and how often struck. */
+  amalanhig: [0, 1].map(() => ({ mode: "grave", x: 0, z: 0, hits: 0 })),
   hilotOut: 0,             // seconds left that the hilot stands in her open doorway, answering his call
   caught: 0,               // seconds left of being struck down, before the night is cut short
   struck: false,           // he has just struck the house post (the manananggal listens for it)

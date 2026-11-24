@@ -25,6 +25,7 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 | Sigbin (night 5) | Her hound, let out 40 seconds into the last night. It walks backwards toward your lit lamp and drinks your shadow: five seconds of that and you go down. Shutter the lamp (F) and it loses you; it will not step over salt; the whip drives it off |
 | Nang Pacing | Walks the barrio by day, visits each morning, makes her offer on day 3 |
 | The hilot | Stands in her yard by day and watches you come up the path. After dark she keeps indoors; on night 3 she opens her door to your call and answers from the threshold, nodding as she speaks |
+| Amalanhig (old sitio graveyard, every night) | Two lie under the crosses and rise stiff as planks when you come within 8 m after dark. Slow to turn, faster than you walk; a salt line stops them; if one gets its hands on you the night is lost. Three whip blows lay one down till morning and drop coins, herbs and sometimes a charm. Nong Kadyo warns of them on day 3 |
 | Nong Kadyo | Stands at the foot of his ladder day and night with his stick and lamp; turns his head to watch you, leans in and nods when he speaks; his lamp glows after dark. Advice each day, trade, charms, a tonic for Rosing, the whip |
 | Loot | 20 places to search (chests, jars, sacks, fronds, herbs), refilled each day and each night; the old sitio is richer |
 | Bag and learning | Seven supplies with a carry limit, charms with four rarities (wear two), levels, nine perks on three paths |
@@ -42,7 +43,6 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 
 ## Not built yet
 
-- **The amalanhig** (the enemy you can fight and loot). Needs a model, so there is no combat beyond the whip.
 - **Models still missing:** none of the speaking characters.
 - **A few things are still built in code:** the trail marker, the undergrowth and the grass. They are
   shaped and shaded to sit with the models, but they are not models. The gallery had no usable banana
