@@ -170,6 +170,7 @@ async function play() {
   check("and the trail lets him through", live.player.x > 92, live.player.x.toFixed(0));
   at(HILOT.x, HILOT.z + 0.5); hold("KeyE", 1.9);
   check("the hilot answers", G().errand?.step === 1, prompt("E"));
+  check("she comes to her door", live.hilotOut > 0, live.hilotOut.toFixed(1));
   at(DOOR.x, DOOR.z + 0.5); hold("KeyE", 1.1);
   check("hilot errand done", !!G().errand?.done);
   await toDawn();

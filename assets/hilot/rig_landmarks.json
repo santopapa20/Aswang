@@ -1,0 +1,21 @@
+{
+  "_comment": "The hilot: single fused piece, A-pose, empty hands, legs hidden in an ankle-length patadyong. Symmetric, so the right side is mirrored from the left. Joint positions measured on hilot.blend with tools/blender/slice_model.py and the front and side renders (its own units, 0.978 tall; faces -Y, her left is +X). Used by tools/blender/rig_humanoid.py.",
+  "hips": [0.000, 0.000, 0.500],
+  "spine": [0.000, 0.002, 0.565],
+  "chest": [0.000, 0.004, 0.635],
+  "upper_chest": [0.000, 0.006, 0.700],
+  "neck": [0.000, 0.012, 0.790],
+  "head": [0.000, 0.012, 0.848],
+  "head_end": [0.000, 0.000, 0.978],
+  "clavicle": [0.025, 0.004, 0.752],
+  "shoulder": [0.105, 0.006, 0.752],
+  "elbow": [0.160, 0.012, 0.570],
+  "wrist": [0.195, -0.014, 0.488],
+  "hand_tip": [0.207, -0.024, 0.408],
+  "hip": [0.075, 0.000, 0.480],
+  "knee": [0.080, -0.006, 0.270],
+  "ankle": [0.080, 0.025, 0.058],
+  "toe": [0.088, -0.040, 0.020],
+  "toe_tip": [0.090, -0.086, 0.010],
+  "props": {}
+}

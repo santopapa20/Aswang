@@ -88,8 +88,8 @@ export function interactables(g: Game): Interactable[] {
     act: () => { g.set({ carrying: "lana", hasLana: true }); g.say("Nong Kadyo", "Here. Carry it at your hip. When it boils, one of them is near. Now go, she is alone."); g.stepErrand(); },
   });
   if (night && e?.id === "hilot" && e.step === 0) out.push({
-    key: "hilot", button: "E", x: HILOT.x, z: HILOT.z, r: 1.7, label: "Call at the hilot's window", hold: 1.6,
-    act: () => { g.say("The hilot", "Rosing's brother? I know. I will come when it is time. Go back to her. And mind the trail."); g.add("herbs", 2); g.stepErrand(); },
+    key: "hilot", button: "E", x: HILOT.x, z: HILOT.z, r: 1.7, label: "Call up to the hilot", hold: 1.6,
+    act: () => { live.hilotOut = 10; g.say("The hilot", "Rosing's brother? I know. I will come when it is time. Go back to her. And mind the trail."); g.add("herbs", 2); g.stepErrand(); },
   });
 
   // ---- Nong Kadyo by day: talk first, then trade

@@ -17,7 +17,7 @@ export const NIGHTS: { name: string; seconds: number; form: Form; errand: Errand
 export const ERRANDS: Record<ErrandId, { title: string; steps: string[] }> = {
   water: { title: "Water for Rosing", steps: ["Draw water at the well in the middle of the barrio.", "Carry the water back to Rosing's door."] },
   lana: { title: "The albularyo's oil", steps: ["Go to Nong Kadyo's hut, north-east past the well, and ask for the oil.", "Bring the oil home to Rosing."] },
-  hilot: { title: "Call the hilot", steps: ["Take the trail east to the old sitio and call at the hilot's lit window.", "Go home."] },
+  hilot: { title: "Call the hilot", steps: ["Take the trail east to the old sitio and call up to the hilot's lit house.", "Go home."] },
   kapre: { title: "The one in the balete", steps: ["Leave tobacco at the roots of the balete, north-west. Walk. Do not run.", "Find what she left standing near the tree.", "Go home."] },
   legs: { title: "End it", steps: ["She has taken to the air. Find where she hid her legs and salt them before cockcrow."] },
 };

@@ -151,7 +151,7 @@ export const useGame = create<GameState>((set, get) => ({
       mana: "absent",
     });
     beginClock(plan.seconds);
-    live.lampBlown = 0; live.breach = 0; live.breachAt = null; live.loops = 0;      // smoke from a fire fed before dusk carries over
+    live.lampBlown = 0; live.breach = 0; live.breachAt = null; live.loops = 0; live.hilotOut = 0;      // smoke from a fire fed before dusk carries over
     set({ banner: { big: `Night ${ROMAN[s.night - 1]}`, small: plan.name, id: ids++ } });
   },
   endNight: (cause) => {
@@ -385,6 +385,7 @@ export const live = {
   skipTyping: false,
   aswang: { x: 0, z: 0, near: 99, active: false },
   pacing: { x: 0, z: 0, here: false },      // where Nang Pacing is standing by day
+  hilotOut: 0,             // seconds left that the hilot stands in her open doorway, answering his call
   caught: 0,               // seconds left of being struck down, before the night is cut short
   struck: false,           // he has just struck the house post (the manananggal listens for it)
   whipCrack: false,        // he has just cracked the whip (the aswang listens for it)

@@ -42,7 +42,7 @@ export function objective(g: Game): Objective {
   if (e && !e.done) {
     if (e.id === "water") return one("Water for Rosing", "Draw water at the well.", well);
     if (e.id === "lana") return one("The albularyo's oil", "Knock at Nong Kadyo's hut and ask for the oil.", KADYO);
-    if (e.id === "hilot") return e.step === 0 ? one("Call the hilot", "Take the trail east to the old sitio. Call at her lit window.", HILOT) : one("Call the hilot", "Go home.", DOOR);
+    if (e.id === "hilot") return e.step === 0 ? one("Call the hilot", "Take the trail east to the old sitio. Call up to her lit house.", HILOT) : one("Call the hilot", "Go home.", DOOR);
     if (e.id === "kapre") {
       if (e.step === 0) return one("The one in the balete", g.bag.tobacco > 0 ? "Leave tobacco at the giant's feet. Walk. Do not run under the tree." : "You need tobacco. Old chests sometimes hold it.", ROOTS);
       if (e.step === 1) return one("The one in the balete", "Something stands in the roots on the far side. Look closer.", hidingSpots[0]);

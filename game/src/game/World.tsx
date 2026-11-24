@@ -242,7 +242,7 @@ export function World() {
       {houses.map((h, i) => (
         <group key={h.id} position={[h.x, 0, h.z]}>
           <primitive object={hutModels[i]} />
-          <HouseFront model={hutModels[i]} kind={h.lit ? "lived" : h.id === "shut" ? "shut" : "ruin"} beacon={h.id === "home"} />
+          <HouseFront model={hutModels[i]} kind={h.lit ? "lived" : h.id === "shut" ? "shut" : "ruin"} beacon={h.id === "home"} answers={h.id === "hilot"} />
         </group>
       ))}
       {fences.map((f, i) => (
@@ -278,7 +278,7 @@ const OPEN: Record<"lived" | "shut" | "ruin", { day: number[]; night: number[] }
  * opening a dark card stands for the room inside, and after dark it glows where someone keeps a lamp lit.
  * A thin bamboo stick props each shutter open, as it would.
  */
-function HouseFront({ model, kind, beacon }: { model: Object3D; kind: "lived" | "shut" | "ruin"; beacon: boolean }) {
+function HouseFront({ model, kind, beacon, answers = false }: { model: Object3D; kind: "lived" | "shut" | "ruin"; beacon: boolean; answers?: boolean }) {
   const glow = useRef<PointLight>(null);
   const leaves = useMemo<Leaves>(() => ({
     door: model.getObjectByName("door"), front: model.getObjectByName("shutter_f"),
@@ -306,10 +306,12 @@ function HouseFront({ model, kind, beacon }: { model: Object3D; kind: "lived" | 
     const dt = Math.min(rawDt, 0.1);
     const dark = 1 - live.daylight;
     const want = OPEN[kind][live.daylight < 0.4 ? "night" : "day"];
-    const k = Math.min(1, dt * 1.1);
+    const answering = answers && live.hilotOut > 0;                           // the hilot opens her door to his call
+    const k = Math.min(1, dt * (answering ? 2.2 : 1.1));
     const parts = [leaves.door, leaves.front, leaves.west, leaves.east];
     parts.forEach((p, i) => {
-      angles.current[i] += (want[i] - angles.current[i]) * k;
+      const w = i === 0 && answering ? OPEN[kind].day[0] : want[i];
+      angles.current[i] += (w - angles.current[i]) * k;
       if (!p) return;
       if (i === 0) p.rotation.y = angles.current[0];
       else if (i === 1) p.rotation.x = angles.current[1];

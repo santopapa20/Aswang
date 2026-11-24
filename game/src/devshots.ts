@@ -3,6 +3,9 @@
  * headless browser can photograph each screen (see README, "Checking the screens"). Never loaded in a build.
  */
 import { live, useGame } from "./game/state";
+import { doorOf, hilotSpot, house } from "./game/layout";
+
+const HILOT = doorOf(house("hilot"));
 
 type Dev = { run: (seconds: number, fps?: number) => void; show: () => void };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -58,6 +61,11 @@ const SHOTS: Record<string, () => Promise<void>> = {
     await dusk(5); at(-11, 17); live.elapsed = 45; dev().run(1);
     live.sigbin.x = live.player.x + 4.2; live.sigbin.z = live.player.z + 1.2; dev().run(5);
     G().set({ lampOn: false }); dev().run(2.5);
+  },
+  hilot: async () => { await begin(3); at(hilotSpot.x + 1.6, hilotSpot.z + 3.2); dev().run(2); },
+  hilotDoor: async () => {
+    await dusk(3); live.elapsed = 60; at(HILOT.x + 0.4, HILOT.z + 0.6); dev().run(1);
+    live.hilotOut = 10; G().say("The hilot", "Rosing's brother? I know. I will come when it is time."); dev().run(2.5);
   },
   bag: async () => { await begin(3); for (let i = 0; i < 4; i++) G().addCharm(i * 0.03); G().gainXp(150); G().set({ hasWhip: true, proofs: { salt: true, oil: false, skirt: false } }); G().setPanel("bag"); },
   trade: async () => { await begin(2); at(24, -18.7); G().setPanel("trade"); },
