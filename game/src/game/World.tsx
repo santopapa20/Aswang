@@ -307,6 +307,7 @@ function HouseFront({ lit, beacon }: { lit: boolean; beacon: boolean }) {
 function HomeYard() {
   const wards = useGame((s) => s.wards);
   const garlic = useProp("/models/garlic.glb", 0.5, "y", 3, false);
+  const pit = useProp("/models/campfire.glb", 1.35, "x", 1, false)[0];
   const flame = useRef<Group>(null);
   const fire = useRef<PointLight>(null);
   const smoke = useRef<Group>(null);
@@ -346,13 +347,8 @@ function HomeYard() {
         );
       })}
       <group position={[firePit.x, 0, firePit.z]}>
-        {Array.from({ length: 9 }, (_, i) => (
-          <mesh key={i} geometry={stoneGeometry()} position={[Math.cos(i * 0.7) * 0.46, 0.06, Math.sin(i * 0.7) * 0.46]} rotation-y={i * 1.9} scale={[0.15 + (i % 3) * 0.02, 0.1, 0.12 + (i % 2) * 0.03]}>
-            <meshLambertMaterial color="#a39c90" vertexColors />
-          </mesh>
-        ))}
-        <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}><circleGeometry args={[0.36, 14]} /><meshLambertMaterial color="#1a1614" /></mesh>
-        <group ref={flame} position={[0, 0.08, 0]} visible={false}>
+        <primitive object={pit} rotation-y={0.6} />
+        <group ref={flame} position={[0, 0.3, 0]} visible={false}>
           {[0, Math.PI / 2].map((r) => (
             <mesh key={r} position={[0, 0.22, 0]} rotation-y={r}><coneGeometry args={[0.16, 0.5, 5, 1, true]} /><meshBasicMaterial color="#ff9a3c" transparent opacity={0.85} side={DoubleSide} /></mesh>
           ))}
@@ -377,14 +373,42 @@ function Dressing() {
   const piles = useProp("/models/rocks.glb", 1.3, "x", of("rocks").length, shadows);
   const stacks = useProp("/models/logs.glb", 1.05, "x", of("logs").length, shadows);
   const jars = useProp("/models/pot.glb", 0.66, "y", of("pot").length, shadows);
+  const bare = useProp("/models/deadtree.glb", 4.8, "y", of("deadtree").length, shadows);
+  const stumps = useProp("/models/stump.glb", 2.7, "x", of("stump").length, shadows);
+  const fallen = useProp("/models/mossylog.glb", 2.6, "x", of("mossylog").length, shadows);
+  const boulders = useProp("/models/boulder.glb", 1.9, "x", of("boulder").length, shadows);
+  const fires = useProp("/models/campfire.glb", 1.3, "x", of("campfire").length, shadows);
+  const seats = useProp("/models/bench.glb", 0.62, "y", of("bench").length, shadows);
+  const baskets = useProp("/models/basket.glb", 0.56, "x", of("basket").length, shadows);
+  const beds = useProp("/models/garden.glb", 1.9, "x", of("garden").length, shadows);
+  const graves = useProp("/models/cross.glb", 1.55, "y", of("cross").length, shadows);
+  // a bare tree between the camera and him thins out, like the palms
+  const thin = useMemo(() => bare.map(seeThrough), [bare]);
+  useFrame((_, dt) => {
+    const k = Math.min(1, dt * 7);
+    of("deadtree").forEach((d, i) => {
+      const dx = d.x - live.player.x, dz = d.z - live.player.z;
+      const hides = dz > 0.8 && dz < 6.5 && Math.abs(dx) < 2.4;
+      for (const m of thin[i]) m.opacity += ((hides ? 0.2 : 1) - m.opacity) * k;
+    });
+  });
   // the gallery models are lit for a studio: taken down so they sit in this light and do not glare by day
   useMemo(() => {
     const tone = (o: Object3D, k: number) => o.traverse((m) => { const mat = (m as Mesh).material as MeshLambertMaterial | undefined; if (mat?.color) mat.color.setScalar(k); });
     if (piles[0]) tone(piles[0], 0.36);
     if (shrubs[0]) shrubs[0].traverse((m) => { const mat = (m as Mesh).material as MeshLambertMaterial | undefined; if (mat?.color) mat.color.setRGB(0.3, 0.36, 0.24); });      // it came lime green
     if (ferns[0]) tone(ferns[0], 0.8);
-  }, [piles, shrubs, ferns]);
-  const sets: [string, Object3D[]][] = [["shrub", shrubs], ["fern", ferns], ["rocks", piles], ["logs", stacks], ["pot", jars]];
+    bare.forEach((t) => tone(t, 0.66));          // each bare tree has its own materials (it can thin out), so each is toned
+    if (seats[0]) tone(seats[0], 0.72);
+    if (stumps[0]) tone(stumps[0], 0.82);
+    if (beds[0]) tone(beds[0], 0.85);
+    if (boulders[0]) tone(boulders[0], 0.8);
+    if (graves[0]) tone(graves[0], 0.8);
+  }, [piles, shrubs, ferns, bare, seats, stumps, beds, boulders, graves]);
+  const sets: [string, Object3D[]][] = [
+    ["shrub", shrubs], ["fern", ferns], ["rocks", piles], ["logs", stacks], ["pot", jars], ["deadtree", bare], ["stump", stumps], ["mossylog", fallen],
+    ["boulder", boulders], ["campfire", fires], ["bench", seats], ["basket", baskets], ["garden", beds], ["cross", graves],
+  ];
   return (
     <>
       {sets.map(([kind, models]) => of(kind).map((d, i) => (

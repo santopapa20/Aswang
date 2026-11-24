@@ -216,7 +216,10 @@ async function play() {
   check("it will not step over salt", live.sigbin.near < 2.6 && !live.sigbin.feeding, live.sigbin);
   G().set({ lines: [], hasWhip: true }); live.whipWait = 0; live.stamina = 1; run(1); key("KeyR"); run(0.2); key("KeyR", false); run(3);
   check("the whip drives it off", live.sigbin.near > 6 && !live.sigbin.feeding, live.sigbin.near.toFixed(1));
+  // (lamp shuttered for this: with it lit, whether she happens to dive on him just then is chance)
+  G().set({ lampOn: false, overhead: false });
   const s = hidingSpots[G().legsAt]; at(s.x + 0.4, s.z + 1.2); hold("KeyE", 1.4); hold("KeyE", 1.7);
+  G().set({ lampOn: true });
   check("salting them on the last night finishes her", G().mana === "dead" && !!G().errand?.done, G().mana);
   await toDawn();
   check("first light: the choice", G().stage === "ending" && G().ending === "choice", { stage: G().stage, ending: G().ending });

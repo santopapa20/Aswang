@@ -21,5 +21,14 @@ when exported (2026-11-23). Check Tripo's terms before any commercial use.
 | Firewood | https://studio.tripo3d.ai/3d-model/stacked-wooden-logs-with-bark-texture-and-visible-cross-sections-0879fbec-261f-4dc0-af8a-642de5a02082 | Amanda |
 | Fern, and herbs to pick | https://studio.tripo3d.ai/3d-model/green-fern-plant-with-long-wavy-leaves-and-visible-roots-e007bb88-13a6-4350-b230-a5bf979092c4 | ochenkai |
 | Shrub | https://studio.tripo3d.ai/3d-model/shrub-with-yellow-green-leaves-and-surrounding-rocks-77986377-54ed-4ebb-98d0-edb6b85e7804 | ochenkai |
+| Bare tree | https://studio.tripo3d.ai/3d-model/giant-stylized-tree-with-textured-bark-and-sprawling-branches-051e1511-d67d-43f3-a7e5-4a95ffc33e6c | hello |
+| Root stump | https://studio.tripo3d.ai/3d-model/thick-tree-root-system-with-mossy-bark-forming-a-rooted-base-brown-an-b750c73e-d8d3-43c6-9092-60861394fc66 | josuahanocri1 |
+| Mossy log | https://studio.tripo3d.ai/3d-model/mossy-log-with-rugged-bark-texture-and-patches-of-moss-6f756b25-b522-4bab-b490-b7b00378084a | aigonence |
+| Mossy boulder | https://studio.tripo3d.ai/3d-model/a-large-rugged-grey-stone-heavily-textured-with-cracks-and-uneven-sur-2d95c9a5-9f39-49c8-885c-6b41c2dc8cc7 | fikseryt7 |
+| Fire ring | https://studio.tripo3d.ai/3d-model/stone-circle-fire-pit-with-stacked-wooden-logs-cd286b10-ae30-4783-af00-bb7556830de9 | LégioFr |
+| Log stool | https://studio.tripo3d.ai/3d-model/rustic-wooden-log-stool-with-rope-bindings-brown-textured-wood-three-5c5c04f0-d338-4358-8dcf-95248f510251 | elferboy |
+| Woven basket | https://studio.tripo3d.ai/3d-model/woven-wicker-basket-with-braided-textures-brown-tones-natural-wicker-9fee6ef6-5788-4e94-8593-625b04e3b929 | Amanda |
+| Flower bed | https://studio.tripo3d.ai/3d-model/group-of-tropical-plants-with-yellow-flowers-and-red-anthurium-lush-g-ab8931f0-e3f2-412c-a265-d102f2ceba94 | matursuksma26 |
+| Grave cross | https://studio.tripo3d.ai/3d-model/ornate-stone-cross-monument-with-mossy-weathered-surface-and-gothic-de-697e9d71-1724-4bcf-83f2-c730d61723c0 | wesleyvcor |
 
 Character motion: Adobe Mixamo.

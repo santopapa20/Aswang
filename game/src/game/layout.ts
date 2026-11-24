@@ -158,8 +158,35 @@ export const bushes: Blob[] = [];
 export const rocks: Blob[] = [];
 export const tufts: Blob[] = [];
 
+// ---- larger things placed by hand (decided before the trees, so no palm grows through one) ------
+export type Decor = {
+  kind: "rocks" | "shrub" | "fern" | "logs" | "pot" | "deadtree" | "stump" | "mossylog" | "boulder" | "campfire" | "bench" | "basket" | "garden" | "cross";
+  x: number; z: number; s: number; r: number;
+};
+const lived = houses.filter((h) => h.lit);
+export const placed: Decor[] = [
+  // the old sitio: bare trees, and the graves of those who did not leave
+  { kind: "deadtree", x: 110.5, z: -9.5, s: 1, r: 0.4 }, { kind: "deadtree", x: 113.2, z: 9.6, s: 0.85, r: 2.6 }, { kind: "deadtree", x: 94.6, z: -7.2, s: 0.9, r: 4.1 },
+  { kind: "deadtree", x: 27.2, z: 12.6, s: 0.8, r: 1.3 },                                    // one in the barrio, by the shut house
+  ...([[106.4, 8.4, 1.0, 0.1], [108.3, 8.0, 0.86, -0.25], [110.2, 8.7, 1.08, 0.2], [107.2, 10.8, 0.92, 0.35], [109.3, 11.1, 0.8, -0.15]] as const).map(([x, z, s, r]) => ({ kind: "cross" as const, x, z, s, r })),
+  // the forest floor at the edges
+  ...([[-33.4, 22, 1.0, 0.5], [31, 27.6, 0.9, 2.2], [15.5, -30.6, 1.05, 4], [95, 19, 1.0, 1.1], [128, 14.4, 0.9, 3.3]] as const).map(([x, z, s, r]) => ({ kind: "stump" as const, x, z, s, r })),
+  ...([[-9.6, 22.6, 1.0, 0.5], [27.6, -9.6, 0.9, 1.9], [-30.2, -9.4, 1.05, 2.7], [97.4, 9.6, 1.0, 1.2], [116.2, 15.8, 0.9, 0.2]] as const).map(([x, z, s, r]) => ({ kind: "mossylog" as const, x, z, s, r })),
+  ...([[-21, 24.2, 1.0, 0.7], [9.6, 17.6, 0.7, 2.0], [-34, -12.2, 1.2, 4.4], [30, -28, 1.1, 1.0], [100, -15.6, 1.0, 3.0], [123.6, -4.6, 0.8, 5.2]] as const).map(([x, z, s, r]) => ({ kind: "boulder" as const, x, z, s, r })),
+  // the plaza: somewhere to sit by the well
+  { kind: "bench", x: well.x + 2.9, z: well.z - 0.5, s: 1, r: 1.3 }, { kind: "bench", x: well.x - 2.6, z: well.z + 1.5, s: 1, r: -0.9 },
+  // lived-in houses: a seat, a basket by the jars, a bed of flowers, and a cooking fire where nobody fights
+  ...lived.flatMap((h): Decor[] => h.id === "home"
+    ? [{ kind: "basket", x: h.x + 2.95, z: h.z + HUT.hz + 0.55, s: 1, r: 0.4 }, { kind: "garden", x: h.x - 6.2, z: h.z + 7.4, s: 1, r: 0.3 }]
+    : [
+      { kind: "bench", x: h.x - 2.7, z: h.z + HUT.hz + 1.2, s: 1, r: 0.2 }, { kind: "basket", x: h.x - 1.25, z: h.z + HUT.hz + 0.45, s: 1, r: h.x },
+      { kind: "garden", x: h.x - 4.9, z: h.z + 1.4, s: 1, r: h.z * 0.3 }, { kind: "campfire", x: h.x + 3.6, z: h.z + HUT.hz + 2.3, s: 1, r: h.x * 0.7 },
+    ]),
+];
+
 const clearOfThings = (x: number, z: number, pad: number) =>
   distToPath(x, z) > pad
+  && placed.every((d) => Math.hypot(x - d.x, z - d.z) > (d.kind === "deadtree" ? 3.4 : 2) + pad * 0.3)
   && patches.every((p) => Math.hypot(x - p.x, z - p.z) > p.r + pad * 0.4)
   && houses.every((h) => Math.abs(x - h.x) > HUT.hx + pad + 1 || Math.abs(z - h.z) > HUT.hz + pad + 1)
   && fences.every((f) => Math.hypot(x - f.x, z - f.z) > 1.3 + pad * 0.3)
@@ -243,7 +270,6 @@ const clearOfThings = (x: number, z: number, pad: number) =>
 }
 
 // ---- set dressing: real models, placed on purpose ---------------------------------------------
-export type Decor = { kind: "rocks" | "shrub" | "fern" | "logs" | "pot"; x: number; z: number; s: number; r: number };
 export const decor: Decor[] = [];
 for (const h of houses) {
   if (!h.lit) continue;
@@ -265,6 +291,7 @@ for (const h of houses) {
   if (h.lit || h.id === "shut") continue;
   for (const [dx, dz, s] of [[-2.9, 2.6, 1.0], [2.8, 2.9, 0.8], [-3.1, -0.6, 1.2], [3.2, -1.4, 1.1], [0.9, 3.3, 0.6]]) bushes.push({ x: h.x + dx, z: h.z + dz, s, r: dx * 3 + h.x });
 }
+decor.push(...placed);
 palms.filter((p) => p.solid).slice(0, 26).forEach((p, i) => decor.push({ kind: "fern", x: p.x + Math.cos(i * 2.4) * 1.1, z: p.z + Math.sin(i * 2.4) * 1.1, s: 0.7 + (i % 3) * 0.12, r: i }));
 for (let p = 0; p < 4; p++) {
   const base = 37 + p * trail.period;                                                  // the trail's dressing repeats with its trees
@@ -273,6 +300,8 @@ for (let p = 0; p < 4; p++) {
 
 // ---- collision -------------------------------------------------------------------------------
 export type Circle = { x: number; z: number; r: number };
+/** How far from its centre each kind of prop stops you, in metres at full size. */
+const SOLID: Record<Decor["kind"], number> = { rocks: 0.5, shrub: 0.8, fern: 0, logs: 0.5, pot: 0.32, deadtree: 0.8, stump: 0.95, mossylog: 0.4, boulder: 0.8, campfire: 0.6, bench: 0.42, basket: 0.3, garden: 0.85, cross: 0.32 };
 export const solids: Circle[] = [
   ...palms.filter((p) => p.solid).map((p) => ({ x: p.x, z: p.z, r: 0.45 })),
   ...fences.flatMap((f) => [-0.75, 0, 0.75].map((k) => ({ x: f.x + Math.cos(f.rot) * k, z: f.z - Math.sin(f.rot) * k, r: 0.45 }))),
@@ -282,7 +311,9 @@ export const solids: Circle[] = [
   { x: kapreSpot.x, z: kapreSpot.z, r: 0.95 },
   ...nodes.filter((n) => n.kind !== "herbs").map((n) => ({ x: n.x, z: n.z, r: 0.45 })),
   { x: trail.marker.x, z: trail.marker.z, r: 0.3 },
-  ...decor.filter((d) => d.kind !== "fern").map((d) => ({ x: d.x, z: d.z, r: (d.kind === "rocks" ? 0.5 : d.kind === "pot" ? 0.32 : d.kind === "logs" ? 0.5 : 0.8) * d.s })),
+  ...decor.filter((d) => d.kind !== "fern" && d.kind !== "mossylog").map((d) => ({ x: d.x, z: d.z, r: SOLID[d.kind] * d.s })),
+  // a fallen log is long: three circles along it
+  ...decor.filter((d) => d.kind === "mossylog").flatMap((d) => [-0.8, 0, 0.8].map((k) => ({ x: d.x + Math.cos(d.r) * k * d.s, z: d.z - Math.sin(d.r) * k * d.s, r: 0.4 * d.s }))),
 ];
 export const boxes = houses.map((h) => ({ x: h.x, z: h.z, hx: HUT.hx + 0.1, hz: HUT.hz + 0.1 }));
 

@@ -33,6 +33,7 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 | Guidance | A card that always says what to do next, an arrow to where it is (with distance), soft rings under things you can use, key-cap prompts with a hold ring, and the house's four openings shown top-left, turning red when one is attacked |
 | Look | Two bundled typefaces (Cinzel, Cormorant Garamond), line icons drawn in code, film grain, a vignette that reddens with danger, a camera that draws back when she is on the roof |
 | Ground and plants | The ground is one painted surface: worn earth with ragged edges where people walk, damp dark soil under trees and houses, and shadows that fall to the south-east. Grass grows in swaying clumps; the edge of the map is a wall of broad-leaved undergrowth |
+| Dressing | Gallery models placed by hand: stone crosses and bare trees in the old sitio; root stumps, mossy logs and boulders at the forest edge; stools, baskets, flower beds, water jars, firewood and a cooking fire at lived-in houses; a stone-ringed fire for the smudge fire. Credited in `CREDITS.md` |
 | Night | Fireflies (thick about the balete), mist lying in the low ground, warm light spilling from lit windows, a firmer moon |
 | Comfort | A loading bar on the title; the world stops while the bag, the trade or the pause is open; a house or tree between the camera and you thins to a screen of dots instead of hiding you |
 
@@ -40,9 +41,9 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 
 - **The amalanhig** (the enemy you can fight and loot). Needs a model, so there is no combat beyond the whip.
 - **Models still missing:** Nong Kadyo and the hilot. They are voices at a door for now.
-- **A few props are still built in code:** the fire ring, the trail marker, the undergrowth and the
-  grass. They are shaped and shaded to sit with the models, but they are not models. Chests, pots, sacks, firewood, herbs, shrubs, ferns and rock piles are gallery models
-  (`assets/props/`, credited in `CREDITS.md`).
+- **A few things are still built in code:** the trail marker, the undergrowth and the grass. They are
+  shaped and shaded to sit with the models, but they are not models. The gallery had no usable banana
+  plant, bamboo or rice mortar.
 - **Real sound:** everything is synthesized. Recorded night ambience and voices would lift it a great deal.
 - **Balance:** the numbers come from scripted test runs, not from people playing.
 - **The opening walk-in**, a title-screen settings page, and quality levels.
