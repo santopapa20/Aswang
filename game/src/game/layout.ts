@@ -80,6 +80,8 @@ export const lurkPoints: P2[] = [
 // ---- landmarks -------------------------------------------------------------------------------
 export const well: P2 = { x: 2, z: 4 };
 export const balete = { x: -27, z: -22, height: 7, yard: 8.5 };
+/** Where Nong Kadyo stands, day and night: at the foot of his ladder, a little to its right, facing the path. */
+export const kadyoSpot: P2 = { x: house("kadyo").x + HUT.doorX + 0.2, z: house("kadyo").z + HUT.hz + 0.2 };
 /** Where the kapre stands after dark: against the balete's trunk, on the side the barrio can see. */
 export const kapreSpot: P2 = { x: balete.x - 2.7, z: balete.z + 2.4 };
 export const START: P2 = { x: 2, z: 30 };
@@ -321,6 +323,7 @@ export type Circle = { x: number; z: number; r: number };
 /** How far from its centre each kind of prop stops you, in metres at full size. */
 const SOLID: Record<Decor["kind"], number> = { rocks: 0.5, shrub: 0.8, fern: 0, logs: 0.5, pot: 0.32, deadtree: 0.8, stump: 0.95, mossylog: 0.4, boulder: 0.8, campfire: 0.6, bench: 0.42, basket: 0.3, garden: 0.85, cross: 0.32, barrel: 0.42, wheelbarrow: 0.7, straw: 0.55, rooster: 0 };
 export const solids: Circle[] = [
+  { x: kadyoSpot.x, z: kadyoSpot.z, r: 0.32 },
   ...palms.filter((p) => p.solid).map((p) => ({ x: p.x, z: p.z, r: 0.45 })),
   ...fences.flatMap((f) => [-0.75, 0, 0.75].map((k) => ({ x: f.x + Math.cos(f.rot) * k, z: f.z - Math.sin(f.rot) * k, r: 0.45 }))),
   { x: well.x, z: well.z, r: 1.05 },

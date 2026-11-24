@@ -15,6 +15,7 @@ const files = [
   ["lower_half", join("assets", "manananggal", "lower_half.glb")],
   ["tikbalang", join("assets", "tikbalang", "game", "tikbalang.glb")],
   ["kapre", join("assets", "kapre", "game", "kapre.glb")],
+  ["kadyo", join("assets", "kadyo", "game", "kadyo.glb")],
   ["sigbin", join("assets", "sigbin", "game", "sigbin.glb")],
   ["hut", join("assets", "village", "hut.glb")],
   ["fence", join("assets", "village", "fence.glb")],

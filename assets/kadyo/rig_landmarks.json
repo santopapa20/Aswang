@@ -1,0 +1,33 @@
+{
+  "_comment": "Nong Kadyo: single fused piece, stick in his right hand, lantern raised in his left. He stands lopsided, so the right side is listed on its own under 'right' instead of being mirrored. Joint positions measured on kadyo.blend with tools/blender/slice_model.py (its own units, 0.975 tall; faces -Y, his left is +X). Used by tools/blender/rig_humanoid.py.",
+  "hips": [-0.020, 0.012, 0.500],
+  "spine": [-0.022, 0.018, 0.570],
+  "chest": [-0.025, 0.020, 0.640],
+  "upper_chest": [-0.030, 0.015, 0.700],
+  "neck": [-0.035, 0.000, 0.765],
+  "head": [-0.045, -0.020, 0.810],
+  "head_end": [-0.065, -0.050, 0.970],
+  "clavicle": [0.030, 0.012, 0.765],
+  "shoulder": [0.125, 0.020, 0.775],
+  "elbow": [0.235, 0.000, 0.775],
+  "wrist": [0.205, -0.050, 0.830],
+  "hand_tip": [0.182, -0.085, 0.868],
+  "hip": [0.050, 0.030, 0.480],
+  "knee": [0.068, 0.050, 0.270],
+  "ankle": [0.080, 0.090, 0.060],
+  "toe": [0.100, 0.025, 0.025],
+  "toe_tip": [0.115, -0.012, 0.015],
+  "right": {
+    "clavicle": [-0.045, 0.012, 0.752],
+    "shoulder": [-0.135, 0.020, 0.755],
+    "elbow": [-0.205, 0.000, 0.640],
+    "wrist": [-0.210, -0.070, 0.560],
+    "hand_tip": [-0.220, -0.140, 0.510],
+    "hip": [-0.090, 0.000, 0.480],
+    "knee": [-0.125, -0.020, 0.270],
+    "ankle": [-0.140, 0.000, 0.060],
+    "toe": [-0.155, -0.075, 0.025],
+    "toe_tip": [-0.165, -0.120, 0.015]
+  },
+  "props": {}
+}

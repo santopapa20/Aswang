@@ -19,7 +19,7 @@ function softDisc() {
   return new CanvasTexture(c);
 }
 let disc: CanvasTexture | null = null;
-const glowTexture = () => (disc ??= softDisc());
+export const glowTexture = () => (disc ??= softDisc());
 
 // ---- fireflies -------------------------------------------------------------------------------
 function fireflySpots() {

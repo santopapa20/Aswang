@@ -8,6 +8,7 @@ import { Manananggal } from "./game/Manananggal";
 import { Tikbalang } from "./game/Tikbalang";
 import { Sigbin } from "./game/Sigbin";
 import { Director, Kapre, Pacing } from "./game/Cast";
+import { Kadyo } from "./game/Kadyo";
 import { Hud } from "./game/Hud";
 import { Guide } from "./game/Guide";
 import { useKeyboard } from "./game/input";
@@ -109,6 +110,7 @@ export default function App() {
           <Sigbin />
           <Kapre />
           <Pacing />
+          <Kadyo />
           <Guide />
           <Director />
           <Warmup />

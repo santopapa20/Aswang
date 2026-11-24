@@ -32,6 +32,10 @@ for m in list(ob.modifiers): ob.modifiers.remove(m)
 print("MESH verts %d tris %d, scaled x%.3f to %.3f m" % (len(me.vertices), sum(len(p.vertices) - 2 for p in me.polygons), s, (max(zs) - min(zs)) * s))
 
 def J(key, side=1):
+    """A joint. Landmarks are given for the left side and mirrored, unless the right side is listed on its own
+    under "right" (for a character standing lopsided, as Nong Kadyo does with his stick and lantern)."""
+    if side == -1 and key in L.get("right", {}):
+        return Vector(L["right"][key]) * s
     v = L[key]
     return Vector((v[0] * side, v[1], v[2])) * s
 
