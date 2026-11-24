@@ -65,6 +65,36 @@ export const RECIPES: { id: RecipeId; name: string; text: string; cost: Cost; ic
   { id: "clawCharm", name: "A charm with a nail in it", text: "Herbs and a crawler's nail. These come out old and strong.", cost: { herbs: 4, claw: 1 }, icon: "charm" },
 ];
 
+// ---- favours asked by day (interact.ts) -----------------------------------------------------------
+export type FavourId = "water" | "kindling" | "tea" | "herbs" | "rosary" | "hair";
+export type Favour = { id: FavourId; state: "taken" | "carrying" };
+/** What each favour is, as the goal card and the door put it. */
+export const FAVOURS: Record<FavourId, { from: string; task: string }> = {
+  water: { from: "Rosing", task: "Rosing: water from the well" },
+  kindling: { from: "Rosing", task: "Rosing: two bundles of kindling" },
+  tea: { from: "Rosing", task: "Rosing: a bundle of herbs for tea" },
+  herbs: { from: "Nong Kadyo", task: "Nong Kadyo: five bundles of herbs" },
+  rosary: { from: "The hilot", task: "The hilot: her mother's rosary, in the empty house east of hers" },
+  hair: { from: "Nang Pacing", task: "Nang Pacing: a strand of Rosing's hair" },
+};
+/** What Rosing asks for on each day. */
+export const ROSING_FAVOUR: Record<number, FavourId> = { 2: "water", 3: "kindling", 4: "tea", 5: "water" };
+export const KADYO_HERBS = 5;
+
+// ---- old tales, found in chests and jars, that fill the book in the bag ---------------------------
+export type TaleId = "aswang" | "manananggal" | "tikbalang" | "kapre" | "sigbin" | "amalanhig" | "dogs" | "crawler";
+export const TALES: { id: TaleId; title: string; text: string }[] = [
+  { id: "aswang", title: "The one who walks at night", text: "By day a neighbour, kind and helpful. By night she listens at the floorboards for the unborn. Salt across the door, garlic at the window; each holds once. She hates a light carried to where she works." },
+  { id: "manananggal", title: "The one who leaves her legs", text: "She splits at the waist and flies, and leaves the lower half standing hidden. Smoke keeps her off the roof. Salt or ash on the stump, and she cannot join herself again before the cock crows." },
+  { id: "tikbalang", title: "The owner of the trail", text: "Tall as a palm, with a horse's head. He does not kill; he leads you round and round. Turn your shirt inside out and ask his pardon, and the path lets you go." },
+  { id: "kapre", title: "The smoker in the balete", text: "A giant who sits in the old trees with his cigar. Run under his tree and he blows out your light. Leave him tobacco and he remembers you." },
+  { id: "sigbin", title: "The hound that walks backwards", text: "It goes tail first, its head between its legs, and it drinks shadows. No light, no shadow. It will not step over salt, and the stingray tail sends it off." },
+  { id: "amalanhig", title: "The one who could not die", text: "An aswang who never passed it on cannot rest. It rises stiff, unable to bend, and turns slowly. Step aside and run. It cannot follow far from its grave." },
+  { id: "dogs", title: "The dogs of her house", text: "When one of them dies, the dogs of the house are not buried. They run the fields at night in pairs. Salt stops them; they do not chase far from where they found you." },
+  { id: "crawler", title: "The one on all fours", text: "Kin who have gone too far into it, and forgot how to stand. In the dark nothing harms them. Keep your lamp on them, and strike while it is lit." },
+];
+export const TALE_CHANCE = 0.55;     // chance a chest or a jar holds a page, while there are pages still to find
+
 // ---- Nong Kadyo's bounties -------------------------------------------------------------------
 export type Bounty = { id: number; kind: KinKind; count: number; got: number; coins: number; xp: number; text: string; night: number; state: "offered" | "taken" | "done" };
 /** What he asks for on the day before each night. Each can be done with what comes out that night. */

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Vector3 } from "three";
-import { aCharm, BASE_CARRY, BASE_HEALTH, BLADE, Bounty, RECIPES, RecipeId, WHIP, BOUNTY_OFFERS, Charm, KinKind, TrophyId, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
+import { aCharm, Favour, FavourId, TALES, TaleId, BASE_CARRY, BASE_HEALTH, BLADE, Bounty, RECIPES, RecipeId, WHIP, BOUNTY_OFFERS, Charm, KinKind, TrophyId, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
 import { hidingSpots, home, HUT, OpeningId, START } from "./layout";
 import type { Objective } from "./objective";
 import { sound } from "./audio";
@@ -40,12 +40,17 @@ const freshRun = () => ({
   /** What he has made at the bench: the itak, salt pouches and garlic strings (counts), bars on the windows,
    *  and the whip's barbs and longer lash. */
   kit: { itak: false, pouch: 0, string: 0, bars: { west: false, east: false }, barbs: false, lash: false },
+  tales: [] as TaleId[],                       // the old tales he has found, for the book in the bag
+  rosaryDone: false,                           // he found the hilot's rosary for her
+  hairGiven: 0,                                // the day he gave Nang Pacing a strand of Rosing's hair (0: never)
+  pacingAsked: false,
   bounties: [] as Bounty[],                    // Nong Kadyo's: offered for the coming night, taken, or done and waiting to be paid
   nextBounty: 1,
 });
 /** Everything that belongs to the current day or night only. */
 const freshNight = () => ({
   lines: [] as SaltLine[],
+  favours: [] as Favour[],                      // asked and taken by day; gone at dusk
   barsUsed: { west: false, east: false },       // the bamboo bars have already held once tonight
   searched: [] as number[],
   errand: null as { id: ErrandId; step: number; done: boolean } | null,
@@ -112,6 +117,12 @@ type GameState = ReturnType<typeof freshRun> & ReturnType<typeof freshNight> & {
   laidDown: (kind: KinKind) => void;
   /** Make something at the bench, if he has what it takes. */
   craft: (id: RecipeId) => boolean;
+  /** Favours: take one, move it on (he is carrying the thing), or finish it. */
+  takeFavour: (id: FavourId) => void;
+  carryFavour: (id: FavourId) => void;
+  endFavour: (id: FavourId) => void;
+  /** An old tale found in a chest or a jar. */
+  findTale: () => boolean;
   toggleMute: () => void;
 };
 
@@ -167,6 +178,12 @@ export const useGame = create<GameState>((set, get) => ({
     beginClock(plan.seconds);
     live.lampBlown = 0; live.breach = 0; live.breachAt = null; live.loops = 0; live.hilotOut = 0; live.kinOut = { dog: 0, crawler: 0 };      // smoke from a fire fed before dusk carries over
     set({ banner: { big: `Night ${ROMAN[s.night - 1]}`, small: plan.name, id: ids++ } });
+    // what was done with the hair she asked for: tonight it has hold of Rosing
+    if (s.hairGiven === s.night) {
+      set({ rosing: Math.max(1, get().rosing - 1) });
+      get().say("Rosing", "Dong... I cannot breathe. Something is pulling at me, from the inside.");
+      get().toast("Rosing wakes choking. Something has hold of her: she is weaker tonight.", "bad");
+    }
   },
   endNight: (cause) => {
     const s = get();
@@ -331,6 +348,18 @@ export const useGame = create<GameState>((set, get) => ({
     set((s) => ({ bounties: s.bounties.filter((x) => x.id !== id) }));
     get().add("coins", b.coins); get().gainXp(b.xp);
     get().toast(`Nong Kadyo pays ${b.coins} centavos.`, "good");
+  },
+  takeFavour: (id) => set((s) => ({ favours: [...s.favours.filter((f) => f.id !== id), { id, state: "taken" }] })),
+  carryFavour: (id) => set((s) => ({ favours: s.favours.map((f) => (f.id === id ? { ...f, state: "carrying" } : f)) })),
+  endFavour: (id) => set((s) => ({ favours: s.favours.filter((f) => f.id !== id) })),
+  findTale: () => {
+    const s = get(), left = TALES.filter((t) => !s.tales.includes(t.id));
+    if (!left.length) return false;
+    const t = left[Math.floor(rnd() * left.length)];
+    set({ tales: [...s.tales, t.id] });
+    get().gainXp(15);
+    get().toast(`Folded among the cloth, a page in an old hand: "${t.title}". It is in your bag (Tab).`, "good");
+    return true;
   },
   craft: (id) => {
     const s = get(), r = RECIPES.find((x) => x.id === id);

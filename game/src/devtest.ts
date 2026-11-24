@@ -4,7 +4,7 @@
  * It is not a substitute for a person playing: it cannot judge feel, difficulty, sound or looks.
  */
 import { hurt, live, mods, useGame } from "./game/state";
-import { benchSpot, doorOf, firePit, hidingSpots, home, house, well } from "./game/layout";
+import { benchSpot, doorOf, firePit, hidingSpots, hilotSpot, home, house, well } from "./game/layout";
 import { BALETE_ROOTS } from "./game/interact";
 
 type Dev = { run: (seconds: number, fps?: number) => void; show: () => void };
@@ -325,6 +325,38 @@ async function play() {
   live.facing = Math.atan2(am.x - live.player.x, am.z - live.player.z);
   const hpPouch = am.hp; key("KeyZ"); run(0.1); key("KeyZ", false); run(0.2);
   check("a salt pouch in its face makes it reel, without harm", am.mode === "hit" && am.hp === hpPouch && G().kit.pouch === 0, { mode: am.mode, hp: am.hp });
+
+  // ---------- favours by day, and the old tales
+  G().toTitle(); await sleep(100); G().newGame(); await sleep(200); await skipTalk();
+  G().nextDay(); await sleep(200); await skipTalk();
+  G().set({ rationTaken: true, rosing: 2 });
+  const pick = async (n: number) => { await skipTalk(); key(`Digit${n}`); key(`Digit${n}`, false); await sleep(60); };
+  at(DOOR.x, DOOR.z + 0.5); hold("KeyE", 0.7); await sleep(50); await pick(1);
+  check("Rosing asks a favour, and it is taken", G().favours.some((f) => f.id === "water"), G().favours);
+  at(well.x + 1.6, well.z); hold("KeyE", 3.3);
+  at(DOOR.x, DOOR.z + 0.5); hold("KeyE", 1.2); await skipTalk();
+  check("water brought: Rosing is stronger for it", G().rosing === 3 && !G().favours.some((f) => f.id === "water"), { rosing: G().rosing, favours: G().favours });
+  at(KADYO.x, KADYO.z + 0.5); hold("KeyE", 0.6); await sleep(50); await skipTalk(); await pick(1); await sleep(100);
+  check("Nong Kadyo asks for herbs", G().favours.some((f) => f.id === "herbs") && G().panel === "trade", { favours: G().favours, panel: G().panel });
+  G().set({ bag: { ...G().bag, herbs: 6 } }); const coinsK = G().bag.coins; const trust = G().kadyoTrust; await sleep(100);
+  [...document.querySelectorAll<HTMLButtonElement>(".offers .perk")].find((b) => b.textContent!.includes("as he asked"))?.click(); await sleep(60);
+  check("and pays for them", G().bag.coins === coinsK + 12 && G().kadyoTrust === trust + 1 && G().bag.herbs === 1, { coins: G().bag.coins - coinsK, herbs: G().bag.herbs });
+  G().setPanel(null);
+  run(1); at(live.pacing.x + 0.8, live.pacing.z + 0.8); hold("KeyE", 0.6); await sleep(50); await pick(1);
+  check("Nang Pacing asks for a strand of Rosing's hair", G().favours.some((f) => f.id === "hair"), G().favours);
+  at(DOOR.x, DOOR.z + 0.5); hold("KeyE", 1.2); await skipTalk();
+  run(0.5); at(live.pacing.x + 0.8, live.pacing.z + 0.8); const coinsP = G().bag.coins; hold("KeyE", 0.6); await sleep(50); await skipTalk();
+  check("she pays for it", G().bag.coins === coinsP + 20 && G().hairGiven === 2, { coins: G().bag.coins - coinsP, hairGiven: G().hairGiven });
+  G().set({ rosing: 3 }); G().startNight(); await sleep(300); await skipTalk();
+  check("and that night something has hold of Rosing", G().rosing === 2, G().rosing);
+  G().set({ stage: "morning" }); G().nextDay(); await sleep(200); await pick(2);      // (day 3 opens with her offer: refused)
+  at(hilotSpot.x, hilotSpot.z + 0.9); hold("KeyE", 0.6); await sleep(50); await pick(1);
+  check("the hilot asks for her mother's rosary", G().favours.some((f) => f.id === "rosary"), G().favours);
+  const ruin = doorOf(house("ruin1")); at(ruin.x, ruin.z + 0.5); hold("KeyE", 2.5);
+  const charms0 = G().charms.length; at(hilotSpot.x, hilotSpot.z + 0.9); hold("KeyE", 0.6); await sleep(50); await skipTalk();
+  check("found in the empty house and given back: a charm for it", G().rosaryDone && G().charms.length === charms0 + 1, { done: G().rosaryDone, charms: G().charms.length });
+  const xp0 = G().xp + G().level * 1000; G().findTale();
+  check("an old tale goes in the book", G().tales.length === 1 && G().xp + G().level * 1000 > xp0, G().tales);
 
 }
 

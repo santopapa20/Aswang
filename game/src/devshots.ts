@@ -116,6 +116,11 @@ const SHOTS: Record<string, () => Promise<void>> = {
     at(benchSpot.x, benchSpot.z + 0.7); G().setPanel("bench");
   },
   yard: async () => { await begin(3); at(benchSpot.x + 1.5, benchSpot.z + 2.6); dev().run(0.5); },
+  favour: async () => {
+    await begin(2); G().set({ rationTaken: true, favours: [{ id: "herbs", state: "taken" }, { id: "hair", state: "taken" }] });
+    at(-18.27, 13.2); hold("KeyE", 0.7); await sleep(200); live.skipTyping = true;
+  },
+  tales: async () => { await begin(3); G().set({ tales: ["aswang", "sigbin", "amalanhig"] }); G().setPanel("bag"); },
   bag: async () => { await begin(3); for (let i = 0; i < 4; i++) G().addCharm(i * 0.03); G().gainXp(150); G().set({ hasWhip: true, proofs: { salt: true, oil: false, skirt: false } }); G().setPanel("bag"); },
   trade: async () => { await begin(2); at(24, -18.7); G().setPanel("trade"); },
   pause: async () => { await dusk(1); G().setPanel("pause"); },

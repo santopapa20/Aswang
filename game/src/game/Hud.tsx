@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useProgress } from "@react-three/drei";
 import { canCraft, carried, endingText, hasSave, live, mods, ROMAN, useGame } from "./state";
-import { aCharm, Bounty, CHARM_HERBS, EAT, RECIPES, TROPHIES, TrophyId, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
+import { aCharm, Bounty, CHARM_HERBS, EAT, FAVOURS, KADYO_HERBS, RECIPES, TALES, TROPHIES, TrophyId, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
 import { NIGHTS } from "./story";
 import { openings } from "./layout";
 import { choose, toggles } from "./input";
@@ -215,6 +215,7 @@ function Play() {
               <p>{o.text}</p>
             </>
           ) : <p className="dim">…</p>}
+          {g.favours.length > 0 && <ul className="work">{g.favours.map((f) => <li key={f.id} className={f.state === "carrying" ? "done" : ""}>{FAVOURS[f.id].task}{f.state === "carrying" ? " (you have it)" : ""}</li>)}</ul>}
           {work.length > 0 && <ul className="work">{work.map((b) => <li key={b.id} className={b.state}>{b.state === "done" ? `Nong Kadyo's work is done: he pays in the morning` : `Nong Kadyo's work: ${b.count === 1 ? `a ${b.kind}` : `${b.kind}s`}, ${b.got} of ${b.count}`}</li>)}</ul>}
         </section>
       </header>
@@ -251,6 +252,7 @@ function Play() {
             {g.kit.itak && <div className={`tile ${live.itakWait > 0 ? "none" : ""}`}><kbd className="key">V</kbd><Icon name="blade" size={22} /><em>Itak</em></div>}
             {g.kit.pouch > 0 && <div className="tile"><kbd className="key">Z</kbd><Icon name="salt" size={22} /><b>{g.kit.pouch}</b><em>Pouch</em></div>}
             {g.kit.string > 0 && <div className="tile lit"><Icon name="garlic" size={22} /><b>{g.kit.string}</b><em>String</em></div>}
+            {g.favours.filter((f) => f.state === "carrying").map((f) => <div key={f.id} className="tile carry"><Icon name="charm" size={22} /><em>{f.id === "rosary" ? "Rosary" : "Her hair"}</em></div>)}
             {g.carrying && <div className="tile carry"><Icon name={g.carrying === "water" ? "salt" : "oil"} size={22} /><em>{g.carrying === "water" ? "Water" : "The oil"}</em></div>}
           </div>
           <div className="meters">
@@ -325,7 +327,7 @@ function Bag() {
         </section>
         <section>
           <h3>Charms <small>wear {WORN_CHARMS}</small></h3>
-          {g.charms.length === 0 && <p className="empty">None yet. Old chests hide them, and Nong Kadyo binds them from herbs.</p>}
+          {g.charms.length === 0 && <p className="empty">None yet. Old chests hide them, Nong Kadyo binds them from herbs, and the bench makes better ones.</p>}
           {g.charms.map((c) => (
             <button key={c.id} className={`charm ${g.worn.includes(c.id) ? "worn" : ""}`} style={{ borderLeftColor: RARITY[c.rarity].colour }} onClick={() => g.wear(c.id)}>
               <Icon name="charm" size={22} />
@@ -333,6 +335,9 @@ function Bag() {
               <em>{g.worn.includes(c.id) ? "worn" : "wear"}</em>
             </button>
           ))}
+          <h3>Old tales <small>{g.tales.length} of {TALES.length}</small></h3>
+          {g.tales.length === 0 && <p className="empty">None yet. Pages of the old tales turn up in chests and jars.</p>}
+          {TALES.filter((t) => g.tales.includes(t.id)).map((t) => <div key={t.id} className="row tale"><Icon name="eye" size={20} /><div><b>{t.title}</b><p>{t.text}</p></div></div>)}
         </section>
         <section>
           <h3>Learning <small>level {g.level} · {g.points} to spend</small></h3>
@@ -371,6 +376,8 @@ function Trade() {
         </section>
       )}
       <section className="offers">
+        {g.favours.some((f) => f.id === "herbs") && <Offer icon="herbs" name={`${KADYO_HERBS} bundles of herbs, as he asked`} price="+12 c" text={g.bag.herbs >= KADYO_HERBS ? "He takes them and puts them straight in the pot." : `You have ${g.bag.herbs} of ${KADYO_HERBS}.`} off={g.bag.herbs < KADYO_HERBS}
+          act={() => { if (g.spend("herbs", KADYO_HERBS)) { g.endFavour("herbs"); g.add("coins", 12); g.gainXp(30); g.set({ kadyoTrust: g.kadyoTrust + 1 }); g.toast("Nong Kadyo pays 12 centavos, and thinks the better of you.", "good"); } }} />}
         {SHOP.map((it) => <Offer key={it.item} icon={ITEM_ICON[it.item]} name={ITEMS[it.item].name} price={`${it.cost} c`} text={full ? "You cannot carry any more." : ITEMS[it.item].use} off={g.bag.coins < it.cost || full} act={() => buy(it)} />)}
         <Offer icon="herbs" name="Sell a bundle of herbs" price={`+${HERB_PRICE} c`} text="He always needs them." off={g.bag.herbs < 1} act={() => { if (g.spend("herbs", 1)) g.add("coins", HERB_PRICE); }} />
         <Offer icon="charm" name="Have a charm bound" price={`${CHARM_HERBS} herbs`} text="He knots herbs, a prayer and a little oil into a habak. No two come out alike." off={g.bag.herbs < CHARM_HERBS}
