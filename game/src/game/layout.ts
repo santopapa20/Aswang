@@ -160,7 +160,7 @@ export const tufts: Blob[] = [];
 
 // ---- larger things placed by hand (decided before the trees, so no palm grows through one) ------
 export type Decor = {
-  kind: "rocks" | "shrub" | "fern" | "logs" | "pot" | "deadtree" | "stump" | "mossylog" | "boulder" | "campfire" | "bench" | "basket" | "garden" | "cross";
+  kind: "rocks" | "shrub" | "fern" | "logs" | "pot" | "deadtree" | "stump" | "mossylog" | "boulder" | "campfire" | "bench" | "basket" | "garden" | "cross" | "barrel" | "wheelbarrow" | "straw" | "rooster";
   x: number; z: number; s: number; r: number;
 };
 const lived = houses.filter((h) => h.lit);
@@ -181,7 +181,14 @@ export const placed: Decor[] = [
     : [
       { kind: "bench", x: h.x - 2.7, z: h.z + HUT.hz + 1.2, s: 1, r: 0.2 }, { kind: "basket", x: h.x - 1.25, z: h.z + HUT.hz + 0.45, s: 1, r: h.x },
       { kind: "garden", x: h.x - 4.9, z: h.z + 1.4, s: 1, r: h.z * 0.3 }, { kind: "campfire", x: h.x + 3.6, z: h.z + HUT.hz + 2.3, s: 1, r: h.x * 0.7 },
+      // a rain barrel under the eaves, and rice straw kept dry beside the firewood
+      { kind: "barrel", x: h.x + HUT.hx + 0.7, z: h.z + 1.1, s: 1, r: h.x }, { kind: "straw", x: h.x - HUT.hx - 1.0, z: h.z - 0.75, s: 1, r: 0.15 }, { kind: "straw", x: h.x - HUT.hx - 1.25, z: h.z - 1.75, s: 0.9, r: 1.2 },
     ]),
+  // a barrow left where the work stopped
+  { kind: "wheelbarrow", x: 28.8, z: -21.2, s: 1, r: 2.3 }, { kind: "wheelbarrow", x: 14.6, z: 13.4, s: 1, r: 0.6 }, { kind: "wheelbarrow", x: 9.8, z: 0.1, s: 1, r: 4.0 },
+  // fighting cocks scratching about by day (they roost at night, so they are only drawn in daylight, and you walk through them)
+  ...([[home.x - 1.7, home.z + 6.3, 0.4], [-1.8, -11.4, 2.4], [22.3, -17.1, 5.0], [105.7, -5.3, 1.2], [well.x - 1.3, well.z + 3.3, 3.6], [well.x + 3.7, well.z + 2.3, 0.9]] as const)
+    .map(([x, z, r]) => ({ kind: "rooster" as const, x, z, s: 1, r })),
 ];
 
 const clearOfThings = (x: number, z: number, pad: number) =>
@@ -301,7 +308,7 @@ for (let p = 0; p < 4; p++) {
 // ---- collision -------------------------------------------------------------------------------
 export type Circle = { x: number; z: number; r: number };
 /** How far from its centre each kind of prop stops you, in metres at full size. */
-const SOLID: Record<Decor["kind"], number> = { rocks: 0.5, shrub: 0.8, fern: 0, logs: 0.5, pot: 0.32, deadtree: 0.8, stump: 0.95, mossylog: 0.4, boulder: 0.8, campfire: 0.6, bench: 0.42, basket: 0.3, garden: 0.85, cross: 0.32 };
+const SOLID: Record<Decor["kind"], number> = { rocks: 0.5, shrub: 0.8, fern: 0, logs: 0.5, pot: 0.32, deadtree: 0.8, stump: 0.95, mossylog: 0.4, boulder: 0.8, campfire: 0.6, bench: 0.42, basket: 0.3, garden: 0.85, cross: 0.32, barrel: 0.42, wheelbarrow: 0.7, straw: 0.55, rooster: 0 };
 export const solids: Circle[] = [
   ...palms.filter((p) => p.solid).map((p) => ({ x: p.x, z: p.z, r: 0.45 })),
   ...fences.flatMap((f) => [-0.75, 0, 0.75].map((k) => ({ x: f.x + Math.cos(f.rot) * k, z: f.z - Math.sin(f.rot) * k, r: 0.45 }))),
@@ -311,7 +318,7 @@ export const solids: Circle[] = [
   { x: kapreSpot.x, z: kapreSpot.z, r: 0.95 },
   ...nodes.filter((n) => n.kind !== "herbs").map((n) => ({ x: n.x, z: n.z, r: 0.45 })),
   { x: trail.marker.x, z: trail.marker.z, r: 0.3 },
-  ...decor.filter((d) => d.kind !== "fern" && d.kind !== "mossylog").map((d) => ({ x: d.x, z: d.z, r: SOLID[d.kind] * d.s })),
+  ...decor.filter((d) => d.kind !== "fern" && d.kind !== "mossylog" && d.kind !== "rooster").map((d) => ({ x: d.x, z: d.z, r: SOLID[d.kind] * d.s })),
   // a fallen log is long: three circles along it
   ...decor.filter((d) => d.kind === "mossylog").flatMap((d) => [-0.8, 0, 0.8].map((k) => ({ x: d.x + Math.cos(d.r) * k * d.s, z: d.z - Math.sin(d.r) * k * d.s, r: 0.4 * d.s }))),
 ];

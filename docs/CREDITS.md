@@ -30,5 +30,9 @@ when exported (2026-11-23). Check Tripo's terms before any commercial use.
 | Woven basket | https://studio.tripo3d.ai/3d-model/woven-wicker-basket-with-braided-textures-brown-tones-natural-wicker-9fee6ef6-5788-4e94-8593-625b04e3b929 | Amanda |
 | Flower bed | https://studio.tripo3d.ai/3d-model/group-of-tropical-plants-with-yellow-flowers-and-red-anthurium-lush-g-ab8931f0-e3f2-412c-a265-d102f2ceba94 | matursuksma26 |
 | Grave cross | https://studio.tripo3d.ai/3d-model/ornate-stone-cross-monument-with-mossy-weathered-surface-and-gothic-de-697e9d71-1724-4bcf-83f2-c730d61723c0 | wesleyvcor |
+| Rain barrel | https://studio.tripo3d.ai/3d-model/wooden-barrel-with-iron-bands-brown-wood-texture-50c091c0-3301-4927-a78c-68b377262c92 | kyalence |
+| Wheelbarrow | https://studio.tripo3d.ai/3d-model/wooden-wheelbarrow-with-metal-braces-and-single-wheel-brown-wood-text-c4843033-3e7f-49e9-87a4-5a31366071f7 | jaker.man900r |
+| Straw bale | https://studio.tripo3d.ai/3d-model/hay-bale-made-of-straw-with-rough-fibrous-texture-3c72a2e8-2202-4ce6-86ee-b52862926d87 | johnny.bang |
+| Rooster (one cut from a sheet of four) | https://studio.tripo3d.ai/3d-model/blue-grey-chicken-model-with-red-comb-and-yellow-legs-detailed-plumag-0d5af0a2-250d-4ace-9d0a-6958a45a22a6 | f.batistasint |
 
 Character motion: Adobe Mixamo.

@@ -382,10 +382,15 @@ function Dressing() {
   const baskets = useProp("/models/basket.glb", 0.56, "x", of("basket").length, shadows);
   const beds = useProp("/models/garden.glb", 1.9, "x", of("garden").length, shadows);
   const graves = useProp("/models/cross.glb", 1.55, "y", of("cross").length, shadows);
+  const barrels = useProp("/models/barrel.glb", 0.92, "y", of("barrel").length, shadows);
+  const barrows = useProp("/models/wheelbarrow.glb", 0.55, "y", of("wheelbarrow").length, shadows);
+  const bales = useProp("/models/straw.glb", 1.05, "x", of("straw").length, shadows);
+  const cocks = useProp("/models/rooster.glb", 0.46, "y", of("rooster").length, shadows);
   // a bare tree between the camera and him thins out, like the palms
   const thin = useMemo(() => bare.map(seeThrough), [bare]);
   useFrame((_, dt) => {
     const k = Math.min(1, dt * 7);
+    for (const c of cocks) c.visible = live.daylight > 0.3;       // gone to roost by dusk
     of("deadtree").forEach((d, i) => {
       const dx = d.x - live.player.x, dz = d.z - live.player.z;
       const hides = dz > 0.8 && dz < 6.5 && Math.abs(dx) < 2.4;
@@ -404,10 +409,14 @@ function Dressing() {
     if (beds[0]) tone(beds[0], 0.85);
     if (boulders[0]) tone(boulders[0], 0.8);
     if (graves[0]) tone(graves[0], 0.8);
-  }, [piles, shrubs, ferns, bare, seats, stumps, beds, boulders, graves]);
+    if (barrels[0]) tone(barrels[0], 0.8);
+    if (barrows[0]) tone(barrows[0], 0.75);
+    if (bales[0]) tone(bales[0], 0.8);
+  }, [piles, shrubs, ferns, bare, seats, stumps, beds, boulders, graves, barrels, barrows, bales]);
   const sets: [string, Object3D[]][] = [
     ["shrub", shrubs], ["fern", ferns], ["rocks", piles], ["logs", stacks], ["pot", jars], ["deadtree", bare], ["stump", stumps], ["mossylog", fallen],
     ["boulder", boulders], ["campfire", fires], ["bench", seats], ["basket", baskets], ["garden", beds], ["cross", graves],
+    ["barrel", barrels], ["wheelbarrow", barrows], ["straw", bales], ["rooster", cocks],
   ];
   return (
     <>
