@@ -2,8 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import {
-  BufferAttribute, BufferGeometry, Color, DirectionalLight, DoubleSide, FogExp2, Group,
-  HemisphereLight, IcosahedronGeometry, InstancedMesh, Mesh, MeshLambertMaterial, Object3D, PointLight,
+  Box3, BufferAttribute, BufferGeometry, Color, CylinderGeometry, DirectionalLight, DoubleSide, FogExp2, Group, HemisphereLight, IcosahedronGeometry, InstancedMesh, Mesh, MeshBasicMaterial, MeshLambertMaterial, Object3D, PointLight, Vector3,
 } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Ground } from "./Ground";
@@ -243,7 +242,7 @@ export function World() {
       {houses.map((h, i) => (
         <group key={h.id} position={[h.x, 0, h.z]}>
           <primitive object={hutModels[i]} />
-          <HouseFront lit={h.lit} beacon={h.id === "home"} />
+          <HouseFront model={hutModels[i]} kind={h.lit ? "lived" : h.id === "shut" ? "shut" : "ruin"} beacon={h.id === "home"} />
         </group>
       ))}
       {fences.map((f, i) => (
@@ -264,41 +263,85 @@ export function World() {
   );
 }
 
-/** What the hut model lacks: a doorway, a ladder up to it, and a window that glows after dark. */
-function HouseFront({ lit, beacon }: { lit: boolean; beacon: boolean }) {
-  const pane = useRef<MeshLambertMaterial>(null);
+type Leaves = { door?: Object3D; front?: Object3D; west?: Object3D; east?: Object3D };
+/** How far each door and shutter stands open (radians), by day and by night, for each kind of house. */
+const OPEN: Record<"lived" | "shut" | "ruin", { day: number[]; night: number[] }> = {
+  // door (negative swings out onto the porch), front shutter (negative props it out), west (negative out), east (positive out)
+  lived: { day: [-1.45, -0.62, -0.58, 0.58], night: [0, -0.14, -0.1, 0.1] },   // shut for the night, with the lamp showing at the shutters
+  shut: { day: [0, 0, 0, 0], night: [0, 0, 0, 0] },
+  ruin: { day: [-2.05, -1.25, 0, 0.42], night: [-2.05, -1.25, 0, 0.42] },        // hanging off their hinges
+};
+
+/**
+ * The hut's own door and shutters (separate parts of the model, hinged where they meet the wall): open by
+ * day, closed at nightfall in the houses people live in, hanging loose in the empty ones. Behind each
+ * opening a dark card stands for the room inside, and after dark it glows where someone keeps a lamp lit.
+ * A thin bamboo stick props each shutter open, as it would.
+ */
+function HouseFront({ model, kind, beacon }: { model: Object3D; kind: "lived" | "shut" | "ruin"; beacon: boolean }) {
   const glow = useRef<PointLight>(null);
-  useFrame(({ clock }) => {
+  const leaves = useMemo<Leaves>(() => ({
+    door: model.getObjectByName("door"), front: model.getObjectByName("shutter_f"),
+    west: model.getObjectByName("shutter_w"), east: model.getObjectByName("shutter_e"),
+  }), [model]);
+  const angles = useRef(OPEN[kind].day.slice());
+  const room = useMemo(() => new MeshBasicMaterial({ color: "#0b0704", fog: false, toneMapped: false }), []);
+  // the props: one stick per shutter, in the model's own units (it is scaled to the house)
+  const sticks = useMemo(() => {
+    const mat = new MeshLambertMaterial({ color: "#9a6630" });
+    return (["front", "west", "east"] as const).map((k) => {
+      const leaf = leaves[k];
+      if (!leaf?.parent) return null;
+      const stick = new Mesh(new CylinderGeometry(1, 1, 1, 5), mat);
+      stick.visible = false;
+      const box = new Box3().setFromBufferAttribute(((leaf as Mesh).geometry.getAttribute("position")) as BufferAttribute);
+      return { k, stick, leaf, h: -box.min.y, out: k === "front" ? 1 : 0 };
+    }).filter(Boolean) as { k: "front" | "west" | "east"; stick: Mesh; leaf: Object3D; h: number }[];
+  }, [leaves]);
+  // attached here, not while building them: development mode builds twice and would leave orphans behind
+  useEffect(() => { for (const s of sticks) s.leaf.parent!.add(s.stick); return () => { for (const s of sticks) s.stick.removeFromParent(); }; }, [sticks]);
+  const v = useMemo(() => ({ a: new Vector3(), b: new Vector3(), up: new Vector3(0, 1, 0) }), []);
+
+  useFrame(({ clock }, rawDt) => {
+    const dt = Math.min(rawDt, 0.1);
     const dark = 1 - live.daylight;
-    const f = 0.9 + 0.1 * Math.sin(clock.elapsedTime * 7.3 + (beacon ? 0 : 2));
-    if (pane.current) pane.current.emissiveIntensity = lit ? 0.75 * dark * f : 0;
+    const want = OPEN[kind][live.daylight < 0.4 ? "night" : "day"];
+    const k = Math.min(1, dt * 1.1);
+    const parts = [leaves.door, leaves.front, leaves.west, leaves.east];
+    parts.forEach((p, i) => {
+      angles.current[i] += (want[i] - angles.current[i]) * k;
+      if (!p) return;
+      if (i === 0) p.rotation.y = angles.current[0];
+      else if (i === 1) p.rotation.x = angles.current[1];
+      else p.rotation.z = angles.current[i];
+    });
+    for (const s of sticks) {
+      const a = s.k === "front" ? angles.current[1] : s.k === "west" ? angles.current[2] : angles.current[3];
+      const open = Math.abs(a) > 0.2 && kind !== "ruin";
+      s.stick.visible = open;
+      if (!open) continue;
+      // from the sill, just out from the wall, up to the middle of the shutter's lower edge
+      const p = s.leaf.position, h = s.h, r = h * 0.03;
+      if (s.k === "front") { v.a.set(p.x, p.y - h - h * 0.06, p.z + h * 0.12); v.b.set(p.x, p.y - h * Math.cos(a), p.z - h * Math.sin(a)); }
+      else { const out = s.k === "west" ? -1 : 1; v.a.set(p.x + out * h * 0.12, p.y - h - h * 0.06, p.z); v.b.set(p.x + h * Math.sin(a), p.y - h * Math.cos(a), p.z); }
+      s.stick.position.copy(v.a).add(v.b).multiplyScalar(0.5);
+      v.b.sub(v.a);
+      s.stick.scale.set(r, v.b.length(), r);
+      s.stick.quaternion.setFromUnitVectors(v.up, v.b.normalize());
+    }
+    // the room inside: dim by day, lamplit after dark where someone lives
+    const f = 0.88 + 0.08 * Math.sin(clock.elapsedTime * 6.7 + (beacon ? 0 : 2.1)) + 0.04 * Math.sin(clock.elapsedTime * 17.3);
+    const lamp = kind === "lived" ? Math.max(0, dark * 1.3 - 0.3) * f : 0;
+    room.color.setRGB(0.03 + 0.97 * lamp, 0.018 + 0.5 * lamp, 0.01 + 0.18 * lamp);         // linear colour: near black by day
     if (glow.current) glow.current.intensity = 9 * dark * f;
   });
-  const z = HUT.hz + 0.02, floor = 1.12;
+  const { wallZ, floor, sideWindow: sw } = HUT;
   return (
     <group>
-      <mesh position={[-0.55, floor + 0.8, z]}>
-        <planeGeometry args={[0.85, 1.6]} />
-        <meshLambertMaterial color="#2b1c10" />
-      </mesh>
-      {[-1.0, -0.1].map((x) => (
-        <mesh key={x} position={[x, floor + 0.8, z + 0.02]}><boxGeometry args={[0.07, 1.7, 0.05]} /><meshLambertMaterial color="#8a6a3a" /></mesh>
-      ))}
-      <mesh position={[-0.55, floor + 1.66, z + 0.02]}><boxGeometry args={[1.0, 0.07, 0.05]} /><meshLambertMaterial color="#8a6a3a" /></mesh>
-      <mesh position={[0.95, floor + 1.05, z]}>
-        <planeGeometry args={[0.72, 0.62]} />
-        <meshLambertMaterial ref={pane} color={lit ? "#4a371f" : "#241a10"} emissive="#ff9a3d" emissiveIntensity={0} />
-      </mesh>
-      {/* bamboo ladder */}
-      <group position={[-0.55, 0, HUT.hz + 0.05]} rotation-x={0.62}>
-        {[-0.3, 0.3].map((x) => (
-          <mesh key={x} position={[x, 0.72, 0]}><cylinderGeometry args={[0.035, 0.04, 1.5, 6]} /><meshLambertMaterial color="#8a6a3a" /></mesh>
-        ))}
-        {[0.25, 0.6, 0.95, 1.3].map((y) => (
-          <mesh key={y} position={[0, y, 0]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.028, 0.028, 0.66, 6]} /><meshLambertMaterial color="#9a7a46" /></mesh>
-        ))}
-      </group>
-      {beacon && <pointLight ref={glow} position={[0.95, 2.2, HUT.hz + 0.9]} color="#ffae5c" intensity={0} distance={8} decay={1.7} />}
+      <mesh position={[0, (floor + 2.7) / 2, wallZ - 0.1]} material={room}><planeGeometry args={[3.1, 2.7 - floor]} /></mesh>
+      <mesh position={[-1.5, sw.y, sw.z]} rotation-y={-Math.PI / 2} material={room}><planeGeometry args={[0.9, 0.8]} /></mesh>
+      <mesh position={[1.46, sw.y, sw.z]} rotation-y={Math.PI / 2} material={room}><planeGeometry args={[0.9, 0.8]} /></mesh>
+      {beacon && <pointLight ref={glow} position={[HUT.frontWindow.x, HUT.frontWindow.y, wallZ + 0.7]} color="#ffae5c" intensity={0} distance={8} decay={1.7} />}
     </group>
   );
 }
@@ -330,16 +373,17 @@ function HomeYard() {
     <>
       {openings.map((o, i) => {
         const side = o.id === "door" ? 0 : o.id === "west" ? -1 : 1;
+        // where a braid hangs: on the doorway's right post, or on the window frame's front corner
+        const hang: [number, number, number] = side === 0
+          ? [home.x + HUT.doorX + 0.5, 1.88, home.z + HUT.wallZ + 0.1]
+          : [home.x + side * (HUT.sideWindow.x + 0.1), 1.62, home.z + HUT.sideWindow.z + 0.5];
+        const salt: [number, number, number] = side === 0 ? [o.x, 0.03, o.z - 0.25] : [home.x + side * (HUT.hx + 0.2), 0.03, o.z];
         return (
-          <group key={o.id} position={[o.x, 0, o.z]}>
-            <mesh position={[side * 0.55 || 0.75, 0.55, side ? 0.5 : 0.1]}>
-              <cylinderGeometry args={[0.035, 0.045, 1.1, 6]} />
-              <meshLambertMaterial color="#8a6a3a" />
-            </mesh>
-            {wards[o.id] === "garlic" && <primitive object={garlic[i]} position={[side * 0.55 || 0.75, 0.55, side ? 0.62 : 0.22]} />}
+          <group key={o.id}>
+            {wards[o.id] === "garlic" && <primitive object={garlic[i]} position={hang} scale={0.85} />}
             {wards[o.id] === "salt" && (
-              <mesh position={[0, 0.03, side ? 0 : -0.25]} rotation-y={side ? Math.PI / 2 : 0}>
-                <boxGeometry args={[1.5, 0.03, 0.16]} />
+              <mesh position={salt} rotation-y={side ? Math.PI / 2 : 0}>
+                <boxGeometry args={[side ? 1.3 : 1.5, 0.03, 0.16]} />
                 <meshLambertMaterial color="#f6f4ee" emissive="#dfe6ff" emissiveIntensity={0.7} />
               </mesh>
             )}

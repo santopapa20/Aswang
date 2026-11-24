@@ -48,17 +48,22 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0.08em 0.5em 0.12em; mar
 @keyframes hit { 50% { background: rgba(210, 73, 60, 0.3); } }
 .slot .meter { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--red); transition: width 0.1s linear; }
 
-.dial { position: relative; justify-self: center; width: 240px; padding-bottom: 8px; text-align: center; text-shadow: 0 2px 10px #000, 0 0 3px #000; }
-.dial.aside { opacity: 0.22; transition: opacity 0.5s; }
-.dial::before { content: ""; position: absolute; inset: -26px -70px -22px; z-index: -1; background: radial-gradient(ellipse at 50% 45%, rgba(4, 4, 8, 0.72), rgba(4, 4, 8, 0.4) 45%, transparent 70%); }
-.dial svg { display: block; width: 190px; margin: 0 auto -6px; overflow: visible; }
-.dial .track { fill: none; stroke: rgba(239, 230, 211, 0.4); stroke-width: 1; stroke-dasharray: 2 5; }
-.dial .gone { fill: none; stroke: var(--gold); stroke-width: 1.4; opacity: 0.8; }
-.dial .horizon { stroke: var(--edge); stroke-width: 1; }
-.dial .halo { fill: var(--gold); opacity: 0.28; } .dial .body { fill: var(--gold); stroke: none; filter: drop-shadow(0 0 5px var(--gold)); }
-.dial.night .gone { stroke: var(--moon); } .dial.night .halo, .dial.night .body { fill: var(--moon); }
-.dial h2 { margin: 0; font: 500 21px/1.1 var(--display); letter-spacing: 0.3em; text-indent: 0.3em; text-transform: uppercase; }
-.dial p { margin: 4px 0 0; font: 500 11px/1 var(--display); letter-spacing: 0.3em; text-indent: 0.3em; text-transform: uppercase; color: var(--gold); }
+.dial { justify-self: center; width: 250px; padding: 11px 18px 12px; text-align: center; transition: opacity 0.5s; }
+.dial.aside { opacity: 0.25; }
+.dial h2 { margin: 0; font: 500 19px/1.1 var(--display); letter-spacing: 0.3em; text-indent: 0.3em; text-transform: uppercase; }
+.dial p { margin: 5px 0 0; font: 500 10.5px/1 var(--display); letter-spacing: 0.26em; text-indent: 0.26em; text-transform: uppercase; color: var(--gold); }
+.dial.late p { color: #ffb36a; animation: pulse 2.4s ease-in-out infinite; }
+.dial.night p { color: var(--moon); } .dial.night.late p { color: #e7d9b0; }
+/* the sky: a thin track the sun or the moon walks along from one end of the day to the other */
+.sky { position: relative; height: 22px; margin: 10px 4px 0; }
+.sky::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 2px; background: repeating-linear-gradient(90deg, rgba(239, 230, 211, 0.32) 0 3px, transparent 3px 7px); }
+.sky .gone { position: absolute; left: 0; top: 7px; height: 2px; background: linear-gradient(90deg, rgba(224, 164, 74, 0.25), var(--gold)); transition: width 0.4s linear; }
+.dial.night .sky .gone { background: linear-gradient(90deg, rgba(201, 212, 255, 0.2), var(--moon)); }
+.sky .body { position: absolute; top: 0; width: 16px; height: 16px; margin-left: -8px; transition: left 0.4s linear; }
+.sky .body svg { display: block; fill: var(--gold); filter: drop-shadow(0 0 6px rgba(224, 164, 74, 0.9)); }
+.dial.night .sky .body svg { fill: var(--moon); filter: drop-shadow(0 0 6px rgba(201, 212, 255, 0.85)); }
+.sky em { position: absolute; top: 13px; font: 500 8.5px/1 var(--display); font-style: normal; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+.sky .from { left: 0; } .sky .to { right: 0; }
 
 .goal { justify-self: end; width: min(330px, 100%); }
 .goal h3 span { font-size: 11px; letter-spacing: 0.1em; color: var(--soft); }
@@ -98,18 +103,34 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0.08em 0.5em 0.12em; mar
 .keycap b { position: relative; font: 700 13px/1 var(--display); color: var(--gold); }
 
 .bottombar { left: 20px; right: 20px; bottom: 18px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
-.hotbar { display: flex; gap: 6px; }
-.tile { position: relative; width: 58px; padding: 8px 0 6px; text-align: center; background: var(--panel); border: 1px solid var(--edge); border-radius: 3px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); color: var(--ink); }
-.tile b { position: absolute; top: 3px; right: 6px; font: 700 13px/1 var(--display); color: var(--gold); }
-.tile em { display: block; margin-top: 3px; font: 500 8.5px/1 var(--display); letter-spacing: 0.12em; font-style: normal; text-transform: uppercase; color: var(--dim); white-space: nowrap; overflow: hidden; }
-.tile.none { border-color: var(--hair); color: var(--dim); } .tile.none b { color: #a8574c; }
+.hotbar { display: flex; gap: 7px; }
+.tile { position: relative; width: 66px; padding: 10px 0 7px; text-align: center; background: var(--panel); border: 1px solid var(--edge); border-radius: 3px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); color: var(--ink); transition: border-color 0.3s, box-shadow 0.3s; }
+.tile b { position: absolute; top: 4px; right: 7px; font: 700 14px/1 var(--display); color: var(--gold); }
+.tile em { display: block; margin-top: 5px; padding: 0 3px; font: 500 9.5px/1 var(--display); letter-spacing: 0.1em; font-style: normal; text-transform: uppercase; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .key { position: absolute; top: 4px; left: 4px; min-width: 0; margin: 0; padding: 0 4px; font-size: 9px; line-height: 14px; }
+.tile.none { border-color: var(--hair); color: var(--dim); } .tile.none b { color: #a8574c; } .tile.none em { color: var(--dim); }
+.tile.lit { border-color: rgba(255, 170, 90, 0.7); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 14px rgba(255, 150, 60, 0.28); } .tile.lit .icon { color: #ffc27a; }
 .tile.carry { border-color: var(--gold); box-shadow: 0 0 14px rgba(224, 164, 74, 0.35); }
-.meters { display: flex; align-items: center; gap: 16px; margin-top: 10px; text-shadow: 0 1px 6px #000; }
-.meters label { display: flex; align-items: center; gap: 7px; font: 500 10.5px/1 var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); }
-.bar { width: 96px; height: 4px; background: rgba(239, 230, 211, 0.16); border-radius: 2px; overflow: hidden; }
-.bar i { display: block; height: 100%; background: var(--ink); transition: width 0.12s linear; } .bar.gold i { background: var(--gold); }
-.note { font-size: 15px; color: var(--soft); } .note em { font-style: normal; }
-.hints { font: 500 10px/1.8 var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); text-shadow: 0 1px 6px #000; white-space: nowrap; } .hints span { margin-left: 12px; opacity: 0.6; }
+.meters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; margin-top: 11px; text-shadow: 0 1px 6px #000; }
+.meters label { display: flex; align-items: center; gap: 7px; font: 500 10px/1 var(--display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--soft); }
+.bar { width: 92px; height: 5px; background: rgba(239, 230, 211, 0.16); border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35); }
+.bar i { display: block; height: 100%; background: var(--ink); transition: width 0.12s linear; } .bar.gold i { background: linear-gradient(90deg, var(--gold-deep), var(--gold)); }
+.bar.low i { background: var(--red); animation: pulse 0.7s ease-in-out infinite; }
+.purse { display: flex; gap: 14px; font-size: 16px; color: var(--soft); } .purse span { display: inline-flex; align-items: center; gap: 5px; } .purse .icon { color: var(--gold); opacity: 0.85; }
+.purse .full { color: #ff9a8c; } .purse .full .icon { color: #ff9a8c; }
+.learn { font: 500 10.5px/1 var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--good); animation: pulse 2s ease-in-out infinite; }
+.learn kbd { color: var(--good); border-color: rgba(169, 204, 143, 0.5); }
+.hints { display: flex; gap: 14px; font: 500 10px/1.8 var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); text-shadow: 0 1px 6px #000; white-space: nowrap; }
+.hints kbd { margin-left: 0; }
+
+/* the playing screen slides in once the card naming the day has lifted */
+.hud.fresh .topbar { animation: from-top 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 2.2s both; }
+.hud.fresh .bottombar { animation: from-bottom 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 2.4s both; }
+@keyframes from-top { from { opacity: 0; transform: translateY(-14px); } }
+@keyframes from-bottom { from { opacity: 0; transform: translateY(14px); } }
+.slot, .slot em, .slot .icon { transition: color 0.4s, border-color 0.4s, background 0.4s; }
+.prompt { animation: pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.3); }
+@keyframes pop { from { opacity: 0; transform: translateY(6px) scale(0.96); } }
 
 /* the card that names a day or a night */
 .banner { inset: 0; display: grid; place-items: center; text-align: center; background: #030305; animation: curtain 4.2s ease-in-out forwards; z-index: 5; }

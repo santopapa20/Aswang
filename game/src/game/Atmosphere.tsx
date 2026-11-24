@@ -122,8 +122,8 @@ function WindowLight() {
       {lit.map((h) => (
         <group key={h.id} position={[h.x, 0, h.z]}>
           {/* spilled on the ground before the window, and a soft halo about the window itself */}
-          <mesh position={[0.7, 0.04, HUT.hz + 2.3]} rotation-x={-Math.PI / 2} scale={[6.4, 5.4, 1]} material={pool} renderOrder={3}><planeGeometry args={[1, 1]} /></mesh>
-          <sprite position={[0.95, 2.2, HUT.hz + 0.25]} scale={[2.3, 2.3, 1]} material={halo} />
+          <mesh position={[HUT.frontWindow.x - 0.2, 0.04, HUT.hz + 2.1]} rotation-x={-Math.PI / 2} scale={[6.0, 5.0, 1]} material={pool} renderOrder={3}><planeGeometry args={[1, 1]} /></mesh>
+          <sprite position={[HUT.frontWindow.x, HUT.frontWindow.y, HUT.wallZ + 0.12]} scale={[1.7, 1.5, 1]} material={halo} />
         </group>
       ))}
     </>

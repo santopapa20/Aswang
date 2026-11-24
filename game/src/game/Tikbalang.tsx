@@ -76,7 +76,7 @@ export function Tikbalang() {
         if (timer.current <= 0) mode.current = "leave";
         break;
       case "leave":
-        api.play("walk", { fade: 0.4 });
+        api.move("walk", 1.6, { fade: 0.4 });
         p.z -= dt * 1.6; facing.current += (Math.PI - facing.current) * Math.min(1, dt * 3);
         if (p.z < -14) mode.current = "gone";
         break;

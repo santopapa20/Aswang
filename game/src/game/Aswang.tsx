@@ -129,12 +129,12 @@ export function Aswang() {
         } else if (rnd() < dt * 0.09) { lurkAway(timer.current); mode.current = "prowl"; }
         break;
       case "prowl":
-        api.play("walk", { fade: 0.4, speed: 1.3 });
+        api.move("walk", WALK, { fade: 0.4 });
         if (stepTo(goal.current.x, goal.current.z, WALK) !== "going") mode.current = "lurk";
         if (timer.current <= 0) mode.current = "lurk";
         break;
       case "approach": {
-        api.play("run", { fade: 0.3, speed: 0.75 });
+        api.move("run", STALK, { fade: 0.3 });
         const t = target.current;
         const to = stage2.current ? t : t.approach;
         const s = stepTo(to.x, to.z, STALK, stage2.current ? 0.55 : 1.2);
@@ -169,7 +169,7 @@ export function Aswang() {
         if (timer.current <= 0) { lurkAway(26 + rnd() * 10); mode.current = "withdraw"; }
         break;
       case "withdraw": {
-        api.play("run", { fade: 0.3, speed: 0.8 });
+        api.move("run", STALK * 1.15, { fade: 0.3 });
         const wait = timer.current;
         retreat.current += dt;
         if (stepTo(goal.current.x, goal.current.z, STALK * 1.15) !== "going" || retreat.current > 14) {
@@ -185,7 +185,7 @@ export function Aswang() {
         if (timer.current <= 0) { mode.current = "chase"; chaseFor.current = 13; }
         break;
       case "chase": {
-        api.play("run", { fade: 0.2 });
+        api.move("run", night === 1 ? 3.0 : 3.25, { fade: 0.2 });
         chaseFor.current -= dt;
         if (dist < GARLIC_RANGE && game.useGarlic()) { game.toast("The garlic at your belt turns her.", "good"); repel(); break; }
         if (live.whipCrack && dist < 3.8) { repel(); break; }
@@ -208,7 +208,7 @@ export function Aswang() {
         if (timer.current <= 0) { mode.current = "flee"; timer.current = 5; }
         break;
       case "flee": {
-        api.play("run", { fade: 0.25 });
+        api.move("run", 2.6, { fade: 0.25 });
         const away = dist > 0.01 ? { x: -dx / dist, z: -dz / dist } : { x: 0, z: -1 };
         stepTo(p.x + away.x * 4, p.z + away.z * 4, 2.6);
         if (timer.current <= 0 || dist > 16) { lurkAway(14); mode.current = "withdraw"; game.set({ hunted: false }); }

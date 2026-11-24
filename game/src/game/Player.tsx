@@ -30,6 +30,8 @@ export function Player() {
   const winded = useRef(false);
   const holding = useRef({ key: "", t: 0 });
   const step = useRef(0);
+  const gait = useRef(0);
+  const swing = useRef({ x: 0, z: 0, vx: 0, vz: 0, px: 0, pz: 0, ux: 0, uz: 0, ready: false });
 
   useEffect(() => {
     stillFor.current = 0;
@@ -88,14 +90,18 @@ export function Player() {
       live.stamina = Math.max(0, Math.min(1, live.stamina + (running ? -dt / (RUN_SECONDS * m.stamina) : dt / 8)));
       if (moving) {
         const speed = SPEED[mode as keyof typeof SPEED] * m.speed * (game.carrying === "water" ? 0.85 : 1);
+        const bx = live.player.x, bz = live.player.z;
         live.player.x += want.x * speed * dt;
         live.player.z += want.z * speed * dt;
         pushOut(live.player, 0.35);
+        // steps keep time with how far he actually went (slower when leaning on a wall)
+        const went = Math.hypot(live.player.x - bx, live.player.z - bz) / Math.max(dt, 1e-3);
+        gait.current += (Math.max(went, speed * 0.35) - gait.current) * Math.min(1, dt * 10);
         let diff = Math.atan2(want.x, want.z) - live.facing;
         diff = Math.atan2(Math.sin(diff), Math.cos(diff));
         live.facing += diff * Math.min(1, dt * 12);
         stillFor.current = 0;
-        api.play(mode, { fade: 0.2 });
+        api.move(mode, gait.current, { fade: 0.2 });
         step.current -= dt * (mode === "run" ? 3.1 : mode === "walk" ? 1.9 : 1.2);
         if (step.current <= 0) { step.current = 1; sound.step(mode === "sneak" ? 0.25 : mode === "run" ? 1 : 0.55); }
       } else {
@@ -145,6 +151,20 @@ export function Player() {
     if (bone && lamp.current) {
       bone.getWorldPosition(hand);
       lamp.current.position.set(hand.x, hand.y - 0.12, hand.z);
+      // it hangs from his fingers on a short handle and swings: the hand's acceleration pushes the lamp
+      // the other way, gravity brings it back, and the handle's friction settles it
+      const s = swing.current;
+      if (!s.ready || dt <= 0) { s.px = hand.x; s.pz = hand.z; s.ux = 0; s.uz = 0; s.ready = true; }
+      else {
+        const ux = (hand.x - s.px) / dt, uz = (hand.z - s.pz) / dt;
+        const ax = Math.max(-40, Math.min(40, (ux - s.ux) / dt)), az = Math.max(-40, Math.min(40, (uz - s.uz) / dt));
+        s.px = hand.x; s.pz = hand.z; s.ux = ux; s.uz = uz;
+        const L = 0.22, k = 9.8 / L, c = 5.5;
+        s.vx += (-k * s.x - c * s.vx - ax / L) * dt; s.x += s.vx * dt;          // about z: + swings the lamp toward +x
+        s.vz += (-k * s.z - c * s.vz + az / L) * dt; s.z += s.vz * dt;          // about x: + swings it toward -z
+        s.x = Math.max(-0.7, Math.min(0.7, s.x)); s.z = Math.max(-0.7, Math.min(0.7, s.z));
+      }
+      lamp.current.rotation.set(s.z, 0, s.x);
     }
     if (light.current) {
       const t = state.clock.elapsedTime;

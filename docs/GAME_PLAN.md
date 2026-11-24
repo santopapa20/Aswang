@@ -32,9 +32,11 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 | Screens | Title, pause, bag, trade, dialogue with a typewriter and letterbox, a card naming each day and night, cockcrow report, endings. Progress saved at each dusk and morning |
 | Guidance | A card that always says what to do next, an arrow to where it is (with distance), soft rings under things you can use, key-cap prompts with a hold ring, and the house's four openings shown top-left, turning red when one is attacked |
 | Look | Two bundled typefaces (Cinzel, Cormorant Garamond), line icons drawn in code, film grain, a vignette that reddens with danger, a camera that draws back when she is on the roof |
+| Houses | The gallery hut was open at the front. `tools/blender/fit_hut.py` gives it a front wall, doorway, woven door, a propped shutter at the front and on each side, and a ladder to the porch, all made from the hut's own wall and post pieces. Doors and shutters stand open by day, close at nightfall where people live, and hang loose in the empty houses; lamplight shows through after dark. Garlic hangs on the frame it protects |
 | Ground and plants | The ground is one painted surface: worn earth with ragged edges where people walk, damp dark soil under trees and houses, and shadows that fall to the south-east. Grass grows in swaying clumps; the edge of the map is a wall of broad-leaved undergrowth |
 | Dressing | Gallery models placed by hand: stone crosses and bare trees in the old sitio; root stumps, mossy logs and boulders at the forest edge; stools, baskets, flower beds, water jars, firewood, rain barrels, straw and a cooking fire at lived-in houses; wheelbarrows left about; roosters by day (they roost at night); a stone-ringed fire for the smudge fire. Credited in `CREDITS.md` |
 | Night | Fireflies (thick about the balete), mist lying in the low ground, warm light spilling from lit windows, a firmer moon |
+| Motion | Walking and running clips play at the rate that matches real speed (each clip's foot speed is measured once), so feet do not slide; the lantern swings on its handle |
 | Comfort | A loading bar on the title; the world stops while the bag, the trade or the pause is open; a house or tree between the camera and you thins to a screen of dots instead of hiding you |
 
 ## Not built yet

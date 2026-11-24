@@ -32,7 +32,18 @@ export const walkable: Rect[] = [BARRIO, TRAIL, SITIO];
 export const trail = { period: 15, loopA: 49, loopB: 79, marker: { x: 64, z: -3.9 } };
 
 // ---- houses ----------------------------------------------------------------------------------
-export const HUT = { height: 4.4, hx: 2.2, hz: 1.85 };          // half width and half depth of the model
+/**
+ * The hut model (assets/village/hut.glb, fitted by tools/blender/fit_hut.py), measured in game metres from
+ * the house's centre: half width and depth, where its front wall and porch floor are, and where the
+ * doorway and the three windows open. The doorway is left of centre; a ladder rises to it from the yard.
+ */
+export const HUT = {
+  height: 4.4, hx: 2.2, hz: 1.85,
+  floor: 0.8, wallZ: 1.0,
+  doorX: -0.27, ladderFootZ: 1.78,
+  frontWindow: { x: 0.78, y: 1.92 },
+  sideWindow: { z: -0.15, y: 1.86, x: 1.6 },
+};
 export type HouseId = "home" | "pacing" | "shut" | "kadyo" | "hilot" | "ruin1" | "ruin2" | "ruin3";
 export type House = { id: HouseId; x: number; z: number; lit: boolean; yard: boolean; name: string };
 export const houses: House[] = [
@@ -48,15 +59,15 @@ export const houses: House[] = [
 export const house = (id: HouseId) => houses.find((h) => h.id === id)!;
 export const home = house("home");
 /** The spot in front of a house's door where you stand to speak or knock. */
-export const doorOf = (h: House): P2 => ({ x: h.x, z: h.z + HUT.hz + 0.9 });
+export const doorOf = (h: House): P2 => ({ x: h.x + HUT.doorX, z: h.z + HUT.hz + 0.9 });
 
 // ---- the house you guard ---------------------------------------------------------------------
 export type OpeningId = "door" | "west" | "east";
 export type Opening = { id: OpeningId; x: number; z: number; approach: P2; name: string };
 export const openings: Opening[] = [
-  { id: "door", x: home.x, z: home.z + HUT.hz + 0.8, approach: { x: home.x, z: home.z + 7 }, name: "the door" },
-  { id: "west", x: home.x - HUT.hx - 0.8, z: home.z, approach: { x: home.x - 4.2, z: home.z + 5 }, name: "the west window" },
-  { id: "east", x: home.x + HUT.hx + 0.8, z: home.z, approach: { x: home.x + 4.2, z: home.z + 5 }, name: "the east window" },
+  { id: "door", x: home.x + HUT.doorX, z: home.z + HUT.hz + 0.8, approach: { x: home.x + HUT.doorX, z: home.z + 7 }, name: "the door" },
+  { id: "west", x: home.x - HUT.hx - 0.8, z: home.z + HUT.sideWindow.z, approach: { x: home.x - 4.2, z: home.z + 5 }, name: "the west window" },
+  { id: "east", x: home.x + HUT.hx + 0.8, z: home.z + HUT.sideWindow.z, approach: { x: home.x + 4.2, z: home.z + 5 }, name: "the east window" },
 ];
 /** A smudge fire in the yard. Its smoke keeps anything from settling on the roof. */
 export const firePit: P2 = { x: home.x + 4.6, z: home.z + 5.2 };

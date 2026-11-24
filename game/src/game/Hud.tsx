@@ -4,7 +4,7 @@ import { carried, endingText, hasSave, live, mods, ROMAN, useGame } from "./stat
 import { aCharm, CHARM_HERBS, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
 import { NIGHTS } from "./story";
 import { openings } from "./layout";
-import { choose } from "./input";
+import { choose, toggles } from "./input";
 import { sound } from "./audio";
 import { Icon } from "./Icons";
 
@@ -13,6 +13,7 @@ export function Hud() {
   const stage = useGame((s) => s.stage);
   const panel = useGame((s) => s.panel);
   const dialogue = useGame((s) => s.dialogue);
+  const banner = useGame((s) => !!s.banner);
   return (
     <>
       <div className="grain" />
@@ -20,7 +21,7 @@ export function Hud() {
       {stage === "morning" && <Morning />}
       {(stage === "over" || stage === "ending") && <Ending />}
       {(stage === "day" || stage === "night") && (
-        <div className={`hud ${dialogue ? "talking" : ""}`}>
+        <div className={`hud ${dialogue ? "talking" : ""} ${banner ? "fresh" : ""}`}>
           <Play />
           <Banner />
           {dialogue && <DialogueBox />}
@@ -38,6 +39,8 @@ const KEYS: [string, string][] = [
   ["Q", "Pour a line of salt"], ["F", "Shutter the lamp"], ["R", "Crack the whip"], ["T hold", "Turn your shirt inside out"],
   ["Tab", "Bag and learning"], ["Esc", "Pause"], ["M", "Sound on or off"],
 ];
+/** What goes on the bar along the bottom: things you use. Herbs and money are shown as a purse beside it. */
+const SUPPLIES: ItemId[] = ["salt", "garlic", "oil", "kindling", "tobacco"];
 const ITEM_ICON: Record<ItemId, string> = { salt: "salt", garlic: "garlic", oil: "oil", kindling: "kindling", tobacco: "tobacco", herbs: "herbs", coins: "coins" };
 const Keys = () => <ul className="keys">{KEYS.map(([k, v]) => <li key={k}><kbd>{k}</kbd><span>{v}</span></li>)}</ul>;
 const Candles = ({ n }: { n: number }) => <span className="candles">{[0, 1, 2].map((i) => <i key={i} className={i < n ? "on" : ""}><Icon name="flame" size={17} /></i>)}</span>;
@@ -167,8 +170,7 @@ function Play() {
     ...openings.map((x): [string, string, string | null, boolean] => [x.id === "door" ? "door" : "window", x.id === "door" ? "Door" : x.id === "west" ? "West" : "East", g.wards[x.id], attacked === x.id]),
     ["roof", "Roof", live.smoke > 0 ? `${Math.ceil(live.smoke)}s` : null, attacked === "roof"],
   ];
-  // the dial: the sun or moon crosses an arc as the day or night passes
-  const a = Math.PI * (1 - done), dx = 110 + 96 * Math.cos(a), dy = 104 - 86 * Math.sin(a);
+  const late = live.clock < 30;
 
   return (
     <>
@@ -191,15 +193,16 @@ function Play() {
           </div>
         </section>
 
-        <section className={`dial ${night ? "night" : "day"} ${g.onRoof || g.overhead ? "aside" : ""}`}>
-          <svg viewBox="0 0 220 112">
-            <path className="track" d="M14 104 A96 86 0 0 1 206 104" />
-            <path className="gone" d="M14 104 A96 86 0 0 1 206 104" style={{ strokeDasharray: 300, strokeDashoffset: 300 * (1 - done) }} />
-            <line x1="6" y1="104" x2="214" y2="104" className="horizon" />
-            <g transform={`translate(${dx - 11} ${dy - 11})`}><circle cx="11" cy="11" r="13" className="halo" /><g className="body"><svg width="22" height="22" viewBox="0 0 24 24">{night ? <path d="M20 14.600A8.200 8.200 0 1 1 9.400 4a6.600 6.600 0 0 0 10.600 10.600z" /> : <circle cx="12" cy="12" r="6" />}</svg></g></g>
-          </svg>
+        <section className={`card dial ${night ? "night" : "day"} ${late ? "late" : ""} ${g.onRoof || g.overhead ? "aside" : ""}`}>
           <h2>{night ? `Night ${ROMAN[g.night - 1]}` : `Day ${ROMAN[g.night - 1]}`}</h2>
-          <p>{night ? plan.name : live.clock < 30 ? "Dusk is coming" : "Before dark"}</p>
+          <p>{night ? (late ? "First light is near" : plan.name) : late ? "Dusk is coming" : "Before dark"}</p>
+          <div className="sky">
+            <i className="gone" style={{ width: `${done * 100}%` }} />
+            <span className="body" style={{ left: `${done * 100}%` }}>
+              <svg width="16" height="16" viewBox="0 0 24 24">{night ? <path d="M20 14.600A8.200 8.200 0 1 1 9.400 4a6.600 6.600 0 0 0 10.600 10.600z" /> : <circle cx="12" cy="12" r="6.5" />}</svg>
+            </span>
+            <em className="from">{night ? "dusk" : "dawn"}</em><em className="to">{night ? "cockcrow" : "dusk"}</em>
+          </div>
         </section>
 
         <section className={`card goal ${o.urgent ? "urgent" : ""}`}>
@@ -230,25 +233,31 @@ function Play() {
       <footer className="bottombar">
         <section className="pack">
           <div className="hotbar">
-            {ITEM_ORDER.filter((k) => g.bag[k] > 0 || ["salt", "garlic", "oil", "kindling"].includes(k)).map((k) => (
-              <div key={k} className={`tile ${g.bag[k] === 0 ? "none" : ""}`} title={ITEMS[k].name}>
-                <Icon name={ITEM_ICON[k]} size={22} /><b>{g.bag[k]}</b><em>{ITEMS[k].name}</em>
-              </div>
-            ))}
-            {g.hasWhip && <div className={`tile ${live.whipWait > 0 ? "none" : ""}`}><Icon name="whip" size={22} /><b>R</b><em>{live.whipWait > 0 ? `${Math.ceil(live.whipWait)}s` : "Whip"}</em></div>}
-            {g.carrying && <div className="tile carry"><Icon name={g.carrying === "water" ? "salt" : "oil"} size={22} /><b>1</b><em>{g.carrying === "water" ? "Water" : "The oil"}</em></div>}
+            {SUPPLIES.filter((k) => g.bag[k] > 0 || k !== "tobacco").map((k) => {
+              const keyed = k === "salt" ? "Q" : k === "oil" && night ? "F" : null;
+              const glowing = k === "oil" && night && lit && g.bag.oil > 0;
+              return (
+                <div key={k} className={`tile ${g.bag[k] === 0 ? "none" : ""} ${glowing ? "lit" : ""}`} title={`${ITEMS[k].name}: ${ITEMS[k].use}`}>
+                  {keyed && <kbd className="key">{keyed}</kbd>}
+                  <Icon name={ITEM_ICON[k]} size={22} /><b>{g.bag[k]}</b><em>{k === "oil" && night ? (live.lampBlown > 0 ? "blown out" : !g.lampOn ? "shuttered" : g.bag.oil <= 0 ? "dry" : "lamp lit") : ITEMS[k].name}</em>
+                </div>
+              );
+            })}
+            {g.hasWhip && <div className={`tile ${live.whipWait > 0 ? "none" : ""}`}><kbd className="key">R</kbd><Icon name="whip" size={22} /><em>{live.whipWait > 0 ? `${Math.ceil(live.whipWait)}s` : "Whip"}</em></div>}
+            {g.carrying && <div className="tile carry"><Icon name={g.carrying === "water" ? "salt" : "oil"} size={22} /><em>{g.carrying === "water" ? "Water" : "The oil"}</em></div>}
           </div>
           <div className="meters">
-            <label><Icon name="breath" size={15} /><div className="bar"><i style={{ width: `${live.stamina * 100}%` }} /></div></label>
-            <label><Icon name="star" size={15} /><div className="bar gold"><i style={{ width: `${(g.xp / xpForLevel(g.level)) * 100}%` }} /></div><span>Level {g.level}</span></label>
-            <span className="note">
-              <Icon name="bag" size={14} /> {carried(g)}/{m.carry}
-              {night && <em className={lit && g.bag.oil > 0 ? "" : "bad"}> · lamp {live.lampBlown > 0 ? "blown out" : !g.lampOn ? "shuttered" : g.bag.oil <= 0 ? "dry" : "lit"}</em>}
-              {g.points > 0 && <em className="good"> · {g.points} to learn, press Tab</em>}
+            <label title="Breath: running spends it"><Icon name="breath" size={15} /><span>Breath</span><div className={`bar ${live.stamina < 0.25 ? "low" : ""}`}><i style={{ width: `${live.stamina * 100}%` }} /></div></label>
+            <label title="What you have learned"><Icon name="star" size={15} /><span>Level {g.level}</span><div className="bar gold"><i style={{ width: `${(g.xp / xpForLevel(g.level)) * 100}%` }} /></div></label>
+            <span className="purse">
+              <span title="Centavos"><Icon name="coins" size={14} /> {g.bag.coins}</span>
+              <span title="Herbs"><Icon name="herbs" size={14} /> {g.bag.herbs}</span>
+              <span title="How much you carry" className={carried(g) >= m.carry ? "full" : ""}><Icon name="bag" size={14} /> {carried(g)}/{m.carry}</span>
             </span>
+            {g.points > 0 && <span className="learn"><kbd>Tab</kbd> {g.points} to learn</span>}
           </div>
         </section>
-        <section className="hints"><kbd>Tab</kbd> bag <kbd>Esc</kbd> pause <span>{live.fps.toFixed(0)} fps</span></section>
+        <section className="hints"><span><kbd>Tab</kbd> bag</span><span><kbd>Esc</kbd> pause</span><span><kbd>C</kbd> {toggles.sneak ? "sneaking" : "sneak"}</span></section>
       </footer>
     </>
   );

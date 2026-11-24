@@ -172,7 +172,7 @@ export function Pacing() {
       const to = ROUND[at.current];
       const ex = to.x - p.x, ez = to.z - p.z, d = Math.hypot(ex, ez);
       if (d < 0.4) { at.current = (at.current + 1) % ROUND.length; wait.current = 8 + (at.current * 3) % 7; }
-      else { p.x += (ex / d) * 0.95 * dt; p.z += (ez / d) * 0.95 * dt; pushOut(p, 0.4); face = Math.atan2(ex, ez); api.play("walk", { fade: 0.4 }); }
+      else { p.x += (ex / d) * 0.95 * dt; p.z += (ez / d) * 0.95 * dt; pushOut(p, 0.4); face = Math.atan2(ex, ez); api.move("walk", 0.95, { fade: 0.4 }); }
     }
     let diff = face - facing.current;
     diff = Math.atan2(Math.sin(diff), Math.cos(diff));

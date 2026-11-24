@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useGame } from "./state";
-import { AnimationAction, Group, LoopOnce, LoopRepeat, Mesh, Object3D } from "three";
+import { AnimationAction, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, Mesh, Object3D, Vector3 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 export type PlayOptions = { fade?: number; once?: boolean; speed?: number };
@@ -26,6 +26,7 @@ export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
   }, [model, shadows]);
 
   const { actions, mixer } = useAnimations(gltf.animations, group);
+  const paces = useMemo(() => new Map<string, number>(), [gltf]);
   const current = useRef("");
   // while the game waits (a panel is open, or someone is speaking) everyone but the player holds still
   useFrame(() => { const g = useGame.getState(); mixer.timeScale = holdsStill && (g.panel || g.dialogue) ? 0 : 1; });
@@ -46,6 +47,50 @@ export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
       current.current = name;
     },
     get clip() { return current.current; },
+    /**
+     * How fast the ground passes under a walking clip's feet, in metres a second at normal speed. Found by
+     * playing the clip on a copy of the character and following each foot while it is down. 0 if the clip
+     * has no feet to follow. Measured once per clip.
+     */
+    pace(name: string) {
+      if (paces.has(name)) return paces.get(name)!;
+      const clip = gltf.animations.find((a) => a.name === name);
+      let pace = 0;
+      if (clip) {
+        const rig = cloneSkinned(gltf.scene) as Object3D;
+        const feet: Object3D[] = [];
+        rig.traverse((o) => { if (/(left|right)foot$|(fore|hind)paw[lr]$/.test(o.name.replace(/[:_.]/g, "").toLowerCase())) feet.push(o); });
+        if (feet.length) {
+          const tall = new Box3().setFromObject(rig).getSize(new Vector3()).y;
+          const m = new AnimationMixer(rig);
+          m.clipAction(clip).play();
+          const N = 80, dt = clip.duration / N;
+          const track = feet.map(() => [] as Vector3[]);
+          for (let i = 0; i <= N; i++) {
+            m.setTime(i * dt); rig.updateMatrixWorld(true);
+            feet.forEach((f, k) => track[k].push(f.getWorldPosition(new Vector3())));
+          }
+          let dist = 0, time = 0;
+          for (const t of track) {
+            const low = Math.min(...t.map((p) => p.y));
+            for (let i = 1; i < t.length; i++) {
+              if (t[i].y < low + tall * 0.012 && t[i - 1].y < low + tall * 0.012) { dist += Math.hypot(t[i].x - t[i - 1].x, t[i].z - t[i - 1].z); time += dt; }
+            }
+          }
+          pace = time > 0 ? dist / time : 0;
+          m.stopAllAction();
+        }
+      }
+      paces.set(name, pace);
+      if (import.meta.env.DEV) console.debug(`pace ${url} ${name} ${pace.toFixed(2)} m/s`);
+      return pace;
+    },
+    /** Plays a walking clip at the rate that matches moving at `speed` metres a second, so the feet do not slide. */
+    move(name: string, speed: number, opts: PlayOptions = {}) {
+      const pace = this.pace(name);
+      const rate = pace > 0.05 ? Math.min(2.2, Math.max(0.45, speed / pace)) : 1;
+      this.play(name, { ...opts, speed: rate });
+    },
     time(name: string) { return actions[name]?.time ?? 0; },
     duration(name: string) { return actions[name]?.getClip().duration ?? 0; },
     reset() { mixer.stopAllAction(); current.current = ""; },
@@ -58,7 +103,7 @@ export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
       });
       return found;
     },
-  }), [actions, mixer, model]);
+  }), [actions, mixer, model, gltf, paces, url]);
 
   return { group, model, api };
 }
