@@ -33,6 +33,7 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
   const wait = useRef(0);
   const hp = useRef(K.health);
   const goal = useRef<P2>({ x: 0, z: 0 });
+  const from = useRef<P2>({ x: 0, z: 0 });     // where it took up the chase: it will not be drawn far from there
   const shove = useRef({ x: 0, z: 0 });
   const stall = useRef(0);
   const detour = useRef({ t: 0, side: 1 });
@@ -150,7 +151,7 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
         go(K.prowl);
         api.move("walk", K.prowl, { fade: 0.4 });
         if (live.caught <= 0 && dist < K.notice * (lit ? 1 : 0.6)) {
-          mode.current = "hunt";
+          mode.current = "hunt"; from.current = { x: p.x, z: p.z };
           if (kind === "dog") sound.growl(); else sound.shriek();
           game.hint(`kin-${kind}`, kind === "dog"
             ? "Dead dogs. Crack the whip (R) when one is close. They will not cross a line of salt (Q)."
@@ -159,7 +160,7 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
         break;
       }
       case "hunt": {
-        if (live.caught > 0 || dist > K.lose) { mode.current = "prowl"; goal.current = haunt(); break; }
+        if (live.caught > 0 || dist > K.lose || Math.hypot(p.x - from.current.x, p.z - from.current.z) > K.leash) { mode.current = "prowl"; goal.current = { ...from.current }; break; }
         const off = steer(dx, dz, K.turn);
         if (!go(K.speed * Math.max(0.3, Math.cos(Math.min(off, Math.PI / 2))))) { mode.current = "blocked"; break; }
         api.move("run", K.speed, { fade: 0.25 });

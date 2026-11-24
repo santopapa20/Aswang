@@ -8,11 +8,11 @@ import "@fontsource/cormorant-garamond/600.css";
 import "@fontsource/cormorant-garamond/500-italic.css";
 import "./styles.css";
 import { live, useGame } from "./game/state";
-import { AMALANHIG, EAT, WHIP } from "./game/data";
+import { AMALANHIG, EAT, KIN, WHIP } from "./game/data";
 
 // While developing, expose the game state so it can be poked from the browser console.
 if (import.meta.env.DEV) {
-  (window as unknown as Record<string, unknown>).__aswang = { live, useGame, tune: { WHIP, AMALANHIG, EAT } };
+  (window as unknown as Record<string, unknown>).__aswang = { live, useGame, tune: { WHIP, AMALANHIG, EAT, KIN } };
   const shot = location.hash.match(/^#shot=([\w.-]+)/);
   if (shot) void import("./devshots").then((m) => m.runShot(shot[1]));
 }
