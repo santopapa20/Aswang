@@ -29,6 +29,7 @@ export function Hud() {
           {panel === "trade" && <Trade />}
           {panel === "bench" && <Bench />}
           {panel === "pause" && <Pause />}
+          {panel && <PanelKeys panel={panel} />}
         </div>
       )}
     </>
@@ -177,8 +178,8 @@ function Play() {
   return (
     <>
       <div className="vignette" />
-      <div className="fear" style={{ opacity: Math.max(fear * 0.85, attacked ? 0.35 : 0, g.hunted ? 0.6 : 0, night ? live.sigbin.drain * 0.9 : 0) }} />
-      <div className="hurt" style={{ opacity: live.hurt * 0.9 }} />
+      <div className={`fear ${g.settings.flashes === "reduced" ? "calm" : ""}`} style={{ opacity: Math.max(fear * 0.85, attacked ? 0.35 : 0, g.hunted ? 0.6 : 0, night ? live.sigbin.drain * 0.9 : 0) }} />
+      <div className="hurt" style={{ opacity: live.hurt * (g.settings.flashes === "reduced" ? 0.35 : 0.9) }} />
       <div className="blackout" style={{ opacity: live.caught > 0 ? Math.min(1, 1.25 - live.caught / 2.6) : 0 }} />
 
       <header className="topbar">
@@ -424,8 +425,40 @@ function WorkOffer({ b }: { b: Bounty }) {
   return <Offer icon="whip" name={`Work for tonight: ${what.toLowerCase()}`} price={`${b.coins} c`} text={`${b.text} Take it, and lay ${b.count === 1 ? "it" : "them"} down tonight.`} off={false} act={() => { g.takeBounty(b.id); g.toast("You take Nong Kadyo's work for tonight.", "good"); }} />;
 }
 
+/**
+ * Keyboard control for any open panel (game-ui-ux): the first thing that can be used is selected when it
+ * opens, the arrow keys move between buttons and sliders in reading order (Left and Right turn a slider
+ * instead), and Enter or Space uses what is selected. Esc and Tab still close panels as before.
+ */
+function PanelKeys({ panel }: { panel: string }) {
+  useEffect(() => {
+    const items = () => [...document.querySelectorAll<HTMLElement>(".hud .panel button:not(:disabled), .hud .panel input")];
+    // select the first thing once the panel is on screen (tried again shortly after, in case it was still drawing)
+    const first = () => { if (!document.activeElement?.closest(".hud .panel")) items()[0]?.focus(); };
+    const ids = [0, 60, 200].map((ms) => setTimeout(first, ms));
+    const down = (e: KeyboardEvent) => {
+      const keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+      if (!keys.includes(e.code)) return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el?.tagName === "INPUT" && (e.code === "ArrowLeft" || e.code === "ArrowRight")) return;   // the slider's own keys
+      const list = items();
+      if (!list.length) return;
+      e.preventDefault();
+      const at = el ? list.indexOf(el) : -1;
+      const next = at < 0 ? 0 : (at + (e.code === "ArrowUp" || e.code === "ArrowLeft" ? -1 : 1) + list.length) % list.length;
+      list[next].focus();
+      list[next].scrollIntoView({ block: "nearest" });
+    };
+    window.addEventListener("keydown", down);
+    return () => { ids.forEach(clearTimeout); window.removeEventListener("keydown", down); };
+  }, [panel]);
+  return null;
+}
+
 function Pause() {
   const g = useGame();
+  const s = g.settings;
+  const shakeName = s.shake >= 1 ? "full" : s.shake > 0 ? "half" : "off";
   return (
     <div className="panel">
       <header><h2>Paused</h2><span><kbd>Esc</kbd> go on</span></header>
@@ -435,8 +468,15 @@ function Pause() {
           <button onClick={() => g.setPanel(null)} className="primary">Go on</button>
           <button onClick={() => g.toggleMute()}>Sound: {g.muted ? "off" : "on"}</button>
           <button onClick={() => g.toggleShadows()}>Lamp shadows: {g.shadows ? "on" : "off"}</button>
+          <button onClick={() => g.setSetting("shake", s.shake >= 1 ? 0.5 : s.shake > 0 ? 0 : 1)}>Screen shake: {shakeName}</button>
+          <button onClick={() => g.setSetting("flashes", s.flashes === "full" ? "reduced" : "full")}>Flashes: {s.flashes}</button>
           <button onClick={() => g.toTitle()}>Leave to the title</button>
         </nav>
+        <div className="volumes">
+          <label>Effects <input type="range" min={0} max={1} step={0.05} value={s.sfx} onChange={(e) => g.setSetting("sfx", Number(e.target.value))} aria-label="Effects volume" /><em>{Math.round(s.sfx * 100)}</em></label>
+          <label>Night sounds <input type="range" min={0} max={1} step={0.05} value={s.ambience} onChange={(e) => g.setSetting("ambience", Number(e.target.value))} aria-label="Night sounds volume" /><em>{Math.round(s.ambience * 100)}</em></label>
+        </div>
+        <p className="fine">Arrow keys move between these, Enter chooses, Left and Right turn a slider.</p>
         <p className="fine">Your progress is kept at each dusk and each morning.</p>
       </section>
     </div>

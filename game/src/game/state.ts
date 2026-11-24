@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Vector3 } from "three";
 import { aCharm, Favour, FavourId, TALES, TaleId, BASE_CARRY, BASE_HEALTH, BLADE, Bounty, RECIPES, RecipeId, WHIP, BOUNTY_OFFERS, Charm, KinKind, TrophyId, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
-import { hidingSpots, home, HUT, OpeningId, START } from "./layout";
+import { hidingSpots, home, HUT, nodes, OpeningId, START } from "./layout";
 import type { Objective } from "./objective";
 import { sound } from "./audio";
 import { ENDINGS, ERRANDS, ErrandId, Form, INTRO, Line, NIGHTS, PACING_DAY, PACING_KNOWS, PACING_TRUSTED, PROOF_TEXT, ROSING_SAYS } from "./story";
@@ -15,6 +15,16 @@ export type Panel = null | "bag" | "trade" | "bench" | "pause";
 export type Toast = { id: number; text: string; tone: "good" | "bad" | "plain" };
 export const SHIRT_SECONDS = 2;
 const SAVE_KEY = "aswang-night-save-v1";
+const SETTINGS_KEY = "aswang-night-settings";
+export type Settings = { shake: number; flashes: "full" | "reduced"; sfx: number; ambience: number };
+const DEFAULT_SETTINGS: Settings = { shake: 1, flashes: "full", sfx: 0.8, ambience: 0.8 };
+function loadSettings(): Settings {
+  try {
+    const d = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") as Partial<Settings>;
+    const unit = (x: unknown, dflt: number) => (typeof x === "number" && x >= 0 && x <= 1 ? x : dflt);
+    return { shake: unit(d.shake, 1), flashes: d.flashes === "reduced" ? "reduced" : "full", sfx: unit(d.sfx, 0.8), ambience: unit(d.ambience, 0.8) };
+  } catch { return { ...DEFAULT_SETTINGS }; }
+}
 
 const emptyBag = (): Record<ItemId, number> => ({ salt: 0, garlic: 0, oil: 0, kindling: 0, tobacco: 0, herbs: 0, coins: 0 });
 const noPerks = (): Record<PerkId, number> => ({ keen: 0, skinner: 0, hardy: 0, lungs: 0, softstep: 0, wick: 0, firmhand: 0, pockets: 0, quickhands: 0, fleet: 0, strongarm: 0, scavenger: 0 });
@@ -40,6 +50,7 @@ const freshRun = () => ({
   /** What he has made at the bench: the itak, salt pouches and garlic strings (counts), bars on the windows,
    *  and the whip's barbs and longer lash. */
   kit: { itak: false, pouch: 0, string: 0, bars: { west: false, east: false }, barbs: false, lash: false },
+  emptied: [] as number[],                     // the sitio's chests, jars and sacks he has emptied: what people left behind does not come back
   tales: [] as TaleId[],                       // the old tales he has found, for the book in the bag
   rosaryDone: false,                           // he found the hilot's rosary for her
   hairGiven: 0,                                // the day he gave Nang Pacing a strand of Rosing's hair (0: never)
@@ -71,6 +82,8 @@ type GameState = ReturnType<typeof freshRun> & ReturnType<typeof freshNight> & {
   runId: number;          // goes up whenever a day or night begins, so characters can reset themselves
   shadows: boolean;
   muted: boolean;
+  /** Player settings, kept between sessions: screen shake (1 full, 0.5 half, 0 off), flashes, and volumes 0..1. */
+  settings: Settings;
   dialogue: Dialogue | null;
   panel: Panel;
   caption: { who: string; text: string; id: number } | null;
@@ -124,6 +137,7 @@ type GameState = ReturnType<typeof freshRun> & ReturnType<typeof freshNight> & {
   /** An old tale found in a chest or a jar. */
   findTale: () => boolean;
   toggleMute: () => void;
+  setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
 };
 
 let ids = 1;
@@ -138,6 +152,7 @@ export const useGame = create<GameState>((set, get) => ({
   runId: 0,
   shadows: false,
   muted: false,
+  settings: loadSettings(),
   dialogue: null,
   panel: null,
   caption: null,
@@ -155,15 +170,15 @@ export const useGame = create<GameState>((set, get) => ({
     get().talk(INTRO);
   },
   continueGame: () => {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return false;
-      const saved = JSON.parse(raw);
-      set((s) => ({ ...freshRun(), ...saved, perks: { ...noPerks(), ...saved.perks }, ...freshNight(), stage: "day", runId: s.runId + 1, dialogue: null, panel: null, caption: null, toasts: [], report: [], ending: null }));
-      placeAtHome();
-      beginClock(NIGHTS[get().night - 1].daySeconds);
-      return true;
-    } catch { return false; }
+    const saved = loadSave();
+    if (!saved) {
+      if (hasSave()) get().toast("The saved game could not be read. It may come from a newer version of the game.", "bad");
+      return false;
+    }
+    set((s) => ({ ...saved, ...freshNight(), stage: "day", runId: s.runId + 1, dialogue: null, panel: null, caption: null, toasts: [], report: [], ending: null }));
+    placeAtHome();
+    beginClock(NIGHTS[get().night - 1].daySeconds);
+    return true;
   },
   startNight: () => {
     const s = get();
@@ -305,7 +320,7 @@ export const useGame = create<GameState>((set, get) => ({
     live.shake = 1;
     if (get().rosing <= 0) get().endNight("dawn");
   },
-  markSearched: (id) => set((s) => ({ searched: [...s.searched, id], tally: { ...s.tally, searched: s.tally.searched + 1 } })),
+  markSearched: (id) => set((s) => ({ searched: [...s.searched, id], emptied: nodes.find((n) => n.id === id)?.rich ? [...s.emptied, id] : s.emptied, tally: { ...s.tally, searched: s.tally.searched + 1 } })),
   pourSalt: (line) => {
     if (!get().spend("salt", 1)) return false;
     set((s) => ({ lines: [...s.lines, line] }));
@@ -393,19 +408,88 @@ export const useGame = create<GameState>((set, get) => ({
     if (met) get().toast("Nong Kadyo's work is done. He will pay in the morning.", "good");
   },
   toggleMute: () => set((s) => ({ muted: !s.muted })),
+  setSetting: (key, value) => set((s) => {
+    const settings = { ...s.settings, [key]: value };
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* private window */ }
+    return { settings };
+  }),
 }));
 
 // ---- helpers ---------------------------------------------------------------------------------
 function beginClock(seconds: number) { live.length = seconds; live.clock = seconds; live.elapsed = 0; }
 function placeAtHome() { live.player.set(home.x + 1.2, 0, home.z + HUT.hz + 2.2); live.facing = 0; }
 export const carried = (s: Pick<GameState, "bag">) => (Object.keys(s.bag) as ItemId[]).reduce((n, k) => n + (ITEMS[k].weighs ? s.bag[k] : 0), 0);
-export const hasSave = () => { try { return !!localStorage.getItem(SAVE_KEY); } catch { return false; } };
-const clearSave = () => { try { localStorage.removeItem(SAVE_KEY); } catch { /* private window */ } };
+// ---- the saved game (save-systems: plain data, a version stamp, a backup, and a check on load) --------
+/** Bump when the shape of the saved run changes, and add a step to MIGRATIONS that brings the old
+ *  shape up to the new one. Version 1 is the first shape, saved before the stamp existed. */
+const SAVE_VERSION = 2;
+const BACKUP_KEY = SAVE_KEY + "-backup";
+type Saved = Record<string, unknown> & { version: number };
+const MIGRATIONS: Record<number, (d: Saved) => Saved> = {
+  // 1 -> 2: health, the bench, the kin's trophies, bounties, favours and tales came in; their defaults are
+  // filled by the merge with a fresh run below, so nothing needs moving
+  1: (d) => d,
+};
+export const hasSave = () => { try { return !!localStorage.getItem(SAVE_KEY) || !!localStorage.getItem(BACKUP_KEY); } catch { return false; } };
+const clearSave = () => { try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(BACKUP_KEY); } catch { /* private window */ } };
 function save() {
   const s = useGame.getState();
-  const keep: Record<string, unknown> = {};
+  const keep: Saved = { version: SAVE_VERSION };
   for (const k of Object.keys(freshRun())) keep[k] = (s as unknown as Record<string, unknown>)[k];
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(keep)); } catch { /* private window */ }
+  try {
+    // the last good save becomes the backup before the new one is written
+    const prev = localStorage.getItem(SAVE_KEY);
+    if (prev) localStorage.setItem(BACKUP_KEY, prev);
+    localStorage.setItem(SAVE_KEY, JSON.stringify(keep));
+  } catch { /* private window, or storage full: the game goes on unsaved */ }
+}
+/** Reads the save (or, if it is damaged, the backup), brings an older one up to date and checks it.
+ *  Null when there is nothing usable, or when it comes from a newer version of the game. */
+export function loadSave(): ReturnType<typeof freshRun> | null {
+  for (const key of [SAVE_KEY, BACKUP_KEY]) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      let d = JSON.parse(raw) as Saved;
+      if (!d || typeof d !== "object") continue;
+      let v = Number.isInteger(d.version) ? d.version : 1;
+      if (v > SAVE_VERSION) return null;                   // from a newer game: refuse rather than half-load
+      while (v < SAVE_VERSION) { d = MIGRATIONS[v](d); v += 1; }
+      const run = checkRun(d);
+      if (run) return run;
+    } catch { /* unreadable: try the backup */ }
+  }
+  return null;
+}
+/** Every field from a fresh run, overlaid with the saved values that make sense; null if the core is broken. */
+function checkRun(d: Saved): ReturnType<typeof freshRun> | null {
+  const fresh = freshRun();
+  const night = Number(d.night);
+  if (!Number.isInteger(night) || night < 1 || night > NIGHTS.length) return null;
+  const num = (x: unknown, lo: number, hi: number, dflt: number) => (typeof x === "number" && Number.isFinite(x) ? Math.max(lo, Math.min(hi, x)) : dflt);
+  const counts = <T extends Record<string, number>>(base: T, x: unknown): T => {
+    const out = { ...base };
+    if (x && typeof x === "object") for (const k of Object.keys(base)) (out as Record<string, number>)[k] = Math.floor(num((x as Record<string, unknown>)[k], 0, 9999, 0));
+    return out;
+  };
+  const savedKit = (d.kit ?? {}) as Partial<typeof fresh.kit>;
+  return {
+    ...fresh,
+    ...(d as Partial<typeof fresh>),
+    night,
+    rosing: Math.round(num(d.rosing, 0, 3, 3)),
+    bag: counts(fresh.bag, d.bag),
+    trophies: counts(fresh.trophies, d.trophies),
+    perks: counts(fresh.perks, d.perks),
+    xp: Math.floor(num(d.xp, 0, 1e7, 0)), level: Math.floor(num(d.level, 1, 99, 1)), points: Math.floor(num(d.points, 0, 99, 0)),
+    kit: { ...fresh.kit, ...savedKit, bars: { ...fresh.kit.bars, ...(savedKit.bars ?? {}) } },
+    charms: Array.isArray(d.charms) ? (d.charms as typeof fresh.charms) : [],
+    worn: Array.isArray(d.worn) ? (d.worn as number[]) : [],
+    bounties: Array.isArray(d.bounties) ? (d.bounties as typeof fresh.bounties) : [],
+    tales: Array.isArray(d.tales) ? (d.tales as typeof fresh.tales) : [],
+    seen: Array.isArray(d.seen) ? (d.seen as string[]) : [],
+    emptied: Array.isArray(d.emptied) ? (d.emptied as number[]) : [],
+  };
 }
 
 /** What his learning and the charms he wears add up to. */
@@ -468,9 +552,20 @@ export function hurt(amount: number) {
     return;
   }
   live.health = Math.max(0, live.health - amount * (1 - mods(s).guard));
-  live.hurt = 1; live.shake = Math.max(live.shake, 0.55); sound.hurt();
+  live.hurt = 1; live.shake = Math.max(live.shake, 0.55); sound.hurt(); hitStop(0.08);
   if (live.health <= 0) catchPlayer();
 }
+/**
+ * Hit-stop: the world all but stops for a moment on an impact, so the blow reads (game-feel). Frames
+ * keep coming; every gameplay step is scaled by `live.timeScale` (see `step`), which the camera sets
+ * from `live.freeze` in real time. A stop asked for while one is running is skipped, not stacked.
+ */
+export function hitStop(seconds: number) {
+  if (live.freeze > 0) return;
+  live.freeze = seconds;
+}
+/** One frame's game time: capped against stalls, and slowed during a hit-stop. */
+export const step = (rawDt: number) => Math.min(rawDt, 0.1) * live.timeScale;
 /** Something has him. He goes down, and the rest of the night is lost. */
 export function catchPlayer() {
   if (live.caught > 0 || useGame.getState().stage !== "night") return;
@@ -516,6 +611,8 @@ export const live = {
   /** The roaming kin (Kin.tsx): each slot's state, and how many of each kind have come out tonight. */
   kin: { dog: [0, 1].map(() => ({ mode: "away", x: 0, z: 0, hp: 1 })), crawler: [0].map(() => ({ mode: "away", x: 0, z: 0, hp: 1 })) },
   kinOut: { dog: 0, crawler: 0 },
+  freeze: 0,               // real seconds left of a hit-stop
+  timeScale: 1,            // how fast the game runs this frame: 1, or nearly 0 during a hit-stop
   itakWait: 0,             // seconds until the itak can strike again
   slash: false,            // he has just struck with the itak (the creatures listen for it, like the whip)
   saltThrow: false,        // he has just thrown a salt pouch

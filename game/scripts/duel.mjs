@@ -81,7 +81,7 @@ for (const setup of setups) {
         const ready = L.whipWait <= 0 && L.stamina > 0.2 && G().hasWhip;
         const away = [-dx / d, -dz / d];
         let want = [];
-        engaged = engaged || up.some((x) => x.mode === "hunt" || x.mode === "bite" || x.mode === "grab");
+        engaged = engaged || up.some((x) => x.mode === "alert" || x.mode === "hunt" || x.mode === "bite" || x.mode === "grab");   // alert: it has stopped and growled, he reacts
         if (!engaged) want = dirKeys(dx / d, dz / d);          // walk up to it until it notices him
         else if (ready && d < data.WHIP.range - 0.3) crack();
         else if (style === "kite" && !ready && d < 4) want = [...dirKeys(...away), ...(d < 2.8 && L.stamina > 0.35 ? ["ShiftLeft"] : [])];

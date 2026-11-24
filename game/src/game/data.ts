@@ -99,18 +99,18 @@ export const TALE_CHANCE = 0.55;     // chance a chest or a jar holds a page, wh
 export type Bounty = { id: number; kind: KinKind; count: number; got: number; coins: number; xp: number; text: string; night: number; state: "offered" | "taken" | "done" };
 /** What he asks for on the day before each night. Each can be done with what comes out that night. */
 export const BOUNTY_OFFERS: Record<number, Pick<Bounty, "kind" | "count" | "coins" | "xp" | "text">[]> = {
-  2: [{ kind: "dog", count: 2, coins: 12, xp: 40, text: "Two dogs run the north field at night. Dead things wearing dogs. Lay them both down." }],
+  2: [{ kind: "dog", count: 2, coins: 10, xp: 40, text: "Two dogs run the north field at night. Dead things wearing dogs. Lay them both down." }],
   3: [
-    { kind: "dog", count: 2, coins: 12, xp: 40, text: "The dogs are back. Two of them again." },
-    { kind: "crawler", count: 1, coins: 16, xp: 55, text: "Something goes on all fours by the shut house. Keep your lamp on it: in the dark the whip slides off." },
+    { kind: "dog", count: 2, coins: 10, xp: 40, text: "The dogs are back. Two of them again." },
+    { kind: "crawler", count: 1, coins: 14, xp: 55, text: "Something goes on all fours by the shut house. Keep your lamp on it: in the dark the whip slides off." },
   ],
   4: [
-    { kind: "dog", count: 3, coins: 18, xp: 55, text: "Three dogs tonight. They hunt in pairs; a line of salt stops them." },
-    { kind: "crawler", count: 1, coins: 16, xp: 55, text: "The one on all fours. Lamp on it, then the whip." },
+    { kind: "dog", count: 3, coins: 15, xp: 55, text: "Three dogs tonight. They hunt in pairs; a line of salt stops them." },
+    { kind: "crawler", count: 1, coins: 14, xp: 55, text: "The one on all fours. Lamp on it, then the whip." },
   ],
   5: [
-    { kind: "crawler", count: 2, coins: 26, xp: 75, text: "She has called her kin for the birth. Two crawlers. They must not reach the house." },
-    { kind: "dog", count: 3, coins: 18, xp: 55, text: "And the dogs. Three." },
+    { kind: "crawler", count: 2, coins: 22, xp: 75, text: "She has called her kin for the birth. Two crawlers. They must not reach the house." },
+    { kind: "dog", count: 3, coins: 15, xp: 55, text: "And the dogs. Three." },
   ],
 };
 
@@ -219,7 +219,7 @@ export const xpForLevel = (level: number) => 40 + level * 35;
 export const SHOP: { item: ItemId; cost: number }[] = [
   { item: "salt", cost: 3 }, { item: "garlic", cost: 4 }, { item: "oil", cost: 3 }, { item: "kindling", cost: 2 }, { item: "tobacco", cost: 9 },
 ];
-export const HERB_PRICE = 2;        // centavos he gives for one bundle of herbs
+export const HERB_PRICE = 3;        // centavos he gives for one bundle of herbs
 export const CHARM_HERBS = 6;       // herbs he binds into one charm
 export const WHIP_COST = 30;
 export const TONIC = { herbs: 4, coins: 6 };  // Rosing's tonic: gives back one of her strength, once a day

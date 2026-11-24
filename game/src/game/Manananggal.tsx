@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Mesh, MeshBasicMaterial, Vector3 } from "three";
-import { catchPlayer, live, rnd, useGame } from "./state";
+import { catchPlayer, live, rnd, useGame, step } from "./state";
 import { hidingSpots, home, HUT } from "./layout";
 import { ROSING_SAYS } from "./story";
 import { useCharacter } from "./useCharacter";
@@ -45,7 +45,7 @@ export function Manananggal() {
   }, [runId, api]);
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();

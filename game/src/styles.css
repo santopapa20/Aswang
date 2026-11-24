@@ -167,6 +167,12 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0.08em 0.5em 0.12em; mar
 .panel { pointer-events: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, 92vw); max-height: 88vh; overflow: auto; padding: 22px 26px 24px; background: var(--sheet); border: 1px solid var(--edge); border-radius: 4px; box-shadow: 0 30px 90px rgba(0, 0, 0, 0.8), 0 0 0 100vmax rgba(3, 3, 6, 0.8); animation: pop 0.25s ease-out; }
 @keyframes pop { from { opacity: 0; transform: translate(-50%, -48%); } }
 .panel.wide { width: min(1160px, 96vw); }
+/* the selected thing in a panel, for keyboard play: distinct from the mouse's hover */
+.hud .panel button:focus-visible, .hud .panel input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.hud .panel button:focus { outline: 2px solid var(--gold); outline-offset: 2px; }
+.volumes { display: grid; gap: 8px; margin-top: 14px; } .volumes label { display: grid; grid-template-columns: 120px 1fr 36px; align-items: center; gap: 10px; font-size: 16px; color: var(--soft); }
+.volumes input { accent-color: var(--gold); } .volumes em { font-style: normal; text-align: right; color: var(--ink); }
+.fear.calm { animation: none; }
 .panel.shop { width: min(900px, 94vw); } .offers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .offers .perk { margin: 0; }
 .panel.wide .perk { padding: 7px 12px 8px; margin-bottom: 5px; } .panel.wide .perk b { font-size: 17px; } .panel.wide .row { padding: 6px 0; }
 .panel header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 13px; margin-bottom: 16px; border-bottom: 1px solid var(--hair); }

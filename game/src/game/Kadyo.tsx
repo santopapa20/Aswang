@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, Mesh, MeshBasicMaterial, Object3D, Quaternion, Sprite, SpriteMaterial, Vector3 } from "three";
-import { live, useGame } from "./state";
+import { live, useGame, step } from "./state";
 import { kadyoSpot } from "./layout";
 import { useCharacter } from "./useCharacter";
 import { glowTexture } from "./Atmosphere";
@@ -30,7 +30,7 @@ export function Kadyo() {
   useEffect(() => { api.reset(); api.play("idle", { fade: 0 }); }, [api]);
 
   useFrame(({ clock }, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();

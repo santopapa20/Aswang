@@ -6,10 +6,10 @@
  * The one that matters most is the tiktik: the aswang's clicking is LOUD when she is far and FAINT
  * when she is near.
  */
-type Ambience = { dark: number; tiktik: number | null; scratch: boolean; fear: number; smoke: boolean; muted: boolean };
+type Ambience = { dark: number; tiktik: number | null; scratch: boolean; fear: number; smoke: boolean; muted: boolean; sfx: number; ambience: number };
 
 let ctx: AudioContext | null = null;
-let master: GainNode, hiss: AudioBuffer;
+let master: GainNode, sfx: GainNode, amb: GainNode, hiss: AudioBuffer;
 let crickets: GainNode, wind: GainNode, fire: GainNode;
 const timers = { tik: 0.8, burst: 0, scratch: 0, heart: 0, bird: 3 };
 
@@ -20,7 +20,7 @@ function noise(seconds: number) {
   return b;
 }
 /** A short burst of filtered hiss: the building block for clicks, steps, scratches and breath. */
-function burst(freq: number, q: number, volume: number, seconds: number, type: BiquadFilterType = "bandpass", when = 0) {
+function burst(freq: number, q: number, volume: number, seconds: number, type: BiquadFilterType = "bandpass", when = 0, bus?: GainNode) {
   if (!ctx) return;
   const t = ctx.currentTime + when;
   const src = ctx.createBufferSource(); src.buffer = hiss; src.loop = true;
@@ -28,11 +28,11 @@ function burst(freq: number, q: number, volume: number, seconds: number, type: B
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), t + 0.004);
   g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
-  src.connect(f).connect(g).connect(master);
+  src.connect(f).connect(g).connect(bus ?? sfx);
   src.start(t, Math.random() * 1.5); src.stop(t + seconds + 0.05);
 }
 /** A tone that slides from one pitch to another. */
-function tone(type: OscillatorType, from: number, to: number, volume: number, seconds: number, when = 0, filter = 0) {
+function tone(type: OscillatorType, from: number, to: number, volume: number, seconds: number, when = 0, filter = 0, bus?: GainNode) {
   if (!ctx) return;
   const t = ctx.currentTime + when;
   const o = ctx.createOscillator(); o.type = type;
@@ -41,14 +41,14 @@ function tone(type: OscillatorType, from: number, to: number, volume: number, se
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(volume, t + Math.min(0.05, seconds * 0.3));
   g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
   if (filter) { const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = filter; f.Q.value = 2.5; o.connect(f).connect(g); } else o.connect(g);
-  g.connect(master);
+  g.connect(bus ?? sfx);
   o.start(t); o.stop(t + seconds + 0.05);
 }
 function loopHiss(freq: number, type: BiquadFilterType, q: number) {
   const src = ctx!.createBufferSource(); src.buffer = hiss; src.loop = true;
   const f = ctx!.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
   const g = ctx!.createGain(); g.gain.value = 0;
-  src.connect(f).connect(g).connect(master); src.start();
+  src.connect(f).connect(g).connect(amb); src.start();
   return g;
 }
 
@@ -58,11 +58,15 @@ export const sound = {
     if (ctx) { if (ctx.state === "suspended") void ctx.resume(); return; }
     try { ctx = new AudioContext(); } catch { return; }
     master = ctx.createGain(); master.gain.value = 0.7; master.connect(ctx.destination);
+    // two buses under the master: the effects (everything the rules of the night are told by) and the
+    // ambience (wind, crickets, birds, the fire); the settings sliders set each
+    sfx = ctx.createGain(); sfx.connect(master);
+    amb = ctx.createGain(); amb.connect(master);
     hiss = noise(2);
     wind = loopHiss(320, "lowpass", 0.6);
     fire = loopHiss(900, "bandpass", 0.8);
     // crickets: a high tone chopped fast, breathing slowly
-    crickets = ctx.createGain(); crickets.gain.value = 0; crickets.connect(master);
+    crickets = ctx.createGain(); crickets.gain.value = 0; crickets.connect(amb);
     for (const [f, rate] of [[4300, 23], [5100, 31]]) {
       const o = ctx.createOscillator(); o.frequency.value = f;
       const chop = ctx.createGain(); chop.gain.value = 0.5;
@@ -77,6 +81,9 @@ export const sound = {
   update(dt: number, a: Ambience) {
     if (!ctx) return;
     master.gain.setTargetAtTime(a.muted ? 0 : 0.7, ctx.currentTime, 0.1);
+    // a slider's 0..1 squared, so the change is spread over its whole travel (audio-design)
+    sfx.gain.setTargetAtTime(a.sfx * a.sfx, ctx.currentTime, 0.05);
+    amb.gain.setTargetAtTime(a.ambience * a.ambience, ctx.currentTime, 0.05);
     crickets.gain.setTargetAtTime(0.012 * a.dark * (a.tiktik !== null && a.tiktik < 9 ? 0.15 : 1), ctx.currentTime, 0.6);   // they go quiet when she is close
     wind.gain.setTargetAtTime(0.05 + 0.04 * Math.sin(ctx.currentTime * 0.23), ctx.currentTime, 0.5);
     fire.gain.setTargetAtTime(a.smoke ? 0.03 : 0, ctx.currentTime, 0.4);
@@ -100,7 +107,7 @@ export const sound = {
     }
     if (a.dark < 0.4) {
       timers.bird -= dt;
-      if (timers.bird <= 0) { timers.bird = 2 + Math.random() * 6; const f = 2400 + Math.random() * 1600; tone("sine", f, f * 1.25, 0.03, 0.09); tone("sine", f * 1.2, f * 0.95, 0.03, 0.11, 0.14); }
+      if (timers.bird <= 0) { timers.bird = 2 + Math.random() * 6; const f = 2400 + Math.random() * 1600; tone("sine", f, f * 1.25, 0.03, 0.09, 0, 0, amb); tone("sine", f * 1.2, f * 0.95, 0.03, 0.11, 0.14, 0, amb); }
     }
   },
 

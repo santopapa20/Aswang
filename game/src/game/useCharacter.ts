@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useAnimations, useGLTF } from "@react-three/drei";
-import { useGame } from "./state";
+import { live, useGame } from "./state";
 import { AnimationAction, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, Mesh, Object3D, Vector3 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 export type PlayOptions = { fade?: number; once?: boolean; speed?: number };
+
+/** Footstep speeds measured so far, by model and clip: shared by every copy of a character, so the
+ *  measurement (a copy of the skeleton stepped through the clip) is done once, not once per copy. */
+const PACES = new Map<string, number>();
 
 /**
  * Loads an animated character and gives back a `play(clip)` that cross-fades between its clips.
@@ -26,10 +30,9 @@ export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
   }, [model, shadows]);
 
   const { actions, mixer } = useAnimations(gltf.animations, group);
-  const paces = useMemo(() => new Map<string, number>(), [gltf]);
   const current = useRef("");
   // while the game waits (a panel is open, or someone is speaking) everyone but the player holds still
-  useFrame(() => { const g = useGame.getState(); mixer.timeScale = holdsStill && (g.panel || g.dialogue) ? 0 : 1; });
+  useFrame(() => { const g = useGame.getState(); mixer.timeScale = (holdsStill && (g.panel || g.dialogue) ? 0 : 1) * live.timeScale; });
 
   const api = useMemo(() => ({
     play(name: string, opts: PlayOptions = {}) {
@@ -53,7 +56,8 @@ export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
      * has no feet to follow. Measured once per clip.
      */
     pace(name: string) {
-      if (paces.has(name)) return paces.get(name)!;
+      const key = `${url}|${name}`;
+      if (PACES.has(key)) return PACES.get(key)!;
       const clip = gltf.animations.find((a) => a.name === name);
       let pace = 0;
       if (clip) {
@@ -81,7 +85,7 @@ export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
           m.stopAllAction();
         }
       }
-      paces.set(name, pace);
+      PACES.set(key, pace);
       if (import.meta.env.DEV) console.debug(`pace ${url} ${name} ${pace.toFixed(2)} m/s`);
       return pace;
     },
@@ -103,7 +107,15 @@ export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
       });
       return found;
     },
-  }), [actions, mixer, model, gltf, paces, url]);
+  }), [actions, mixer, model, gltf, url]);
+
+  // measure the walking clips' footstep speeds while the game is loading, a little apart, rather than the
+  // first time each one is used, which stalled the game for a moment when a creature first broke into a run
+  useEffect(() => {
+    const names = gltf.animations.map((c) => c.name).filter((n) => /walk|run|sneak/i.test(n));
+    const ids = names.map((n, i) => setTimeout(() => api.pace(n), 1200 + i * 250 + Math.random() * 600));
+    return () => ids.forEach(clearTimeout);
+  }, [api, gltf]);
 
   return { group, model, api };
 }

@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Mesh, MeshBasicMaterial, PointLight, Vector3 } from "three";
-import { live, useGame } from "./state";
+import { live, useGame, step } from "./state";
 import { balete, doorOf, hidingSpots, home, house, kapreSpot, P2, pushOut, well } from "./layout";
 import { useCharacter } from "./useCharacter";
 import { sound } from "./audio";
@@ -36,7 +36,7 @@ export function Kapre() {
   }, [runId, api]);
 
   useFrame(({ clock }, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
@@ -153,7 +153,7 @@ export function Pacing() {
   }, [runId, api]);
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
@@ -205,7 +205,7 @@ export function Director() {
   useEffect(() => { said.current = new Set(); }, [runId]);
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const game = useGame.getState();
     const night = game.stage === "night", day = game.stage === "day";
     const once = (key: string, fn: () => void) => { if (!said.current.has(key)) { said.current.add(key); fn(); } };
@@ -241,7 +241,6 @@ export function Director() {
     // how light it is: full day, a dusk that falls over the last stretch of the day, night, and a grey dawn
     const want = day ? Math.min(1, 0.12 + live.clock / 30) : night ? (live.clock < 28 ? 0.42 * (1 - live.clock / 28) : 0) : game.stage === "title" ? 0.16 : 0.45;
     live.daylight += (want - live.daylight) * Math.min(1, dt * 1.2);
-    live.shake = Math.max(0, live.shake - dt * 1.4);
 
     const hearing = night && live.aswang.active && live.caught <= 0;
     sound.update(dt, {
@@ -250,7 +249,7 @@ export function Director() {
       scratch: night && live.breach > 0,
       fear: Math.max(hearing ? Math.max(0, 1 - live.aswang.near / 9) : 0, night ? live.sigbin.drain : 0),
       smoke: live.smoke > 0,
-      muted: game.muted || game.stage === "title",
+      muted: game.muted || game.stage === "title", sfx: game.settings.sfx, ambience: game.settings.ambience,
     });
     live.whipCrack = false; live.struck = false; live.slash = false; live.saltThrow = false;
   });

@@ -476,6 +476,7 @@ function Dressing() {
 /** Chests, jars, sacks, fronds and herbs. A searched one looks searched. */
 function LootNodes() {
   const searched = useGame((s) => s.searched);
+  const emptied = useGame((s) => s.emptied);
   const count = (kind: string) => nodes.filter((n) => n.kind === kind).length;
   const model: Record<string, Object3D[]> = {
     baul: useProp("/models/chest.glb", 0.95, "x", count("baul"), false),
@@ -488,7 +489,7 @@ function LootNodes() {
   return (
     <>
       {nodes.map((n) => {
-        const done = searched.includes(n.id);
+        const done = searched.includes(n.id) || emptied.includes(n.id);
         const i = (nth[n.kind] = (nth[n.kind] ?? -1) + 1);
         // searched: firewood and herbs are taken; a pot or sack lies on its side; a chest is left askew
         const gone = done && (n.kind === "kindling" || n.kind === "herbs");

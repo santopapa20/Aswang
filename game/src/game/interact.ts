@@ -41,7 +41,7 @@ export function interactables(g: Game): Interactable[] {
 
   // ---- things to search
   for (const n of nodes) {
-    if (g.searched.includes(n.id)) continue;
+    if (g.searched.includes(n.id) || g.emptied.includes(n.id)) continue;      // the land's herbs and fronds grow back each day; what people left in the sitio does not
     out.push({
       key: `node${n.id}`, button: "E", x: n.x, z: n.z, r: 1.35, label: NODE[n.kind].verb, hold: NODE[n.kind].seconds * m.search,
       act: () => {

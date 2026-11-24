@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Mesh, MeshStandardMaterial, Vector3 } from "three";
-import { crossesLine, hurt, live, mods, rnd, useGame } from "./state";
+import { crossesLine, hitStop, hurt, live, mods, rnd, useGame, step } from "./state";
 import { KIN, KIN_AGAIN, KIN_AT_ONCE, KIN_FIRST, KIN_NIGHTS, KinKind, TROPHIES } from "./data";
 import { strikesAt } from "./combat";
 import { kinRoam, kinSolids, P2, pushOut } from "./layout";
@@ -9,7 +9,8 @@ import { useCharacter } from "./useCharacter";
 import { HealthBar, HealthBarHandle } from "./HealthBar";
 import { sound } from "./audio";
 
-type Mode = "away" | "prowl" | "hunt" | "blocked" | "bite" | "back" | "hit" | "dying" | "dead";
+type Mode = "away" | "prowl" | "alert" | "hunt" | "blocked" | "bite" | "back" | "hit" | "dying" | "dead";
+const ALERT = 0.45;                  // seconds it stands and stares on noticing him before it comes: time to react (game-ai)
 const BITE = 0.7, BITE_AT = 0.4;     // the bite clip's length, and how far into it the jaws close
 
 /**
@@ -42,16 +43,22 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
 
   useEffect(() => { mode.current = "away"; wait.current = 0; solid.r = 0; api.reset(); api.play("idle", { fade: 0 }); }, [runId, api, solid]);
   // a faint grave-light in the skin, so the shape can be made out in the dark before the lamp finds it
+  // (each copy gets its own materials, so a blow lights up the one struck and not its twin)
+  const skins = useRef<MeshStandardMaterial[]>([]);
+  const flash = useRef(0);
   useEffect(() => {
+    skins.current = [];
     model.traverse((o) => {
-      const m = (o as Mesh).material as MeshStandardMaterial | undefined;
-      if (!(o as Mesh).isMesh || !m?.isMeshStandardMaterial) return;
-      m.emissive = new Color("#a8b39a"); m.emissiveMap = m.map; m.emissiveIntensity = 0.22; m.needsUpdate = true;
+      const mesh = o as Mesh, m = mesh.material as MeshStandardMaterial | undefined;
+      if (!mesh.isMesh || !m?.isMeshStandardMaterial) return;
+      const own = m.clone();
+      own.emissive = new Color("#a8b39a"); own.emissiveMap = own.map; own.emissiveIntensity = 0.22;
+      mesh.material = own; skins.current.push(own);
     });
   }, [model]);
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
@@ -105,7 +112,7 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
     };
     const die = () => {
       mode.current = "dying"; timer.current = 0.5;
-      sound.whoosh();
+      sound.whoosh(); hitStop(0.12); flash.current = 1;
       const coins = game.add("coins", K.coins[0] + Math.floor(rnd() * (K.coins[1] - K.coins[0] + 1)));
       const two = rnd() < mods(game).skinner;
       game.set({ trophies: { ...game.trophies, [K.trophy]: game.trophies[K.trophy] + (two ? 2 : 1) } });
@@ -119,13 +126,14 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
       const dark = K.unlit > 0 && !lit;
       if (dark) game.hint(`dark-${kind}`, "In the dark your blows slide off it. Keep your lamp lit (F) when you strike.");
       hp.current -= blow.damage * (dark ? 1 - K.unlit : 1);
-      sound.strike(); game.gainXp(3);
+      sound.strike(); game.gainXp(3); flash.current = 1;
+      if (hp.current > 0) hitStop(0.06);
       if (hp.current <= 0) { die(); return; }
       const n = Math.max(dist, 0.01);
       shove.current = { x: (-dx / n) * 2 * K.knockback, z: (-dz / n) * 2 * K.knockback };
       mode.current = "hit"; timer.current = Math.max(K.stagger, blow.stun); api.play("hit", { once: true, fade: 0.08 });
     };
-    const awake = mode.current === "prowl" || mode.current === "hunt" || mode.current === "blocked" || mode.current === "bite" || mode.current === "back";
+    const awake = mode.current === "prowl" || mode.current === "alert" || mode.current === "hunt" || mode.current === "blocked" || mode.current === "bite" || mode.current === "back";
     if (awake && (blow.damage > 0 || blow.stun > 0)) struck();
 
     switch (mode.current) {
@@ -155,7 +163,7 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
         go(K.prowl);
         api.move("walk", K.prowl, { fade: 0.4 });
         if (live.caught <= 0 && dist < K.notice * (lit ? 1 : 0.6)) {
-          mode.current = "hunt"; from.current = { x: p.x, z: p.z };
+          mode.current = "alert"; timer.current = ALERT; from.current = { x: p.x, z: p.z };
           if (kind === "dog") sound.growl(); else sound.shriek();
           game.hint(`kin-${kind}`, kind === "dog"
             ? "Dead dogs. Crack the whip (R) when one is close. They will not cross a line of salt (Q)."
@@ -163,6 +171,12 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
         }
         break;
       }
+      case "alert":
+        // it has seen him: it stops dead and turns to him, then comes
+        api.play("idle", { fade: 0.15 });
+        turnToward(dx, dz, K.turn * 1.5);
+        if (timer.current <= 0) mode.current = "hunt";
+        break;
       case "hunt": {
         if (live.caught > 0 || dist > K.lose || Math.hypot(p.x - from.current.x, p.z - from.current.z) > K.leash) { mode.current = "prowl"; goal.current = { ...from.current }; break; }
         const off = steer(dx, dz, K.turn);
@@ -217,6 +231,9 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
     solid.x = p.x; solid.z = p.z; solid.r = standing ? 0.3 : 0;
     me.mode = mode.current; me.x = p.x; me.z = p.z; me.hp = hp.current / K.health;
     bar.current?.set(p.x, K.bar, p.z, hp.current / K.health, standing && hp.current < K.health);
+    // the struck flash, fading in real time
+    flash.current = Math.max(0, flash.current - Math.min(rawDt, 0.1) * 6);
+    for (const m of skins.current) m.emissiveIntensity = 0.22 + flash.current * (game.settings.flashes === "reduced" ? 0.4 : 1.6);
   });
 
   return (

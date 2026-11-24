@@ -3,8 +3,9 @@
  * all five nights by script, testing each mechanic and item, and prints a pass/fail list on screen.
  * It is not a substitute for a person playing: it cannot judge feel, difficulty, sound or looks.
  */
-import { hurt, live, mods, useGame } from "./game/state";
-import { benchSpot, doorOf, firePit, hidingSpots, hilotSpot, home, house, well } from "./game/layout";
+import { hitStop, hurt, live, loadSave, mods, useGame } from "./game/state";
+import { HERB_PRICE } from "./game/data";
+import { benchSpot, doorOf, firePit, hidingSpots, hilotSpot, home, house, nodes, well } from "./game/layout";
 import { BALETE_ROOTS } from "./game/interact";
 
 type Dev = { run: (seconds: number, fps?: number) => void; show: () => void };
@@ -83,7 +84,7 @@ async function play() {
   const salt0 = G().bag.salt; await click("Salt");
   check("buying salt costs 3 centavos", G().bag.salt === salt0 + 1 && G().bag.coins === 37, G().bag);
   await click("Sell a bundle");
-  check("selling herbs pays", G().bag.herbs === 11 && G().bag.coins === 39, G().bag);
+  check("selling herbs pays", G().bag.herbs === 11 && G().bag.coins === 37 + HERB_PRICE, G().bag);
   await click("charm bound");
   check("a charm is bound from herbs and worn", G().charms.length === 1 && G().worn.length === 1 && G().bag.herbs === 5, G().charms);
   G().add("coins", 30); await click("whip");
@@ -357,6 +358,35 @@ async function play() {
   check("found in the empty house and given back: a charm for it", G().rosaryDone && G().charms.length === charms0 + 1, { done: G().rosaryDone, charms: G().charms.length });
   const xp0 = G().xp + G().level * 1000; G().findTale();
   check("an old tale goes in the book", G().tales.length === 1 && G().xp + G().level * 1000 > xp0, G().tales);
+
+  // ---------- the fix pass: one-time sitio loot, hit-stop, keyboard panels, the saved game
+  const chest = nodes.find((n) => n.rich && n.kind === "baul")!;
+  G().set({ stage: "day" }); at(chest.x, chest.z + 0.9); hold("KeyE", 3.2);
+  G().set({ searched: [] });                           // (as on the next day)
+  check("the sitio's chests are emptied once, for good", G().emptied.includes(chest.id) && !prompt("E").includes("chest"), { emptied: G().emptied, prompt: prompt("E") });
+  G().set({ stage: "night" }); live.freeze = 0; hitStop(0.1); dev().run(0.05, 60);
+  const slow = live.timeScale; run(0.3);
+  check("a hit-stop slows the game for a moment, then lets go", slow < 0.2 && live.timeScale === 1 && live.freeze === 0, { slow, after: live.timeScale });
+  G().set({ stage: "day" }); G().setPanel("pause"); await sleep(350);
+  const first = document.activeElement?.textContent ?? "";
+  window.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" })); await sleep(30);
+  const second = document.activeElement?.textContent ?? "";
+  check("panels work from the keyboard: something is selected on opening, and the arrows move", first.includes("Go on") && second.includes("Sound"), { first, second });
+  G().setPanel(null);
+  // the saved game: versioned, backed up, and a damaged save falls back to the backup
+  G().set({ night: 3, stage: "morning" }); G().nextDay(); await sleep(200); await skipTalk();
+  G().set({ stage: "morning" }); G().nextDay(); await sleep(200); await skipTalk();
+  const good = JSON.parse(localStorage.getItem("aswang-night-save-v1") ?? "{}");
+  check("the save carries a version stamp and a backup", good.version === 2 && !!localStorage.getItem("aswang-night-save-v1-backup"), { version: good.version });
+  localStorage.setItem("aswang-night-save-v1", "{\"version\": 2, \"nig");
+  const back = loadSave();
+  check("a damaged save falls back to the backup", !!back && back.night === 4, back?.night);
+  localStorage.setItem("aswang-night-save-v1", JSON.stringify({ ...good, version: 99 }));
+  localStorage.removeItem("aswang-night-save-v1-backup");
+  check("a save from a newer game is refused, not half-loaded", loadSave() === null);
+  localStorage.setItem("aswang-night-save-v1", JSON.stringify({ ...good, version: undefined, night: 2, bag: { coins: -5, salt: "x" } }));
+  const old = loadSave();
+  check("an old unstamped save loads, with bad numbers put right", !!old && old.night === 2 && old.bag.coins === 0 && old.bag.salt === 0 && old.kit.itak === false, old?.bag);
 
 }
 

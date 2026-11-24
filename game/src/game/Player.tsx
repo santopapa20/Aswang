@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Mesh, PointLight, Vector3 } from "three";
-import { live, mods, SHIRT_SECONDS, useGame } from "./state";
+import { live, mods, SHIRT_SECONDS, useGame, step as frameStep } from "./state";
 import { pushOut } from "./layout";
 import { actions, moveAxis, held, toggles } from "./input";
 import { interactables, Interactable } from "./interact";
@@ -43,7 +43,7 @@ export function Player() {
   }, [runId, api]);
 
   useFrame((state, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = frameStep(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();

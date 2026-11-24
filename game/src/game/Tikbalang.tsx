@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Vector3 } from "three";
-import { live, useGame } from "./state";
+import { live, useGame, step } from "./state";
 import { trail } from "./layout";
 import { useCharacter } from "./useCharacter";
 import { sound } from "./audio";
@@ -35,7 +35,7 @@ export function Tikbalang() {
   }, [runId, api]);
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();

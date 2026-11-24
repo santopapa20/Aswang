@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Vector3 } from "three";
-import { catchPlayer, crossesLine, live, rnd, useGame } from "./state";
+import { catchPlayer, crossesLine, live, rnd, useGame, step } from "./state";
 import { home, lurkPoints, Opening, openings, P2, pushOut } from "./layout";
 import { ROSING_SAYS } from "./story";
 import { useCharacter } from "./useCharacter";
@@ -46,7 +46,7 @@ export function Aswang() {
   }, [runId, api]);
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();

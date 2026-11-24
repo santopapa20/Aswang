@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Mesh, MeshStandardMaterial, Vector3 } from "three";
-import { crossesLine, hurt, live, rnd, useGame } from "./state";
+import { crossesLine, hitStop, hurt, live, rnd, useGame, step } from "./state";
 import { AMALANHIG } from "./data";
 import { strikesAt } from "./combat";
 import { HealthBar, HealthBarHandle } from "./HealthBar";
@@ -49,16 +49,22 @@ export function Amalanhig({ index }: { index: number }) {
   };
   useEffect(() => { reset(); api.reset(); api.play("idle", { fade: 0 }); }, [runId, api]);   // eslint-disable-line react-hooks/exhaustive-deps
   // grave-pale: its own skin gives off a faint, sick light, so it can be made out in the dark before the lamp finds it
+  // (each copy gets its own materials, so a blow lights up the one struck and not its twin)
+  const skins = useRef<MeshStandardMaterial[]>([]);
+  const flash = useRef(0);
   useEffect(() => {
+    skins.current = [];
     model.traverse((o) => {
-      const m = (o as Mesh).material as MeshStandardMaterial | undefined;
-      if (!(o as Mesh).isMesh || !m?.isMeshStandardMaterial) return;
-      m.emissive = new Color("#9fb59a"); m.emissiveMap = m.map; m.emissiveIntensity = 0.32; m.needsUpdate = true;
+      const mesh = o as Mesh, m = mesh.material as MeshStandardMaterial | undefined;
+      if (!mesh.isMesh || !m?.isMeshStandardMaterial) return;
+      const own = m.clone();
+      own.emissive = new Color("#9fb59a"); own.emissiveMap = own.map; own.emissiveIntensity = 0.32;
+      mesh.material = own; skins.current.push(own);
     });
   }, [model]);
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
@@ -100,7 +106,8 @@ export function Amalanhig({ index }: { index: number }) {
       if (blow.damage <= 0) { mode.current = "hit"; timer.current = blow.stun; shove.current = { x: 0, z: 0 }; api.play("hit", { once: true, fade: 0.08 }); return; }   // salt in its face
       hits.current += 1;
       hp.current -= blow.damage;
-      sound.strike(); game.gainXp(4);
+      sound.strike(); game.gainXp(4); flash.current = 1;
+      hitStop(hp.current <= 0 ? 0.12 : 0.06);
       const n = Math.max(dist, 0.01);
       shove.current = { x: (-dx / n) * 2 * A.knockback, z: (-dz / n) * 2 * A.knockback };     // (it eases out over about that far)
       if (hp.current <= 0) { mode.current = "fall"; timer.current = FALL; api.play("hit", { once: true, fade: 0.1 }); return; }
@@ -221,6 +228,8 @@ export function Amalanhig({ index }: { index: number }) {
     solid.x = p.x; solid.z = p.z; solid.r = standing ? 0.35 : 0;
     me.mode = mode.current; me.x = p.x; me.z = p.z; me.hits = hits.current; me.hp = hp.current / A.health;
     bar.current?.set(p.x, 2.05, p.z, hp.current / A.health, standing && hp.current < A.health);
+    flash.current = Math.max(0, flash.current - Math.min(rawDt, 0.1) * 6);
+    for (const m of skins.current) m.emissiveIntensity = 0.32 + flash.current * (game.settings.flashes === "reduced" ? 0.4 : 1.6);
   });
 
   return (

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Quaternion, Vector3 } from "three";
-import { catchPlayer, crossesLine, live, rnd, useGame } from "./state";
+import { catchPlayer, crossesLine, live, rnd, useGame, step } from "./state";
 import { doorOf, house, pushOut } from "./layout";
 import { useCharacter } from "./useCharacter";
 import { BLADE, POUCH } from "./data";
@@ -48,7 +48,7 @@ export function Sigbin() {
   }, [runId, api]);
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 0.1);
+    const dt = step(rawDt);
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
