@@ -38,3 +38,4 @@ assets/*/source/
 
 # screens captured by game/scripts/shoot.mjs
 game/shots/
+assets/kin/*/source/

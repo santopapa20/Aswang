@@ -1,0 +1,14 @@
+{
+  "_comment": "Zombie dog: joint positions [x, y, z] measured with tools/blender/slice_model.py on dog_turned.blend (dog.blend turned -56.2 degrees by tools/blender/turn_model.py so its head is at -Y; its own units, 0.80 tall at the head, 1.07 long). Left legs only; the right side is mirrored. Used by tools/blender/rig_sigbin.py.",
+  "scale_to_metres": 0.95,
+  "clips": ["idle", "walk", "run", "bite", "hit"],
+  "hips": [0.0, 0.200, 0.560],
+  "spine": [0.0, 0.000, 0.560],
+  "chest": [0.0, -0.220, 0.550],
+  "neck": [0.0, -0.330, 0.620],
+  "head": [0.0, -0.410, 0.700],
+  "head_end": [0.0, -0.535, 0.600],
+  "tail": [[0.0, 0.270, 0.540], [0.0, 0.360, 0.520], [0.0, 0.430, 0.490], [0.0, 0.480, 0.460], [0.0, 0.520, 0.430]],
+  "fore": [[0.100, -0.250, 0.500], [0.130, -0.210, 0.330], [0.120, -0.265, 0.100], [0.130, -0.340, 0.010]],
+  "hind": [[0.090, 0.220, 0.520], [0.150, 0.150, 0.340], [0.170, 0.275, 0.150], [0.190, 0.225, 0.040], [0.200, 0.150, 0.010]]
+}

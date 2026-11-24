@@ -95,6 +95,14 @@ export const hilotSolid: Circle = { x: hilotSpot.x, z: hilotSpot.z, r: 0.3 };
 export const amalanhigGraves: P2[] = [{ x: 106.4, z: 10.3 }, { x: 110.2, z: 10.6 }];
 /** They stop you while they stand (Amalanhig.tsx sets the radius to 0 while one is buried or lying down). */
 export const amalanhigSolids: Circle[] = amalanhigGraves.map((g) => ({ x: g.x, z: g.z, r: 0 }));
+/** Where the aswang's kin roam at night: dogs in the north and west fields, crawlers to the east. Away from
+ *  Rosing's house, which is the aswang's own business. */
+export const kinRoam: Record<"dog" | "crawler", P2[]> = {
+  dog: [{ x: -22, z: -12 }, { x: -33, z: -3 }, { x: -12, z: -28 }, { x: 6, z: -27 }, { x: -31, z: -28 }],
+  crawler: [{ x: 26, z: 6 }, { x: 30, z: -7 }, { x: 24, z: 21 }, { x: 12, z: -6 }],
+};
+/** The roaming kin's circles (Kin.tsx switches each on only while that one is on its feet). */
+export const kinSolids: Record<"dog" | "crawler", Circle[]> = { dog: [0, 1].map(() => ({ x: 0, z: 0, r: 0 })), crawler: [{ x: 0, z: 0, r: 0 }] };
 /** Where the kapre stands after dark: against the balete's trunk, on the side the barrio can see. */
 export const kapreSpot: P2 = { x: balete.x - 2.7, z: balete.z + 2.4 };
 export const START: P2 = { x: 2, z: 30 };
@@ -339,6 +347,7 @@ export const solids: Circle[] = [
   { x: kadyoSpot.x, z: kadyoSpot.z, r: 0.32 },
   hilotSolid,
   ...amalanhigSolids,
+  ...kinSolids.dog, ...kinSolids.crawler,
   ...palms.filter((p) => p.solid).map((p) => ({ x: p.x, z: p.z, r: 0.45 })),
   ...fences.flatMap((f) => [-0.75, 0, 0.75].map((k) => ({ x: f.x + Math.cos(f.rot) * k, z: f.z - Math.sin(f.rot) * k, r: 0.45 }))),
   { x: well.x, z: well.z, r: 1.05 },

@@ -1,0 +1,17 @@
+{
+  "_comment": "The crawler: a man gone on all fours, hands spread on the ground, one foot forward and one back. Joint positions [x, y, z] measured with tools/blender/slice_model.py on crawler.blend (its own units, 0.64 tall, 0.98 across the hands; head at -Y, its left is +X). The arms are rigged as forelegs and the legs as hind legs. The legs are not symmetric, so the right ones are listed under 'right'. Used by tools/blender/rig_sigbin.py.",
+  "scale_to_metres": 1.45,
+  "clips": ["idle", "walk", "run", "bite", "hit"],
+  "hips": [0.0, 0.150, 0.400],
+  "spine": [0.0, 0.030, 0.450],
+  "chest": [0.0, -0.080, 0.480],
+  "neck": [0.0, -0.150, 0.500],
+  "head": [0.0, -0.210, 0.530],
+  "head_end": [0.0, -0.300, 0.600],
+  "tail": [],
+  "fore": [[0.170, -0.080, 0.460], [0.330, -0.080, 0.330], [0.395, -0.190, 0.150], [0.420, -0.330, 0.010]],
+  "hind": [[0.090, 0.120, 0.380], [0.200, 0.040, 0.260], [0.130, 0.330, 0.110], [0.165, 0.270, 0.030], [0.175, 0.210, 0.010]],
+  "right": {
+    "hind": [[-0.090, 0.120, 0.380], [-0.220, 0.020, 0.330], [-0.200, 0.100, 0.090], [-0.200, 0.000, 0.020], [-0.205, -0.050, 0.010]]
+  }
+}

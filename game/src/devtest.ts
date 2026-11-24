@@ -267,6 +267,38 @@ async function play() {
   live.health = 8; hurt(20); run(0.2);
   check("at no health he goes down", live.caught > 0 || G().stage !== "night", { health: live.health, caught: live.caught });
 
+  // ---------- the aswang's kin, and Nong Kadyo's work
+  G().toTitle(); await sleep(100); G().newGame(); await sleep(200); await skipTalk();
+  G().nextDay(); await sleep(200); await skipTalk();
+  check("Nong Kadyo offers work for the night", G().bounties.some((b) => b.state === "offered" && b.kind === "dog"), G().bounties);
+  G().takeBounty(G().bounties[0].id);
+  G().set({ rationTaken: true, hasWhip: true, bag: { ...G().bag, oil: 9 } }); G().startNight(); await sleep(300); await skipTalk();
+  live.elapsed = 30; at(-20, -8);
+  let hunted = false, found = false;
+  const up = (d: { mode: string }) => !["away", "dead", "dying"].includes(d.mode);
+  for (let i = 0; i < 900 && G().bounties[0]?.state !== "done" && live.caught <= 0; i++) {
+    const dogs = live.kin.dog.filter(up);
+    // go to them once they are out (they come out far from him)
+    if (dogs.length && !dogs.some((d) => d.mode === "hunt" || d.mode === "bite" || d.mode === "back" || d.mode === "hit")) { const d = dogs[0]; at(d.x + 5, d.z); found = true; }
+    run(0.1);
+    if (live.kin.dog.some((d) => d.mode === "hunt")) hunted = true;
+    if (live.kin.dog.filter(up).some((d) => Math.hypot(d.x - live.player.x, d.z - live.player.z) < 3) && live.whipWait <= 0) { live.stamina = 1; key("KeyR"); run(0.1); key("KeyR", false); }
+    if (live.health < 40) live.health = 100;      // (this checks the hunt, not his health)
+  }
+  check("dead dogs come out and go for him", found && hunted, live.kin.dog);
+  check("two laid down: the work is done, with fangs for it", G().bounties[0]?.state === "done" && G().trophies.fang >= 2, { bounty: G().bounties[0], fangs: G().trophies.fang });
+  const purse = G().bag.coins; G().payBounty(G().bounties[0].id);
+  check("and Nong Kadyo pays for it", G().bag.coins > purse && !G().bounties.some((b) => b.state === "done"), G().bag.coins - purse);
+  // a crawler shrugs off the whip in the dark
+  G().set({ night: 3 }); G().startNight(); await sleep(300); await skipTalk();
+  live.elapsed = 30; at(5, -5);
+  for (let i = 0; i < 200 && !up(live.kin.crawler[0]); i++) run(0.1);
+  const cr = live.kin.crawler[0];
+  check("a crawler comes out on the third night", up(cr), cr.mode);
+  at(cr.x + 2.2, cr.z); G().set({ lampOn: false }); live.whipWait = 0; live.stamina = 1; const h0 = cr.hp; key("KeyR"); run(0.1); key("KeyR", false); const dark = h0 - cr.hp; run(1.2);      // (a blow while it reels from the last does nothing)
+  at(cr.x + 2.2, cr.z); G().set({ lampOn: true }); live.whipWait = 0; live.stamina = 1; const h1 = cr.hp; key("KeyR"); run(0.1); key("KeyR", false); const lit = h1 - cr.hp;
+  check("in the dark the whip slides off it; in lamplight it bites", dark > 0 && lit > dark * 3, { dark: dark.toFixed(2), lit: lit.toFixed(2) });
+
 }
 
 function report() {

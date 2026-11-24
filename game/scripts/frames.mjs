@@ -2,7 +2,7 @@
 // For each place it stands the player there for a few seconds and reports frames per second, the longest
 // single frame (a freeze shows up here), and how much the renderer is drawing.
 //   node scripts/frames.mjs                 the standard list of places, by day and by night
-//   node scripts/frames.mjs -18,14.5,d ...   your own: x,z,d|n
+//   node scripts/frames.mjs -18,14.5,d ...   your own: x,z,d|n (or x,z,<shot name> to start from that shot)
 import puppeteer from "puppeteer-core";
 import { existsSync } from "node:fs";
 
@@ -21,7 +21,7 @@ const open = async (w) => {
   if (page) await page.close();
   page = await browser.newPage();
   page.on("pageerror", (e) => console.log("page error:", String(e).slice(0, 200)));
-  await page.goto(`http://localhost:5173/#shot=${w === "n" ? "night" : "day"}`, { waitUntil: "domcontentloaded" });
+  await page.goto(`http://localhost:5173/#shot=${w === "n" ? "night" : w === "d" ? "day" : w}`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => /ready/.test(document.title), { timeout: 120000 });
   await sleep(2500);
   when = w;

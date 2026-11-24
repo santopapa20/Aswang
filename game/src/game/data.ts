@@ -22,6 +22,45 @@ export const EAT = { seconds: 1.2, heals: 30 };
 /** The stingray-tail whip: what one blow takes from a thing that can be hurt, how far it reaches, and how
  *  many seconds before it can be cracked again (the Strong arm perk shortens that). */
 export const WHIP = { damage: 34, range: 3.6, cooldown: 4 };
+// ---- the aswang's kin, who roam the fields at night (Kin.tsx) ------------------------------------
+export type KinKind = "dog" | "crawler";
+export type TrophyId = "fang" | "claw";
+export const TROPHIES: Record<TrophyId, { name: string; text: string }> = {
+  fang: { name: "Dog's fangs", text: "Pulled from a dead thing that ran as a dog. Kept for the workbench." },
+  claw: { name: "Crawler's nails", text: "Black, and longer than a man's should be. Kept for the workbench." },
+};
+/** How each kind behaves. Speeds in metres a second (he walks 1.7 and runs 3.6), turn in radians a second,
+ *  harm out of his 100, notice in metres (shorter when his lamp is shuttered). A crawler struck while his
+ *  lamp is not on it shrugs off `unlit` of the blow: in the dark the whip slides off it. */
+export const KIN = {
+  dog: { name: "dog", health: 60, speed: 3.1, prowl: 1.1, turn: 5, reach: 1.0, harm: 14, rest: 1.6, notice: 9, lose: 17, knockback: 1.8, stagger: 0.7, trophy: "fang" as TrophyId, coins: [2, 5], xp: 18, unlit: 0, bar: 1.05 },
+  crawler: { name: "crawler", health: 80, speed: 2.7, prowl: 0.9, turn: 3.5, reach: 1.15, harm: 22, rest: 2.0, notice: 7, lose: 14, knockback: 1.4, stagger: 1.0, trophy: "claw" as TrophyId, coins: [4, 8], xp: 30, unlit: 0.75, bar: 1.2 },
+};
+/** How many of each come out on each night in all, and how many may be about at once. */
+export const KIN_NIGHTS: Record<number, Record<KinKind, number>> = { 1: { dog: 0, crawler: 0 }, 2: { dog: 2, crawler: 0 }, 3: { dog: 2, crawler: 1 }, 4: { dog: 3, crawler: 1 }, 5: { dog: 4, crawler: 2 } };
+export const KIN_AT_ONCE: Record<KinKind, number> = { dog: 2, crawler: 1 };
+export const KIN_FIRST = 25;      // seconds into the night before the first come out
+export const KIN_AGAIN = 40;      // seconds before another comes out in place of one laid down
+
+// ---- Nong Kadyo's bounties -------------------------------------------------------------------
+export type Bounty = { id: number; kind: KinKind; count: number; got: number; coins: number; xp: number; text: string; night: number; state: "offered" | "taken" | "done" };
+/** What he asks for on the day before each night. Each can be done with what comes out that night. */
+export const BOUNTY_OFFERS: Record<number, Pick<Bounty, "kind" | "count" | "coins" | "xp" | "text">[]> = {
+  2: [{ kind: "dog", count: 2, coins: 12, xp: 40, text: "Two dogs run the north field at night. Dead things wearing dogs. Lay them both down." }],
+  3: [
+    { kind: "dog", count: 2, coins: 12, xp: 40, text: "The dogs are back. Two of them again." },
+    { kind: "crawler", count: 1, coins: 16, xp: 55, text: "Something goes on all fours by the shut house. Keep your lamp on it: in the dark the whip slides off." },
+  ],
+  4: [
+    { kind: "dog", count: 3, coins: 18, xp: 55, text: "Three dogs tonight. They hunt in pairs; a line of salt stops them." },
+    { kind: "crawler", count: 1, coins: 16, xp: 55, text: "The one on all fours. Lamp on it, then the whip." },
+  ],
+  5: [
+    { kind: "crawler", count: 2, coins: 26, xp: 75, text: "She has called her kin for the birth. Two crawlers. They must not reach the house." },
+    { kind: "dog", count: 3, coins: 18, xp: 55, text: "And the dogs. Three." },
+  ],
+};
+
 /** The amalanhig (Amalanhig.tsx). Kept here with the whip so the fight is tuned in one place
  *  (scripts/duel.mjs plays it out with different ways of fighting and reports how each went). */
 export const AMALANHIG = {

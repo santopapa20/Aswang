@@ -11,6 +11,7 @@ import { Director, Kapre, Pacing } from "./game/Cast";
 import { Kadyo } from "./game/Kadyo";
 import { Hilot } from "./game/Hilot";
 import { Amalanhig } from "./game/Amalanhig";
+import { Kin } from "./game/Kin";
 import { Hud } from "./game/Hud";
 import { Guide } from "./game/Guide";
 import { useKeyboard } from "./game/input";
@@ -116,6 +117,9 @@ export default function App() {
           <Hilot />
           <Amalanhig index={0} />
           <Amalanhig index={1} />
+          <Kin kind="dog" index={0} />
+          <Kin kind="dog" index={1} />
+          <Kin kind="crawler" index={0} />
           <Guide />
           <Director />
           <Warmup />

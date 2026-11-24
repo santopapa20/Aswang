@@ -7,6 +7,10 @@
 #   walk   a stalking walk, 0.97 m/s at full size (the game plays it backwards: the sigbin walks tail-first)
 #   run    a bounding run, 2.4 m/s at full size
 #   feed   head down at the ground, lapping
+#   bite   (asked for with "clips" in the landmarks) a lunge and a snap of the jaws, played once
+#   hit    (likewise) struck: thrown back on its haunches, head up, then square again
+# The landmarks may also give "clips", the list of clips to write (default idle, walk, run, feed), and an
+# empty "tail" for a body with none. The same script rigs the zombie dog and the crawler (assets/kin).
 # Output: <out>.glb with named clips, and <out>.blend.
 #
 # usage: blender -b --factory-startup --python rig_sigbin.py -- <model.blend> <rig_landmarks.json> <out.glb>
@@ -51,11 +55,16 @@ for i in range(len(tail) - 1):
     bone("Tail%d" % (i + 1), V(tail[i]), V(tail[i + 1]), "Hips" if i == 0 else "Tail%d" % i, i > 0)
 FORE = ["UpperArm", "ForeArm", "ForePaw"]
 HIND = ["Thigh", "Shin", "Hock", "HindPaw"]
+# a body that does not stand symmetrically lists its right legs under "right", as they are (not mirrored)
+RIGHT = cfg.get("right", {})
+def leg(kind, i, sx):
+    if sx < 0 and kind in RIGHT: return Vector(RIGHT[kind][i])
+    return V(cfg[kind][i], sx)
 for s, sx in (("L", 1), ("R", -1)):
     for i, n in enumerate(FORE):
-        bone(n + "." + s, V(cfg["fore"][i], sx), V(cfg["fore"][i + 1], sx), "Chest" if i == 0 else FORE[i - 1] + "." + s, i > 0)
+        bone(n + "." + s, leg("fore", i, sx), leg("fore", i + 1, sx), "Chest" if i == 0 else FORE[i - 1] + "." + s, i > 0)
     for i, n in enumerate(HIND):
-        bone(n + "." + s, V(cfg["hind"][i], sx), V(cfg["hind"][i + 1], sx), "Hips" if i == 0 else HIND[i - 1] + "." + s, i > 0)
+        bone(n + "." + s, leg("hind", i, sx), leg("hind", i + 1, sx), "Hips" if i == 0 else HIND[i - 1] + "." + s, i > 0)
 bpy.ops.object.mode_set(mode="OBJECT")
 print("SKELETON bones", len(arm_data.bones))
 
@@ -142,7 +151,7 @@ def set_lift(dz, dy=0.0, dx=0.0):
     arm.pose.bones["Hips"].location = R.inverted() @ Vector((dx, dy, dz))
 TAU = 2 * math.pi
 def tail_sway(t, amount, speed=1.0, lift=0.0):
-    for i in range(1, 5):
+    for i in range(1, len(tail)):
         set_rot("Tail%d" % i, [("Z", amount * (0.5 + 0.3 * i) * math.sin(t * TAU * speed - i * 0.7)), ("X", lift)])
 
 def pose_idle(t):
@@ -189,7 +198,29 @@ def pose_feed(t):
     tail_sway(t, 3, speed=4, lift=-3)
     for k in feet: foot(k)
 
-CLIPS = [("idle", pose_idle, 48), ("walk", pose_walk, 22), ("run", pose_run, 18), ("feed", pose_feed, 40)]
+def pose_bite(t):
+    # gathers on its haunches, throws the forequarters at him and snaps, then settles back
+    lunge = math.sin(math.pi * min(1.0, t / 0.55)) if t < 0.55 else 0.0
+    snap = math.exp(-((t - 0.42) / 0.07) ** 2)
+    set_lift(-0.01 + 0.02 * lunge, dy=-0.07 * lunge)
+    set_rot("Hips", [("X", -4 * lunge)])
+    set_rot("Spine", [("X", -3 * lunge)]); set_rot("Chest", [("X", -6 * lunge)])
+    set_rot("Neck", [("X", -14 * lunge + 6 * snap)]); set_rot("Head", [("X", -10 * lunge + 22 * snap)])
+    tail_sway(t, 4, speed=3, lift=-6 * lunge)
+    for k in feet: foot(k)
+
+def pose_hit(t):
+    # struck: rocked back onto its hind legs with the head thrown up, then square again
+    jolt = math.exp(-((t - 0.14) / 0.12) ** 2) if t < 0.14 else math.exp(-((t - 0.14) / 0.3) ** 2)
+    set_lift(0.015 * jolt, dy=0.06 * jolt)
+    set_rot("Hips", [("X", 5 * jolt)])
+    set_rot("Spine", [("X", 4 * jolt), ("Z", 6 * jolt)]); set_rot("Chest", [("X", 8 * jolt)])
+    set_rot("Neck", [("X", -22 * jolt), ("Z", -10 * jolt)]); set_rot("Head", [("X", -18 * jolt)])
+    tail_sway(t, 3, lift=-10 * jolt)
+    for k in feet: foot(k)
+
+ALL = {"idle": (pose_idle, 48), "walk": (pose_walk, 22), "run": (pose_run, 18), "feed": (pose_feed, 40), "bite": (pose_bite, 21), "hit": (pose_hit, 18)}
+CLIPS = [(n, ALL[n][0], ALL[n][1]) for n in cfg.get("clips", ["idle", "walk", "run", "feed"])]
 names = [b.name for b in arm.data.bones]
 def capture():
     """Where every bone ended up once the legs have reached for their targets."""
@@ -250,7 +281,8 @@ for clip, act in made:
 s = float(cfg.get("scale_to_metres", 1.0))
 arm.scale = (s, s, s)
 bpy.context.view_layer.update()
-print("SIZE nose to tail tip %.2f m, height at the rump %.2f m" % ((cfg["tail"][-1][1] - cfg["head_end"][1]) * s, max(v.co.z for v in me.vertices) * s))
+back = max([p[1] for p in cfg["tail"]] + [max(v.co.y for v in me.vertices)])
+print("SIZE nose to tail tip %.2f m, height %.2f m" % ((back - cfg["head_end"][1]) * s, max(v.co.z for v in me.vertices) * s))
 
 for m in me.materials: m.name = NAME
 arm.name = NAME; ob.name = NAME + "_mesh"

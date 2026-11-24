@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Vector3 } from "three";
-import { BASE_CARRY, BASE_HEALTH, Charm, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
+import { BASE_CARRY, BASE_HEALTH, Bounty, BOUNTY_OFFERS, Charm, KinKind, TrophyId, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
 import { hidingSpots, home, HUT, OpeningId, START } from "./layout";
 import type { Objective } from "./objective";
 import { sound } from "./audio";
@@ -36,6 +36,9 @@ const freshRun = () => ({
   kadyoTrust: 0,
   tonicOn: 0,                                  // the day he last bought Rosing a tonic (one a day)
   seen: [] as string[],                        // one-time hints already shown
+  trophies: { fang: 0, claw: 0 } as Record<TrophyId, number>,
+  bounties: [] as Bounty[],                    // Nong Kadyo's: offered for the coming night, taken, or done and waiting to be paid
+  nextBounty: 1,
 });
 /** Everything that belongs to the current day or night only. */
 const freshNight = () => ({
@@ -99,6 +102,10 @@ type GameState = ReturnType<typeof freshRun> & ReturnType<typeof freshNight> & {
   advance: () => void;
   setPanel: (p: Panel) => void;
   toggleShadows: () => void;
+  /** Nong Kadyo's work: take an offer, be paid for one done, and count a kin laid down. */
+  takeBounty: (id: number) => void;
+  payBounty: (id: number) => void;
+  laidDown: (kind: KinKind) => void;
   toggleMute: () => void;
 };
 
@@ -152,7 +159,7 @@ export const useGame = create<GameState>((set, get) => ({
       mana: "absent",
     });
     beginClock(plan.seconds);
-    live.lampBlown = 0; live.breach = 0; live.breachAt = null; live.loops = 0; live.hilotOut = 0;      // smoke from a fire fed before dusk carries over
+    live.lampBlown = 0; live.breach = 0; live.breachAt = null; live.loops = 0; live.hilotOut = 0; live.kinOut = { dog: 0, crawler: 0 };      // smoke from a fire fed before dusk carries over
     set({ banner: { big: `Night ${ROMAN[s.night - 1]}`, small: plan.name, id: ids++ } });
   },
   endNight: (cause) => {
@@ -191,7 +198,10 @@ export const useGame = create<GameState>((set, get) => ({
   nextDay: () => {
     const s = get();
     const night = s.night + 1;
-    set({ ...freshNight(), night, stage: "day", runId: s.runId + 1, report: [], banner: { big: `Day ${ROMAN[night - 1]}`, small: "Before dark", id: ids++ } });
+    // his work: what was done waits to be paid, what was not is gone, and there is new work for tonight
+    let nextBounty = s.nextBounty;
+    const bounties = [...s.bounties.filter((b) => b.state === "done"), ...(BOUNTY_OFFERS[night] ?? []).map((o) => ({ ...o, id: nextBounty++, got: 0, night, state: "offered" as const }))];
+    set({ ...freshNight(), night, stage: "day", runId: s.runId + 1, report: [], bounties, nextBounty, banner: { big: `Day ${ROMAN[night - 1]}`, small: "Before dark", id: ids++ } });
     placeAtHome();
     beginClock(NIGHTS[night - 1].daySeconds);
     save();
@@ -302,6 +312,26 @@ export const useGame = create<GameState>((set, get) => ({
   },
   setPanel: (panel) => set({ panel }),
   toggleShadows: () => set((s) => ({ shadows: !s.shadows })),
+  takeBounty: (id) => set((s) => ({ bounties: s.bounties.map((b) => (b.id === id && b.state === "offered" ? { ...b, state: "taken" } : b)) })),
+  payBounty: (id) => {
+    const b = get().bounties.find((x) => x.id === id && x.state === "done");
+    if (!b) return;
+    set((s) => ({ bounties: s.bounties.filter((x) => x.id !== id) }));
+    get().add("coins", b.coins); get().gainXp(b.xp);
+    get().toast(`Nong Kadyo pays ${b.coins} centavos.`, "good");
+  },
+  laidDown: (kind) => {
+    let met: Bounty | null = null;
+    set((s) => ({
+      bounties: s.bounties.map((b) => {
+        if (b.kind !== kind || b.state !== "taken") return b;
+        const got = Math.min(b.count, b.got + 1);
+        if (got >= b.count) met = { ...b, got, state: "done" };
+        return got >= b.count ? { ...b, got, state: "done" } : { ...b, got };
+      }),
+    }));
+    if (met) get().toast("Nong Kadyo's work is done. He will pay in the morning.", "good");
+  },
   toggleMute: () => set((s) => ({ muted: !s.muted })),
 }));
 
@@ -405,6 +435,9 @@ export const live = {
   health: BASE_HEALTH,     // what he has left; at 0 he goes down (see hurt)
   hurt: 0,                 // 1 just after he is hurt, fading: the red flash at the edges
   eating: 0,               // seconds into eating a bundle of herbs (hold H)
+  /** The roaming kin (Kin.tsx): each slot's state, and how many of each kind have come out tonight. */
+  kin: { dog: [0, 1].map(() => ({ mode: "away", x: 0, z: 0, hp: 1 })), crawler: [0].map(() => ({ mode: "away", x: 0, z: 0, hp: 1 })) },
+  kinOut: { dog: 0, crawler: 0 },
   hilotOut: 0,             // seconds left that the hilot stands in her open doorway, answering his call
   caught: 0,               // seconds left of being struck down, before the night is cut short
   struck: false,           // he has just struck the house post (the manananggal listens for it)

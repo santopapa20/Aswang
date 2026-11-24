@@ -96,6 +96,7 @@ export function interactables(g: Game): Interactable[] {
   if (day) out.push({
     key: "kadyo", button: "E", x: KADYO.x, z: KADYO.z, r: 1.7, hold: 0.4, label: g.talked.includes("kadyo") ? "Trade with Nong Kadyo" : "Talk to Nong Kadyo",
     act: () => {
+      if (g.bounties.some((b) => b.state === "offered")) g.hint("bounty", "Nong Kadyo has work for tonight. It is at the top of his trade: take it, and he pays when it is done.");
       if (g.talked.includes("kadyo")) { g.setPanel("trade"); return; }
       g.set({ talked: [...g.talked, "kadyo"], kadyoTrust: g.kadyoTrust + 1 });
       g.gainXp(10);

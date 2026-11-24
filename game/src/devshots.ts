@@ -87,6 +87,30 @@ const SHOTS: Record<string, () => Promise<void>> = {
     for (let k = 0; k < 60 && live.health >= h; k++) dev().run(0.1);
     dev().run(0.25);
   },
+  night5: async () => { await dusk(5); live.elapsed = 30; dev().run(2); },
+  dogs: async () => {
+    await dusk(2); G().set({ hasWhip: true, bounties: [{ id: 1, kind: "dog", count: 2, got: 0, coins: 12, xp: 40, text: "", night: 2, state: "taken" }] });
+    live.elapsed = 30; at(-20, -8);
+    const up = () => live.kin.dog.filter((d) => !["away", "dead", "dying"].includes(d.mode));
+    for (let k = 0; k < 300 && up().length < 2; k++) dev().run(0.1);
+    const d = up()[0]; if (d) at(d.x + 5.5, d.z + 1.5);
+    dev().run(1.3);
+  },
+  crawler: async () => {
+    await dusk(3); live.elapsed = 30; at(5, -5);
+    const c = live.kin.crawler[0];
+    for (let k = 0; k < 300 && c.mode !== "prowl"; k++) dev().run(0.1);
+    at(c.x + 4.5, c.z + 1.5); dev().run(1.0);
+  },
+  work: async () => {
+    await begin(3);
+    G().set({ bounties: [
+      { id: 1, kind: "dog", count: 2, got: 2, coins: 12, xp: 40, text: "Two dogs run the north field at night.", night: 2, state: "done" },
+      { id: 2, kind: "dog", count: 2, got: 0, coins: 12, xp: 40, text: "The dogs are back. Two of them again.", night: 3, state: "offered" },
+      { id: 3, kind: "crawler", count: 1, got: 0, coins: 16, xp: 55, text: "Something goes on all fours by the shut house. Keep your lamp on it: in the dark the whip slides off.", night: 3, state: "offered" },
+    ], trophies: { fang: 2, claw: 0 } });
+    at(24, -18.7); G().setPanel("trade");
+  },
   bag: async () => { await begin(3); for (let i = 0; i < 4; i++) G().addCharm(i * 0.03); G().gainXp(150); G().set({ hasWhip: true, proofs: { salt: true, oil: false, skirt: false } }); G().setPanel("bag"); },
   trade: async () => { await begin(2); at(24, -18.7); G().setPanel("trade"); },
   pause: async () => { await dusk(1); G().setPanel("pause"); },

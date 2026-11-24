@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useProgress } from "@react-three/drei";
 import { carried, endingText, hasSave, live, mods, ROMAN, useGame } from "./state";
-import { aCharm, CHARM_HERBS, EAT, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
+import { aCharm, Bounty, CHARM_HERBS, EAT, TROPHIES, TrophyId, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
 import { NIGHTS } from "./story";
 import { openings } from "./layout";
 import { choose, toggles } from "./input";
@@ -155,6 +155,7 @@ function Play() {
   const done = Math.min(1, 1 - live.clock / Math.max(1, live.length));
   const m = mods(g);
   const o = live.objective;
+  const work = g.bounties.filter((b) => b.state !== "offered");
   const lit = g.lampOn && live.lampBlown <= 0;
   const fear = night && live.aswang.active ? Math.max(0, 1 - live.aswang.near / 9) : 0;
   const attacked = live.breach > 0 ? (g.onRoof ? "roof" : live.breachAt) : null;
@@ -213,6 +214,7 @@ function Play() {
               <p>{o.text}</p>
             </>
           ) : <p className="dim">…</p>}
+          {work.length > 0 && <ul className="work">{work.map((b) => <li key={b.id} className={b.state}>{b.state === "done" ? `Nong Kadyo's work is done: he pays in the morning` : `Nong Kadyo's work: ${b.count === 1 ? `a ${b.kind}` : `${b.kind}s`}, ${b.got} of ${b.count}`}</li>)}</ul>}
         </section>
       </header>
 
@@ -312,6 +314,7 @@ function Bag() {
         <section>
           <h3>Supplies <small>{carried(g)} of {m.carry}</small></h3>
           {ITEM_ORDER.map((k) => <div key={k} className={`row ${g.bag[k] ? "" : "dim"}`}><Icon name={ITEM_ICON[k]} size={22} /><div><b>{ITEMS[k].name}</b><p>{ITEMS[k].use}</p></div><em>{g.bag[k]}</em></div>)}
+          {(Object.keys(TROPHIES) as TrophyId[]).filter((k) => g.trophies[k] > 0).map((k) => <div key={k} className="row"><Icon name="star" size={22} /><div><b>{TROPHIES[k].name}</b><p>{TROPHIES[k].text}</p></div><em>{g.trophies[k]}</em></div>)}
           {g.hasWhip && <div className="row"><Icon name="whip" size={22} /><div><b>Stingray-tail whip</b><p>Crack it when one is close: she falls back, and a thing that can be hurt is hurt.</p></div><em>R</em></div>}
           <h3>What you know</h3>
           {proofs.map(([has, name, yes, no]) => <div key={name} className={`row ${has ? "" : "dim"}`}><Icon name={has ? "check" : "eye"} size={20} /><div><b>{name}</b><p>{has ? yes : no}</p></div></div>)}
@@ -358,6 +361,11 @@ function Trade() {
   return (
     <div className="panel shop">
       <header><h2>Nong Kadyo</h2><span><Icon name="coins" size={15} /> {g.bag.coins} centavos · <Icon name="herbs" size={15} /> {g.bag.herbs} herbs · <kbd>Esc</kbd> close</span></header>
+      {g.bounties.length > 0 && (
+        <section className="offers work">
+          {g.bounties.map((b) => <WorkOffer key={b.id} b={b} />)}
+        </section>
+      )}
       <section className="offers">
         {SHOP.map((it) => <Offer key={it.item} icon={ITEM_ICON[it.item]} name={ITEMS[it.item].name} price={`${it.cost} c`} text={full ? "You cannot carry any more." : ITEMS[it.item].use} off={g.bag.coins < it.cost || full} act={() => buy(it)} />)}
         <Offer icon="herbs" name="Sell a bundle of herbs" price={`+${HERB_PRICE} c`} text="He always needs them." off={g.bag.herbs < 1} act={() => { if (g.spend("herbs", 1)) g.add("coins", HERB_PRICE); }} />
@@ -372,6 +380,15 @@ function Trade() {
       </section>
     </div>
   );
+}
+
+/** One piece of Nong Kadyo's work: take it, see how it goes, or be paid for it. */
+function WorkOffer({ b }: { b: Bounty }) {
+  const g = useGame();
+  const what = `${b.count === 1 ? "One" : b.count === 2 ? "Two" : b.count === 3 ? "Three" : b.count} ${b.kind}${b.count === 1 ? "" : "s"}`;
+  if (b.state === "done") return <Offer icon="check" name={`${what}: done`} price={`+${b.coins} c`} text={`${b.count === 1 ? "Laid down" : b.count === 2 ? "Both laid down" : `All ${b.count} laid down`}. He adds ${b.xp} experience to the coins.`} off={false} act={() => g.payBounty(b.id)} />;
+  if (b.state === "taken") return <Offer icon="whip" name={`${what}: taken`} price={`${b.coins} c`} text={`${b.text} ${b.got} of ${b.count} so far.`} off act={() => {}} />;
+  return <Offer icon="whip" name={`Work for tonight: ${what.toLowerCase()}`} price={`${b.coins} c`} text={`${b.text} Take it, and lay ${b.count === 1 ? "it" : "them"} down tonight.`} off={false} act={() => { g.takeBounty(b.id); g.toast("You take Nong Kadyo's work for tonight.", "good"); }} />;
 }
 
 function Pause() {
