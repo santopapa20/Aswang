@@ -78,6 +78,15 @@ const SHOTS: Record<string, () => Promise<void>> = {
     }
     dev().run(1.5);
   },
+  fight: async () => {
+    await dusk(3); live.elapsed = 60; G().set({ hasWhip: true }); at(100.5, 7.5); dev().run(3.2);
+    const a = live.amalanhig[0];
+    for (let k = 0; k < 60 && Math.hypot(a.x - live.player.x, a.z - live.player.z) > 2.6; k++) dev().run(0.1);
+    live.whipWait = 0; hold("KeyR", 0.2); dev().run(0.4);
+    const h = live.health;
+    for (let k = 0; k < 60 && live.health >= h; k++) dev().run(0.1);
+    dev().run(0.25);
+  },
   bag: async () => { await begin(3); for (let i = 0; i < 4; i++) G().addCharm(i * 0.03); G().gainXp(150); G().set({ hasWhip: true, proofs: { salt: true, oil: false, skirt: false } }); G().setPanel("bag"); },
   trade: async () => { await begin(2); at(24, -18.7); G().setPanel("trade"); },
   pause: async () => { await dusk(1); G().setPanel("pause"); },

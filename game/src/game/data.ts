@@ -9,14 +9,22 @@ export const ITEMS: Record<ItemId, { name: string; use: string; weighs: boolean 
   oil: { name: "Lamp oil", use: "The lamp drinks it through the night.", weighs: true },
   kindling: { name: "Kindling", use: "Feeds the smudge fire in the yard. Its smoke keeps the roof clear.", weighs: true },
   tobacco: { name: "Tobacco", use: "Something in the balete likes it.", weighs: true },
-  herbs: { name: "Herbs", use: "Nong Kadyo trades for them, and binds them into charms.", weighs: true },
+  herbs: { name: "Herbs", use: "Eat a bundle to heal (hold H). Nong Kadyo trades for them, and binds them into charms.", weighs: true },
   coins: { name: "Centavos", use: "For Nong Kadyo.", weighs: false },
 };
 export const ITEM_ORDER: ItemId[] = ["salt", "garlic", "oil", "kindling", "tobacco", "herbs", "coins"];
 export const BASE_CARRY = 22;
 
+// ---- harm and fighting ------------------------------------------------------------------------
+export const BASE_HEALTH = 100;
+/** Eating a bundle of herbs: how long he must stand still for it, and how much it gives back. */
+export const EAT = { seconds: 1.2, heals: 30 };
+/** The stingray-tail whip: what one blow takes from a thing that can be hurt, how far it reaches, and how
+ *  many seconds before it can be cracked again (the Strong arm perk shortens that). */
+export const WHIP = { damage: 34, range: 3.6, cooldown: 5 };
+
 // ---- charms: found or made, two can be worn ---------------------------------------------------
-export type StatId = "quiet" | "bright" | "thrifty" | "swift" | "steady" | "lucky" | "firm";
+export type StatId = "quiet" | "bright" | "thrifty" | "swift" | "steady" | "lucky" | "firm" | "tough";
 export const STATS: Record<StatId, { noun: string; text: (v: number) => string }> = {
   quiet: { noun: "soft steps", text: (v) => `You are heard from ${pct(v)} less far` },
   bright: { noun: "the long flame", text: (v) => `The lamp reaches ${pct(v)} further` },
@@ -25,6 +33,7 @@ export const STATS: Record<StatId, { noun: string; text: (v: number) => string }
   steady: { noun: "long breath", text: (v) => `You can run ${pct(v * 1.5)} longer` },
   lucky: { noun: "the open hand", text: (v) => `You find ${pct(v * 1.5)} more` },
   firm: { noun: "the held door", text: (v) => `${pct(v * 1.4)} chance a protection holds a second time` },
+  tough: { noun: "the thick skin", text: (v) => `You take ${pct(v * 1.5)} less harm` },
 };
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 export const RARITY = [
@@ -75,13 +84,14 @@ export function rollLoot(kind: NodeKind, rich: boolean, more: number, rnd: () =>
 }
 
 // ---- what you learn --------------------------------------------------------------------------
-export type PerkId = "lungs" | "softstep" | "wick" | "firmhand" | "pockets" | "quickhands" | "fleet" | "strongarm" | "scavenger";
+export type PerkId = "hardy" | "lungs" | "softstep" | "wick" | "firmhand" | "pockets" | "quickhands" | "fleet" | "strongarm" | "scavenger";
 export const PATHS: { name: string; about: string; perks: PerkId[] }[] = [
-  { name: "Bantay", about: "The watchman: breath, quiet and the lamp.", perks: ["lungs", "softstep", "wick"] },
+  { name: "Bantay", about: "The watchman: breath, quiet and the lamp.", perks: ["hardy", "lungs", "softstep", "wick"] },
   { name: "Tinun-an", about: "The albularyo's pupil: protections and careful hands.", perks: ["firmhand", "pockets", "quickhands"] },
   { name: "Mangangayam", about: "The hunter: legs, the whip, a nose for what is hidden.", perks: ["fleet", "strongarm", "scavenger"] },
 ];
 export const PERKS: Record<PerkId, { name: string; text: string }> = {
+  hardy: { name: "Hardy", text: "25 more health." },
   lungs: { name: "Long breath", text: "Run 25% longer before tiring." },
   softstep: { name: "Soft step", text: "Heard from 10% less far." },
   wick: { name: "Trimmed wick", text: "The lamp uses 15% less oil." },

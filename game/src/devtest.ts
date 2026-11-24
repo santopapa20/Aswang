@@ -3,7 +3,7 @@
  * all five nights by script, testing each mechanic and item, and prints a pass/fail list on screen.
  * It is not a substitute for a person playing: it cannot judge feel, difficulty, sound or looks.
  */
-import { live, mods, useGame } from "./game/state";
+import { hurt, live, mods, useGame } from "./game/state";
 import { doorOf, firePit, hidingSpots, home, house, well } from "./game/layout";
 import { BALETE_ROOTS } from "./game/interact";
 
@@ -71,7 +71,7 @@ async function play() {
   at(KADYO.x, KADYO.z + 0.5); hold("KeyE", 0.6); await sleep(50);
   check("Nong Kadyo speaks", !!G().dialogue, prompt("E")); await skipTalk(); await sleep(50);
   check("then his trade opens", G().panel === "trade", G().panel);
-  G().set({ bag: { ...G().bag, kindling: 0, tobacco: 0, coins: 40, herbs: 12 } });      // a known purse with room to buy, whatever the sack held
+  G().set({ bag: { ...G().bag, kindling: 0, tobacco: 0, coins: 40, herbs: 12 }, charms: [], worn: [] });      // a known purse with room to buy, and no charm yet, whatever the sack held
   // a button answers only once the screen has caught up with the purse, so wait for it to be live before pressing
   const click = async (word: string) => {
     for (let i = 0; i < 40; i++) {
@@ -183,6 +183,14 @@ async function play() {
     live.whipWait = 0; live.stamina = 1; key("KeyR"); run(0.2); key("KeyR", false); run(0.3);
   }
   run(1.2);
+  // the other one: its grab hurts him but does not end the night, and herbs put it right
+  const full = live.health;
+  at(117, 10.6);
+  for (let k = 0; k < 120 && live.health >= full; k++) run(0.1);
+  check("a grab hurts him but the night goes on", live.health < full && live.health > 0 && live.caught <= 0 && G().stage === "night", { health: live.health.toFixed(0), caught: live.caught });
+  at(HILOT.x, HILOT.z + 0.5); const hurtTo = live.health; G().add("herbs", 2); hold("KeyH", 1.5);
+  check("eating herbs (hold H) gives health back", live.health > hurtTo, { before: hurtTo.toFixed(0), after: live.health.toFixed(0) });
+  check("its health bar empties with the blows", live.amalanhig[0].hp <= 0, live.amalanhig[0].hp.toFixed(2));
   check("three blows of the whip lay it down", live.amalanhig[0].mode === "down" && G().bag.coins > coins0 && live.caught <= 0, { mode: live.amalanhig[0].mode, hits: live.amalanhig[0].hits, coins: G().bag.coins - coins0 });
   at(DOOR.x, DOOR.z + 0.5); hold("KeyE", 1.1);
   check("hilot errand done", !!G().errand?.done);
@@ -253,6 +261,11 @@ async function play() {
   at(DOOR.x + 3, DOOR.z + 4); live.smoke = 150; live.elapsed = 41; run(0.5);
   live.sigbin.x = live.player.x + 1.4; live.sigbin.z = live.player.z; run(9);
   check("a shadow drunk dry puts him down", live.caught > 0 || G().stage !== "night", { caught: live.caught, drain: live.sigbin.drain, stage: G().stage });
+
+  // ---------- no health left
+  G().toTitle(); await sleep(100); G().newGame(); await sleep(200); await skipTalk(); G().startNight(); await sleep(300);
+  live.health = 8; hurt(20); run(0.2);
+  check("at no health he goes down", live.caught > 0 || G().stage !== "night", { health: live.health, caught: live.caught });
 
 }
 

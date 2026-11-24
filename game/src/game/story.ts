@@ -105,7 +105,7 @@ export const KADYO_DAY: Record<number, Line[]> = {
     { who: "Nong Kadyo", text: "If you pass the same rag on the same post twice, stop walking. Turn your shirt inside out. Then go on." },
     { who: "Nong Kadyo", text: "It will not hurt you. It will only keep you. And you know what happens at the house while you are kept." },
     { who: "Nong Kadyo", text: "And keep off the graves there. One who was aswang and died without passing it on does not rest. Amalanhig." },
-    { who: "Nong Kadyo", text: "It cannot bend, so it turns slow: step aside and run. If it gets its hands on you, it will not let go. Three good blows of the whip will lay it down till morning." },
+    { who: "Nong Kadyo", text: "It cannot bend, so it turns slow: step aside and run. If it gets its hands on you it tears at you, and twice is nearly enough. Three good blows of the whip will lay it down till morning." },
   ],
   4: [
     { who: "Nong Kadyo", text: "You want it ended? Find the legs. Salt on the stump and she cannot join herself again." },

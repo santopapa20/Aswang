@@ -18,7 +18,8 @@ and rise after dark when the player comes near. It is the one thing in the game 
 Rising from the grave and falling when beaten are done in the game (`game/src/game/Amalanhig.tsx`): the
 whole body tips about its heels like a plank. In the game it turns slowly (1.1 radians a second), so
 stepping aside and running beats it; a salt line stops it; the whip knocks it back, and three blows lay it
-down for the night and give up what it was buried with. If it gets its hands on him, the night is lost.
+down for the night and give up what it was buried with (it has 100 health; a blow takes 34). If it gets its
+hands on him it takes 40 of his health and throws him clear.
 
 Rebuild:
 

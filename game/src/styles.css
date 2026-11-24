@@ -24,7 +24,8 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0.08em 0.5em 0.12em; mar
 /* ============ the playing screen ============ */
 .hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; user-select: none; }
 .hud > * { position: absolute; }
-.vignette, .fear, .blackout { inset: 0; }
+.vignette, .fear, .blackout, .hurt { inset: 0; }
+.hurt { position: fixed; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 45%, rgba(170, 14, 6, 0.6) 100%); }
 .vignette { background: radial-gradient(ellipse 78% 72% at 50% 47%, transparent 45%, rgba(0, 0, 0, 0.62) 100%); }
 .fear { background: radial-gradient(ellipse 70% 66% at 50% 48%, transparent 38%, rgba(120, 8, 4, 0.55) 100%); transition: opacity 0.6s; animation: throb 1s ease-in-out infinite; }
 @keyframes throb { 50% { filter: brightness(1.5); } }
@@ -116,6 +117,8 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0.08em 0.5em 0.12em; mar
 .bar { width: 92px; height: 5px; background: rgba(239, 230, 211, 0.16); border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35); }
 .bar i { display: block; height: 100%; background: var(--ink); transition: width 0.12s linear; } .bar.gold i { background: linear-gradient(90deg, var(--gold-deep), var(--gold)); }
 .bar.low i { background: var(--red); animation: pulse 0.7s ease-in-out infinite; }
+.bar.health { position: relative; } .bar.health i { background: linear-gradient(90deg, #8e2318, #d4523a); }
+.bar.health .eat { position: absolute; left: 0; bottom: 0; height: 2px; background: #9fd68a; }
 .purse { display: flex; gap: 14px; font-size: 16px; color: var(--soft); } .purse span { display: inline-flex; align-items: center; gap: 5px; } .purse .icon { color: var(--gold); opacity: 0.85; }
 .purse .full { color: #ff9a8c; } .purse .full .icon { color: #ff9a8c; }
 .learn { font: 500 10.5px/1 var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--good); animation: pulse 2s ease-in-out infinite; }

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Vector3 } from "three";
-import { BASE_CARRY, Charm, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
+import { BASE_CARRY, BASE_HEALTH, Charm, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
 import { hidingSpots, home, HUT, OpeningId, START } from "./layout";
 import type { Objective } from "./objective";
 import { ENDINGS, ERRANDS, ErrandId, Form, INTRO, Line, NIGHTS, PACING_DAY, PACING_KNOWS, PACING_TRUSTED, PROOF_TEXT, ROSING_SAYS } from "./story";
@@ -16,7 +16,7 @@ export const SHIRT_SECONDS = 2;
 const SAVE_KEY = "aswang-night-save-v1";
 
 const emptyBag = (): Record<ItemId, number> => ({ salt: 0, garlic: 0, oil: 0, kindling: 0, tobacco: 0, herbs: 0, coins: 0 });
-const noPerks = (): Record<PerkId, number> => ({ lungs: 0, softstep: 0, wick: 0, firmhand: 0, pockets: 0, quickhands: 0, fleet: 0, strongarm: 0, scavenger: 0 });
+const noPerks = (): Record<PerkId, number> => ({ hardy: 0, lungs: 0, softstep: 0, wick: 0, firmhand: 0, pockets: 0, quickhands: 0, fleet: 0, strongarm: 0, scavenger: 0 });
 
 /** Everything that is kept between sessions. */
 const freshRun = () => ({
@@ -134,7 +134,7 @@ export const useGame = create<GameState>((set, get) => ({
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return false;
       const saved = JSON.parse(raw);
-      set((s) => ({ ...freshRun(), ...saved, ...freshNight(), stage: "day", runId: s.runId + 1, dialogue: null, panel: null, caption: null, toasts: [], report: [], ending: null }));
+      set((s) => ({ ...freshRun(), ...saved, perks: { ...noPerks(), ...saved.perks }, ...freshNight(), stage: "day", runId: s.runId + 1, dialogue: null, panel: null, caption: null, toasts: [], report: [], ending: null }));
       placeAtHome();
       beginClock(NIGHTS[get().night - 1].daySeconds);
       return true;
@@ -332,6 +332,9 @@ export function mods(s: Pick<GameState, "perks" | "charms" | "worn"> = useGame.g
     carry: BASE_CARRY + 5 * p.pockets,
     loot: 0.2 * p.scavenger + 1.5 * charm("lucky"),
     whip: Math.max(0.3, 1 - 0.2 * p.strongarm),
+    health: BASE_HEALTH + 25 * p.hardy,
+    guard: Math.min(0.6, 1.5 * charm("tough")),       // share of harm a charm turns aside
+    damage: 1,                                          // what his blows take, times the weapon's own
   };
 }
 
@@ -348,6 +351,17 @@ export function crossesLine(x1: number, z1: number, x2: number, z2: number, l: S
   return d1 * d2 < 0 && d3 * d4 < 0;
 }
 export type Game = GameState;
+/**
+ * Something hurts him: a bite, a claw, a grab. What a worn charm turns aside is taken off first. At no
+ * health left he goes down, as if caught, and the rest of the night is lost. Only at night.
+ */
+export function hurt(amount: number) {
+  const s = useGame.getState();
+  if (live.caught > 0 || s.stage !== "night") return;
+  live.health = Math.max(0, live.health - amount * (1 - mods(s).guard));
+  live.hurt = 1; live.shake = Math.max(live.shake, 0.55);
+  if (live.health <= 0) catchPlayer();
+}
 /** Something has him. He goes down, and the rest of the night is lost. */
 export function catchPlayer() {
   if (live.caught > 0 || useGame.getState().stage !== "night") return;
@@ -386,7 +400,10 @@ export const live = {
   aswang: { x: 0, z: 0, near: 99, active: false },
   pacing: { x: 0, z: 0, here: false },      // where Nang Pacing is standing by day
   /** The amalanhig in the old sitio, for the self-test and the hints: what each is doing, where, and how often struck. */
-  amalanhig: [0, 1].map(() => ({ mode: "grave", x: 0, z: 0, hits: 0 })),
+  amalanhig: [0, 1].map(() => ({ mode: "grave", x: 0, z: 0, hits: 0, hp: 1 })),
+  health: BASE_HEALTH,     // what he has left; at 0 he goes down (see hurt)
+  hurt: 0,                 // 1 just after he is hurt, fading: the red flash at the edges
+  eating: 0,               // seconds into eating a bundle of herbs (hold H)
   hilotOut: 0,             // seconds left that the hilot stands in her open doorway, answering his call
   caught: 0,               // seconds left of being struck down, before the night is cut short
   struck: false,           // he has just struck the house post (the manananggal listens for it)

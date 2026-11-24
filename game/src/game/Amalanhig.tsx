@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Mesh, MeshStandardMaterial, Vector3 } from "three";
-import { catchPlayer, crossesLine, live, rnd, useGame } from "./state";
+import { crossesLine, hurt, live, mods, rnd, useGame } from "./state";
+import { WHIP } from "./data";
+import { HealthBar, HealthBarHandle } from "./HealthBar";
 import { amalanhigGraves, amalanhigSolids, pushOut } from "./layout";
 import { useCharacter } from "./useCharacter";
 import { sound } from "./audio";
@@ -13,8 +15,9 @@ const LOSE = 24;              // and how far it follows him before it gives up a
 const SPEED = 2.0;            // faster than he walks, slower than he runs
 const TURN = 1.1;             // radians a second: its joints have set, so it turns slowly. Step aside and it lurches past
 const REACH = 1.2;            // how close it must be, facing him, to get its hands on him
-const WHIP_RANGE = 3.6;
-const BLOWS = 3;              // whip blows that lay it down for the rest of the night
+const HEALTH = 100;           // three whip blows lay it down for the rest of the night
+const GRAB_HARM = 40;         // what its hands take from him; it lets go and he staggers clear
+const GRAB_REST = 2.5;        // seconds before it can get hold of him again
 const RISE = 2.4, FALL = 0.9;
 const HALF_PI = Math.PI / 2;
 
@@ -22,7 +25,8 @@ const HALF_PI = Math.PI / 2;
  * An amalanhig: one who was aswang and died without passing it on, so it cannot rest. It lies in the old
  * sitio's graveyard. After dark, if he comes near, it rises out of the ground stiff as a plank, pivoting on
  * its feet, and comes after him with its arms out. It cannot bend: it turns slowly, so stepping aside and
- * running beats it, and a salt line stops it. If it gets him, the night is lost. The whip knocks it back;
+ * running beats it, and a salt line stops it. If it gets its hands on him it hurts him badly (twice and a
+ * little more puts him down). The whip knocks it back and hurts it;
  * three blows and it falls flat and stays down till morning, and what it was buried with is his.
  * It is the one thing in the barrio he can fight. Model and motions: assets/amalanhig.
  */
@@ -38,11 +42,14 @@ export function Amalanhig({ index }: { index: number }) {
   const mode = useRef<Mode>("grave");
   const timer = useRef(0);
   const hits = useRef(0);
+  const hp = useRef(HEALTH);
+  const grabRest = useRef(0);
+  const bar = useRef<HealthBarHandle>(null);
   const shove = useRef({ x: 0, z: 0 });
   const stall = useRef(0);
 
   const reset = () => {
-    mode.current = "grave"; hits.current = 0; tilt.current = -HALF_PI; facing.current = 0;
+    mode.current = "grave"; hits.current = 0; hp.current = HEALTH; grabRest.current = 0; tilt.current = -HALF_PI; facing.current = 0;
     pos.current.set(grave.x, 0, grave.z); solid.r = 0;
   };
   useEffect(() => { reset(); api.reset(); api.play("idle", { fade: 0 }); }, [runId, api]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -94,13 +101,15 @@ export function Amalanhig({ index }: { index: number }) {
     };
     const struck = () => {
       hits.current += 1;
+      hp.current -= WHIP.damage * mods(game).damage;
       sound.strike(); game.gainXp(4);
       const n = Math.max(dist, 0.01);
       shove.current = { x: (-dx / n) * 3.2, z: (-dz / n) * 3.2 };     // knocked back about a metre and a half
-      if (hits.current >= BLOWS) { mode.current = "fall"; timer.current = FALL; api.play("hit", { once: true, fade: 0.1 }); return; }
+      if (hp.current <= 0) { mode.current = "fall"; timer.current = FALL; api.play("hit", { once: true, fade: 0.1 }); return; }
       mode.current = "hit"; timer.current = 0.9; api.play("hit", { once: true, fade: 0.08 });
     };
-    const whipped = live.whipCrack && dist < WHIP_RANGE;
+    const whipped = live.whipCrack && dist < WHIP.range;
+    grabRest.current = Math.max(0, grabRest.current - dt);
 
     switch (mode.current) {
       case "grave":
@@ -126,14 +135,21 @@ export function Amalanhig({ index }: { index: number }) {
         // it only makes headway when it is roughly facing him; badly off, it mostly stands and turns
         const going = lurch(SPEED * Math.max(0.2, Math.cos(Math.min(off, Math.PI / 2))));
         api.move(going ? "walk" : "idle", going ? SPEED : 0, { fade: 0.3 });
-        if (dist < REACH && off < 0.6) { mode.current = "grab"; timer.current = 1.0; api.play("grab", { once: true, fade: 0.1 }); sound.growl(); }
+        if (dist < REACH && off < 0.6 && grabRest.current <= 0) { mode.current = "grab"; timer.current = 1.0; api.play("grab", { once: true, fade: 0.1 }); sound.growl(); }
         break;
       }
       case "grab":
         if (whipped && timer.current > 0.35) { struck(); break; }
         turnToward(dx, dz, TURN * 2);
         // the arms close about two thirds of the way through
-        if (timer.current <= 0.35 && timer.current + dt > 0.35 && dist < REACH * 1.5) catchPlayer();
+        if (timer.current <= 0.35 && timer.current + dt > 0.35 && dist < REACH * 1.5) {
+          // its hands close on him: it hurts, and he tears himself loose a stride away
+          hurt(GRAB_HARM);
+          const n = Math.max(dist, 0.01);
+          live.player.x += (dx / n) * 1.1; live.player.z += (dz / n) * 1.1;
+          pushOut(live.player, 0.35);
+          grabRest.current = GRAB_REST;
+        }
         if (timer.current <= 0) mode.current = "hunt";
         break;
       case "hit":
@@ -189,12 +205,16 @@ export function Amalanhig({ index }: { index: number }) {
     g.rotation.order = "YXZ";
     g.rotation.set(tilt.current, facing.current, 0);
     solid.x = p.x; solid.z = p.z; solid.r = standing ? 0.35 : 0;
-    me.mode = mode.current; me.x = p.x; me.z = p.z; me.hits = hits.current;
+    me.mode = mode.current; me.x = p.x; me.z = p.z; me.hits = hits.current; me.hp = hp.current / HEALTH;
+    bar.current?.set(p.x, 2.05, p.z, hp.current / HEALTH, standing && hp.current < HEALTH);
   });
 
   return (
-    <group ref={group} visible={false}>
-      <primitive object={model} />
-    </group>
+    <>
+      <group ref={group} visible={false}>
+        <primitive object={model} />
+      </group>
+      <HealthBar ref={bar} />
+    </>
   );
 }

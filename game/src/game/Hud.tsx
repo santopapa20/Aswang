@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useProgress } from "@react-three/drei";
 import { carried, endingText, hasSave, live, mods, ROMAN, useGame } from "./state";
-import { aCharm, CHARM_HERBS, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
+import { aCharm, CHARM_HERBS, EAT, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
 import { NIGHTS } from "./story";
 import { openings } from "./layout";
 import { choose, toggles } from "./input";
@@ -36,7 +36,7 @@ export function Hud() {
 
 const KEYS: [string, string][] = [
   ["W A S D", "Move"], ["Shift", "Run"], ["C", "Sneak on or off"], ["E hold", "Use, search, talk"], ["G hold", "Protect a door or window"],
-  ["Q", "Pour a line of salt"], ["F", "Shutter the lamp"], ["R", "Crack the whip"], ["T hold", "Turn your shirt inside out"],
+  ["Q", "Pour a line of salt"], ["F", "Shutter the lamp"], ["R", "Crack the whip"], ["H hold", "Eat herbs to heal"], ["T hold", "Turn your shirt inside out"],
   ["Tab", "Bag and learning"], ["Esc", "Pause"], ["M", "Sound on or off"],
 ];
 /** What goes on the bar along the bottom: things you use. Herbs and money are shown as a purse beside it. */
@@ -176,6 +176,7 @@ function Play() {
     <>
       <div className="vignette" />
       <div className="fear" style={{ opacity: Math.max(fear * 0.85, attacked ? 0.35 : 0, g.hunted ? 0.6 : 0, night ? live.sigbin.drain * 0.9 : 0) }} />
+      <div className="hurt" style={{ opacity: live.hurt * 0.9 }} />
       <div className="blackout" style={{ opacity: live.caught > 0 ? Math.min(1, 1.25 - live.caught / 2.6) : 0 }} />
 
       <header className="topbar">
@@ -247,6 +248,7 @@ function Play() {
             {g.carrying && <div className="tile carry"><Icon name={g.carrying === "water" ? "salt" : "oil"} size={22} /><em>{g.carrying === "water" ? "Water" : "The oil"}</em></div>}
           </div>
           <div className="meters">
+            <label title="Health: bites and grabs take it; eat herbs (hold H) or rest by day to get it back"><Icon name="heart" size={15} /><span>{live.eating > 0 ? "Eating" : "Health"}</span><div className={`bar health ${live.health / mods(g).health < 0.3 ? "low" : ""}`}><i style={{ width: `${(live.health / mods(g).health) * 100}%` }} />{live.eating > 0 && <b className="eat" style={{ width: `${(live.eating / EAT.seconds) * 100}%` }} />}</div></label>
             <label title="Breath: running spends it"><Icon name="breath" size={15} /><span>Breath</span><div className={`bar ${live.stamina < 0.25 ? "low" : ""}`}><i style={{ width: `${live.stamina * 100}%` }} /></div></label>
             <label title="What you have learned"><Icon name="star" size={15} /><span>Level {g.level}</span><div className="bar gold"><i style={{ width: `${(g.xp / xpForLevel(g.level)) * 100}%` }} /></div></label>
             <span className="purse">
@@ -310,7 +312,7 @@ function Bag() {
         <section>
           <h3>Supplies <small>{carried(g)} of {m.carry}</small></h3>
           {ITEM_ORDER.map((k) => <div key={k} className={`row ${g.bag[k] ? "" : "dim"}`}><Icon name={ITEM_ICON[k]} size={22} /><div><b>{ITEMS[k].name}</b><p>{ITEMS[k].use}</p></div><em>{g.bag[k]}</em></div>)}
-          {g.hasWhip && <div className="row"><Icon name="whip" size={22} /><div><b>Stingray-tail whip</b><p>Crack it when she is close and she falls back.</p></div><em>R</em></div>}
+          {g.hasWhip && <div className="row"><Icon name="whip" size={22} /><div><b>Stingray-tail whip</b><p>Crack it when one is close: she falls back, and a thing that can be hurt is hurt.</p></div><em>R</em></div>}
           <h3>What you know</h3>
           {proofs.map(([has, name, yes, no]) => <div key={name} className={`row ${has ? "" : "dim"}`}><Icon name={has ? "check" : "eye"} size={20} /><div><b>{name}</b><p>{has ? yes : no}</p></div></div>)}
         </section>

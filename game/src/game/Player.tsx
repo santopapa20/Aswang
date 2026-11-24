@@ -8,6 +8,7 @@ import { interactables, Interactable } from "./interact";
 import { useCharacter } from "./useCharacter";
 import { useProp } from "./useProp";
 import { sound } from "./audio";
+import { EAT, WHIP } from "./data";
 
 const SPEED = { sneak: 0.9, walk: 1.7, run: 3.6 };
 // how far away each way of moving can be noticed, in metres
@@ -35,7 +36,7 @@ export function Player() {
 
   useEffect(() => {
     stillFor.current = 0;
-    live.shirtTurn = 0; live.caught = 0; live.stamina = 1; live.prompts.E = live.prompts.G = null; live.near = [];
+    live.shirtTurn = 0; live.caught = 0; live.stamina = 1; live.health = mods(useGame.getState()).health; live.hurt = 0; live.eating = 0; live.prompts.E = live.prompts.G = null; live.near = [];
     holding.current = { key: "", t: 0 };
     api.reset();
     api.play("idle", { fade: 0 });
@@ -80,8 +81,18 @@ export function Player() {
         if (live.shirtTurn >= SHIRT_SECONDS) { game.set({ shirt: true, lost: false }); live.shirtTurn = 0; game.gainXp(25); }
       } else live.shirtTurn = 0;
 
+      // ---- H held: he stands and eats a bundle of herbs, and some of his strength comes back
+      const hungry = held.has("KeyH") && !using && !turningShirt;
+      if (hungry && game.bag.herbs <= 0) { live.eating = 0; game.hint("noherbs", "You have no herbs to eat. Pick them where they grow, or search for them."); }
+      else if (hungry && live.health >= m.health - 0.5) live.eating = 0;
+      else if (hungry) {
+        live.eating += dt;
+        if (live.eating >= EAT.seconds) { live.eating = 0; game.spend("herbs", 1); live.health = Math.min(m.health, live.health + EAT.heals); sound.blip(); }
+      } else live.eating = 0;
+      const eating = live.eating > 0;
+
       // ---- moving
-      const want = using || turningShirt ? { x: 0, z: 0 } : moveAxis();
+      const want = using || turningShirt || eating ? { x: 0, z: 0 } : moveAxis();
       const moving = want.x !== 0 || want.z !== 0;
       if (live.stamina <= 0) winded.current = true;
       if (live.stamina > 0.3) winded.current = false;
@@ -127,10 +138,12 @@ export function Player() {
         if (!game.pourSalt({ ax: cx - fz * half, az: cz + fx * half, bx: cx + fz * half, bz: cz - fx * half })) game.toast("You have no salt.", "bad");
       }
       // ---- R cracks the whip: she falls back if she is close (Aswang.tsx listens for `whipWait`)
-      if (actions.whip && game.hasWhip && live.whipWait <= 0 && live.stamina > 0.2) { live.whipWait = 8 * m.whip; live.whipCrack = true; live.stamina -= 0.2; sound.whip(); }
+      if (actions.whip && game.hasWhip && live.whipWait <= 0 && live.stamina > 0.2) { live.whipWait = WHIP.cooldown * m.whip; live.whipCrack = true; live.stamina -= 0.2; sound.whip(); }
     }
     actions.pour = false; actions.whip = false;
     live.whipWait = Math.max(0, live.whipWait - dt);
+    live.hurt = Math.max(0, live.hurt - dt * 1.4);
+    live.health = Math.min(live.health, m.health);
     live.lampBlown = Math.max(0, live.lampBlown - dt);
 
     // ---- the lamp: it burns oil at night, can be shuttered, and can be blown out
