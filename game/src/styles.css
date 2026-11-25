@@ -414,3 +414,16 @@ html, body, canvas { touch-action: none; overscroll-behavior: none; -webkit-tap-
 @media (max-height: 520px) { .touching .hud .topbar { top: 12px; left: 18px; right: 18px; } .touching .hud .goal { margin-top: 96px; } }
 /* the bottom right belongs to the touch buttons: the keyboard hints and the purse step aside (the bag shows the purse) */
 .touching .hud .hints, .touching .hud .purse { display: none; }
+/* smaller touch buttons (R: "too big"): still at or above the 44-point minimum for a thumb, but a quieter
+   corner. Labels a size down; the count badge and the doing-ring scale with them. */
+.tbtn { width: 46px; min-height: 46px; padding: 4px 2px; gap: 1px; font-size: 7.5px; letter-spacing: 0.06em; }
+.tbtn span { max-width: 42px; }
+.tbtn .icon { width: 17px; height: 17px; }
+.tbtn b { top: -4px; right: -4px; min-width: 17px; padding: 1px 4px; font-size: 10px; }
+.tbtn.big { width: 54px; min-height: 54px; font-size: 8px; } .tbtn.big span { max-width: 50px; } .tbtn.big .icon { width: 20px; height: 20px; }
+.tbtn.small { width: 38px; min-height: 38px; } .tbtn.small .icon { width: 16px; height: 16px; }
+.tactions { right: max(12px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); gap: 7px; }
+.tactions .tcluster { gap: 7px; } .trow { gap: 6px; }
+.tmenu { top: max(8px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); gap: 8px; }
+.tbtn.lit { box-shadow: 0 0 10px rgba(224, 164, 74, 0.2); }
+@media (max-height: 520px) { .touching .hud .goal { margin-top: 70px; } }
