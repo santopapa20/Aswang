@@ -4,7 +4,7 @@
  * The creatures that can be hurt (Amalanhig.tsx, Kin.tsx) ask this each frame; the flags are set by
  * Player.tsx and cleared at the end of the frame by the Director (Cast.tsx).
  */
-import { BLADE, POUCH } from "./data";
+import { POUCH } from "./data";
 import { live, mods, useGame } from "./state";
 
 export function strikesAt(x: number, z: number): { damage: number; stun: number; blade: boolean } {
@@ -14,7 +14,7 @@ export function strikesAt(x: number, z: number): { damage: number; stun: number;
   const ahead = d < 0.3 || (Math.sin(live.facing) * dx + Math.cos(live.facing) * dz) / d > 0.35;
   let damage = 0, stun = 0, blade = false;
   if (live.whipCrack && d < m.whipReach) damage += m.whipDamage;
-  if (live.slash && d < BLADE.range && ahead) { damage += m.bladeDamage; blade = true; }
+  if (live.slash && d < m.bladeReach && ahead) { damage += m.bladeDamage; blade = true; }
   if (live.saltThrow && d < POUCH.range && ahead) stun = POUCH.stun;
   return { damage, stun, blade };
 }

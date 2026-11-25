@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import { crossesLine, hitStop, hurt, live, mods, rnd, useGame, step } from "./state";
-import { KIN, KIN_AGAIN, KIN_AT_ONCE, KIN_FIRST, KIN_NIGHTS, KinKind, TROPHIES } from "./data";
+import { BeastKind, KIN, KIN_AGAIN, KIN_AT_ONCE, KIN_FIRST, KIN_NIGHTS, TROPHIES } from "./data";
 import { strikesAt } from "./combat";
 import { kinRoam, kinSolids, P2, pushOut } from "./layout";
 import { useCharacter } from "./useCharacter";
@@ -21,7 +21,7 @@ const BITE = 0.7, BITE_AT = 0.4;     // the bite clip's length, and how far into
  * it off: keep the lamp on it. Laid down, each leaves coins and a trophy, and counts towards Nong Kadyo's
  * work. How many come out each night is in data.ts (KIN_NIGHTS); models in assets/kin.
  */
-export function Kin({ kind, index }: { kind: KinKind; index: number }) {
+export function Kin({ kind, index }: { kind: BeastKind; index: number }) {
   const K = KIN[kind];
   const shadows = useGame((s) => s.shadows);
   const runId = useGame((s) => s.runId);
@@ -73,7 +73,8 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
     solid.r = 0;                                 // its own circle must not push it (set again below)
     const dx = live.player.x - p.x, dz = live.player.z - p.z;
     const dist = Math.hypot(dx, dz);
-    const lit = game.lampOn && live.lampBlown <= 0 && game.bag.oil > 0;
+    const lit = game.lampOn && live.lampBlown <= 0 && (game.bag.oil > 0 || game.strongLamp);
+    const hidden = live.smudge > 0;              // a smouldering smudge bundle hides his scent
     timer.current -= dt;
 
     const turnToward = (x: number, z: number, rate: number) => {
@@ -139,7 +140,7 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
     switch (mode.current) {
       case "away": {
         wait.current -= dt;
-        const night = KIN_NIGHTS[game.night] ?? { dog: 0, crawler: 0 };
+        const night = KIN_NIGHTS[game.night] ?? { dog: 0, crawler: 0, guise: 0 };
         if (index >= KIN_AT_ONCE[kind] || live.elapsed < KIN_FIRST || wait.current > 0 || live.kinOut[kind] >= night[kind]) break;
         let at: P2;
         if (kind === "dog" && index > 0) {
@@ -162,7 +163,7 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
         steer(gx, gz, K.turn * 0.6);
         go(K.prowl);
         api.move("walk", K.prowl, { fade: 0.4 });
-        if (live.caught <= 0 && dist < K.notice * (lit ? 1 : 0.6)) {
+        if (live.caught <= 0 && !hidden && dist < K.notice * (lit ? 1 : 0.6)) {
           mode.current = "alert"; timer.current = ALERT; from.current = { x: p.x, z: p.z };
           if (kind === "dog") sound.growl(); else sound.shriek();
           game.hint(`kin-${kind}`, kind === "dog"
@@ -178,7 +179,7 @@ export function Kin({ kind, index }: { kind: KinKind; index: number }) {
         if (timer.current <= 0) mode.current = "hunt";
         break;
       case "hunt": {
-        if (live.caught > 0 || dist > K.lose || Math.hypot(p.x - from.current.x, p.z - from.current.z) > K.leash) { mode.current = "prowl"; goal.current = { ...from.current }; break; }
+        if (live.caught > 0 || hidden || dist > K.lose || Math.hypot(p.x - from.current.x, p.z - from.current.z) > K.leash) { mode.current = "prowl"; goal.current = { ...from.current }; break; }
         const off = steer(dx, dz, K.turn);
         if (!go(K.speed * Math.max(0.3, Math.cos(Math.min(off, Math.PI / 2))))) { mode.current = "blocked"; break; }
         api.move("run", K.speed, { fade: 0.25 });

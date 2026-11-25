@@ -3,7 +3,7 @@
  * headless browser can photograph each screen (see README, "Checking the screens"). Never loaded in a build.
  */
 import { live, useGame } from "./game/state";
-import { benchSpot, doorOf, hilotSpot, house } from "./game/layout";
+import { benchSpot, doorOf, hilotSpot, home, house } from "./game/layout";
 
 const HILOT = doorOf(house("hilot"));
 
@@ -30,6 +30,14 @@ async function dusk(night = 1, wards = true) {
   G().set({ banner: null });
 }
 
+/** Night 3 with the given face out on the path, and him a few steps from it. */
+const walker = async (look: "farmer" | "priest" | "nurse") => {
+  await dusk(3); live.guiseLook = look; live.elapsed = 30; at(-30, 25);
+  const w = live.kin.guise[["farmer", "priest", "nurse"].indexOf(look)];
+  for (let k = 0; k < 300 && w.mode !== "stroll"; k++) dev().run(0.1);
+  at(w.x + 3.6, w.z + 1.2); dev().run(0.6);
+  return w;
+};
 const SHOTS: Record<string, () => Promise<void>> = {
   title: async () => {},
   intro: async () => { G().newGame(); await sleep(300); G().set({ banner: null }); G().advance(); G().advance(); },
@@ -102,17 +110,24 @@ const SHOTS: Record<string, () => Promise<void>> = {
     for (let k = 0; k < 300 && c.mode !== "prowl"; k++) dev().run(0.1);
     at(c.x + 4.5, c.z + 1.5); dev().run(1.0);
   },
+  // a kin in human guise on the path (the farmer), and one shown up by garlic (the nurse)
+  guise: async () => { await walker("farmer"); },
+  unmasked: async () => { const w = await walker("nurse"); w.unmask = true; dev().run(0.6); },
+  stakes: async () => {
+    await begin(3); G().set({ kit: { ...G().kit, hedge: true } }); await sleep(200);
+    at(home.x - 4.5, home.z + 8); dev().run(0.5);
+  },
   work: async () => {
     await begin(3);
     G().set({ bounties: [
       { id: 1, kind: "dog", count: 2, got: 2, coins: 12, xp: 40, text: "Two dogs run the north field at night.", night: 2, state: "done" },
       { id: 2, kind: "dog", count: 2, got: 0, coins: 12, xp: 40, text: "The dogs are back. Two of them again.", night: 3, state: "offered" },
       { id: 3, kind: "crawler", count: 1, got: 0, coins: 16, xp: 55, text: "Something goes on all fours by the shut house. Keep your lamp on it: in the dark the whip slides off.", night: 3, state: "offered" },
-    ], trophies: { fang: 2, claw: 0 } });
+    ], trophies: { fang: 2, claw: 0, stone: 0 } });
     at(24, -18.7); G().setPanel("trade");
   },
   bench: async () => {
-    await begin(3); G().set({ hasWhip: true, trophies: { fang: 4, claw: 1 }, kit: { itak: true, pouch: 2, string: 0, bars: { west: false, east: false }, barbs: false, lash: false } });
+    await begin(3); G().set({ hasWhip: true, trophies: { fang: 4, claw: 1, stone: 0 }, kit: { ...G().kit, itak: true, pouch: 2, string: 0, bars: { west: false, east: false }, barbs: false, lash: false } });
     at(benchSpot.x, benchSpot.z + 0.7); G().setPanel("bench");
   },
   yard: async () => { await begin(3); at(benchSpot.x + 1.5, benchSpot.z + 2.6); dev().run(0.5); },

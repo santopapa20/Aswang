@@ -3,9 +3,9 @@
  * all five nights by script, testing each mechanic and item, and prints a pass/fail list on screen.
  * It is not a substitute for a person playing: it cannot judge feel, difficulty, sound or looks.
  */
-import { hitStop, hurt, live, loadSave, mods, useGame } from "./game/state";
-import { HERB_PRICE } from "./game/data";
-import { benchSpot, doorOf, firePit, hidingSpots, hilotSpot, home, house, nodes, well } from "./game/layout";
+import { canCraft, hitStop, hurt, live, loadSave, mods, useGame } from "./game/state";
+import { BLADE, HERB_PRICE } from "./game/data";
+import { benchSpot, doorOf, firePit, hidingSpots, hilotSpot, home, house, nodes, stakeSolids, well } from "./game/layout";
 import { BALETE_ROOTS } from "./game/interact";
 
 type Dev = { run: (seconds: number, fps?: number) => void; show: () => void };
@@ -300,9 +300,45 @@ async function play() {
   at(cr.x + 2.2, cr.z); G().set({ lampOn: true }); live.whipWait = 0; live.stamina = 1; const h1 = cr.hp; key("KeyR"); run(0.1); key("KeyR", false); const lit = h1 - cr.hp;
   check("in the dark the whip slides off it; in lamplight it bites", dark > 0 && lit > dark * 3, { dark: dark.toFixed(2), lit: lit.toFixed(2) });
 
+  // ---------- the kin in human guise: night 3 brings the farmer
+  const walker = () => live.kin.guise[0];
+  const night3 = async () => {
+    G().set({ night: 3, rationTaken: true, hasWhip: true, bag: { ...G().bag, garlic: 2, oil: 9 } }); G().startNight(); await sleep(300); await skipTalk();
+    live.elapsed = 30; at(-30, 25);
+    for (let i = 0; i < 200 && !up(walker()); i++) { run(0.1); live.health = 100; }
+  };
+  const beside = (d: number) => { const w = walker(); at(w.x + d, w.z); live.facing = -Math.PI / 2; };
+  await night3();
+  check("a night walker comes out on the third night, in a farmer's face", up(walker()) && !walker().shown && walker().mode === "stroll", walker());
+  beside(3.4); run(0.2);
+  const offer = prompt("G");
+  hold("KeyG", 0.5);
+  check("garlic held up shows it for what it is: it reels, and the garlic is kept", offer === "Hold up garlic" && walker().shown && walker().mode === "recoil" && G().bag.garlic === 2, { offer, ...walker(), garlic: G().bag.garlic });
+  live.whipWait = 0; live.stamina = 1; beside(2.6);
+  const hw = walker().hp; key("KeyR"); run(0.1); key("KeyR", false);
+  check("shown, the whip marks it", walker().hp < hw, { before: hw, after: walker().hp });
+  G().set({ bounties: [{ id: 90, kind: "guise", count: 1, got: 0, coins: 16, xp: 60, text: "", night: 3, state: "taken" }] });
+  for (let i = 0; i < 400 && up(walker()); i++) {
+    if (Math.hypot(walker().x - live.player.x, walker().z - live.player.z) > 3) beside(2.6);
+    if (live.whipWait <= 0) { live.stamina = 1; key("KeyR"); run(0.1); key("KeyR", false); } else run(0.1);
+    live.health = 100; live.caught = 0;
+  }
+  check("laid down: a black stone from under its tongue, and Nong Kadyo's work is done", G().trophies.stone >= 1 && G().bounties[0]?.state === "done", { stone: G().trophies.stone, bounty: G().bounties[0] });
+  await night3();
+  live.whipWait = 0; live.stamina = 1; beside(3.0);
+  key("KeyR"); run(0.1); key("KeyR", false); run(0.2);
+  check("struck with the face still on, it takes no harm, and drops the face and comes", walker().hp === 1 && walker().shown && ["turn", "strike", "alert", "hunt"].includes(walker().mode), walker());
+  await night3();
+  live.health = 100; beside(1.2); run(0.9);
+  check("let close with the face on, it strikes first", walker().shown && live.health < 100, { health: live.health, ...walker() });
+  await night3();
+  G().set({ kit: { ...G().kit, smudge: 1 } }); hold("KeyX", 0.1);
+  beside(5); run(0.6);
+  check("in smudge smoke it does not notice him", live.smudge > 0 && G().kit.smudge === 0 && walker().mode === "stroll", { smudge: live.smudge, mode: walker().mode });
+
   // ---------- the bench: making things by day, and using them at night
   G().toTitle(); await sleep(100); G().newGame(); await sleep(200); await skipTalk();
-  G().set({ hasWhip: true, bag: { ...G().bag, coins: 40, kindling: 8, salt: 4, herbs: 6, garlic: 3, oil: 9 }, trophies: { fang: 5, claw: 2 } });
+  G().set({ hasWhip: true, bag: { ...G().bag, coins: 40, kindling: 8, salt: 4, herbs: 6, garlic: 3, oil: 9 }, trophies: { fang: 5, claw: 2, stone: 0 } });
   at(benchSpot.x, benchSpot.z + 0.7); hold("KeyE", 0.6); await sleep(50);
   check("the bench opens by day", G().panel === "bench", prompt("E"));
   for (const id of ["itak", "pouch", "string", "barsWest", "barbs", "lash"] as const) G().craft(id);
@@ -326,6 +362,25 @@ async function play() {
   live.facing = Math.atan2(am.x - live.player.x, am.z - live.player.z);
   const hpPouch = am.hp; key("KeyZ"); run(0.1); key("KeyZ", false); run(0.2);
   check("a salt pouch in its face makes it reel, without harm", am.mode === "hit" && am.hp === hpPouch && G().kit.pouch === 0, { mode: am.mode, hp: am.hp });
+
+  // ---------- the rest of the bench: the sibat, smudge, strong oil, bells and the stake fence
+  G().toTitle(); await sleep(100); G().newGame(); await sleep(200); await skipTalk();
+  G().set({ hasWhip: true, bag: { ...G().bag, coins: 40, kindling: 12, herbs: 6, oil: 5 }, trophies: { fang: 2, claw: 2, stone: 1 } });
+  const waits = !canCraft(G(), "spear");
+  G().set({ kit: { ...G().kit, itak: true } });
+  for (const id of ["spear", "smudge", "strongOil", "bells", "hedge"] as const) G().craft(id);
+  const k2 = G().kit;
+  check("the sibat waits for the itak; then a sibat, a smudge bundle, strong oil, bells and the stake fence are made", waits && k2.spear && k2.smudge === 1 && k2.strongOil === 1 && k2.bells && k2.hedge && G().trophies.stone === 0 && G().trophies.claw === 0 && G().trophies.fang === 0, { waits, kit: k2, trophies: G().trophies });
+  check("the itak on a pole reaches further", mods().bladeReach > BLADE.range + 1, mods().bladeReach);
+  await sleep(150); run(0.2);
+  check("the stake fence stands round the yard", stakeSolids.length > 0 && stakeSolids.every((c) => c.r > 0), stakeSolids[0]);
+  G().set({ rationTaken: true }); G().startNight(); await sleep(300); await skipTalk();
+  const oilStrong = G().bag.oil;
+  check("strong oil goes into the lamp at dusk", G().strongLamp && G().kit.strongOil === 0, { strong: G().strongLamp, left: G().kit.strongOil });
+  for (let i = 0; i < 6; i++) { run(10); live.health = 100; live.caught = 0; }
+  check("and burns the night through without touching his oil", G().bag.oil === oilStrong && G().stage === "night", { before: oilStrong, after: G().bag.oil });
+  at(30, -20); live.breachAt = "west"; run(0.2);
+  check("the bells ring when the house is tried while he is away", G().toasts.some((t) => t.text.includes("bells")), G().toasts.map((t) => t.text));
 
   // ---------- favours by day, and the old tales
   G().toTitle(); await sleep(100); G().newGame(); await sleep(200); await skipTalk();

@@ -1,0 +1,21 @@
+{
+  "_comment": "The farmer kin: single fused piece, T-pose with the arms sloping a little down, a sickle in the right hand and a hatchet in the left (both fused, they follow the hands). Ragged shirt and trousers, boots. Symmetric enough to mirror. Measured on farmer.blend (its own units, 0.92 tall with the hat; faces -Y, his left is +X) from the front render against the bounding box, checked with tools/blender/slice_model.py at the shoulders and arms.",
+  "hips": [0.000, 0.000, 0.460],
+  "spine": [0.000, 0.002, 0.520],
+  "chest": [0.000, 0.004, 0.585],
+  "upper_chest": [0.000, 0.006, 0.650],
+  "neck": [0.000, 0.010, 0.748],
+  "head": [0.000, 0.010, 0.785],
+  "head_end": [0.000, 0.000, 0.890],
+  "clavicle": [0.025, 0.004, 0.720],
+  "shoulder": [0.120, 0.008, 0.715],
+  "elbow": [0.270, 0.010, 0.690],
+  "wrist": [0.395, 0.000, 0.665],
+  "hand_tip": [0.450, -0.005, 0.658],
+  "hip": [0.062, 0.000, 0.440],
+  "knee": [0.072, -0.008, 0.250],
+  "ankle": [0.080, 0.010, 0.065],
+  "toe": [0.082, -0.045, 0.022],
+  "toe_tip": [0.084, -0.095, 0.010],
+  "props": {}
+}

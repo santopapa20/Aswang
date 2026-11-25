@@ -5,7 +5,7 @@ import { catchPlayer, crossesLine, live, rnd, useGame, step } from "./state";
 import { home, lurkPoints, Opening, openings, P2, pushOut } from "./layout";
 import { ROSING_SAYS } from "./story";
 import { useCharacter } from "./useCharacter";
-import { BLADE, POUCH } from "./data";
+import { BLADE, HEDGE, POUCH } from "./data";
 import { sound } from "./audio";
 
 type Mode = "away" | "lurk" | "prowl" | "approach" | "test" | "recoil" | "withdraw" | "scream" | "chase" | "attack" | "repelled" | "flee";
@@ -71,7 +71,7 @@ export function Aswang() {
     }
     const dx = live.player.x - p.x, dz = live.player.z - p.z;
     const dist = Math.hypot(dx, dz);
-    const lit = game.lampOn && live.lampBlown <= 0 && game.bag.oil > 0;
+    const lit = game.lampOn && live.lampBlown <= 0 && (game.bag.oil > 0 || game.strongLamp);
     const fromHome = Math.hypot(live.player.x - home.x, live.player.z - home.z);
     const guarding = lit && fromHome < 9;
 
@@ -157,7 +157,7 @@ export function Aswang() {
         // working at an unprotected opening: the scratching you hear
         api.play("attack", { fade: 0.3, speed: 0.6 });
         turnTo(home.x - p.x, home.z - p.z, 6);
-        live.breach += dt / (night === 1 ? 10 : 7.5);
+        live.breach += dt / ((night === 1 ? 10 : 7.5) * (game.kit.hedge ? HEDGE.slow : 1));   // the stake fence holds her up
         if (lit && dist < LIGHT) { lurkAway((night === 1 ? 18 : 12) + rnd() * 8); mode.current = "withdraw"; game.gainXp(8); break; }
         if (live.breach >= 1) {
           sound.breach();

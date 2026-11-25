@@ -23,11 +23,16 @@ export const EAT = { seconds: 1.2, heals: 30 };
  *  many seconds before it can be cracked again (the Strong arm perk shortens that). */
 export const WHIP = { damage: 34, range: 3.6, cooldown: 4 };
 // ---- the aswang's kin, who roam the fields at night (Kin.tsx) ------------------------------------
-export type KinKind = "dog" | "crawler";
-export type TrophyId = "fang" | "claw";
+export type KinKind = "dog" | "crawler" | "guise";
+/** The kin that go on all fours (Kin.tsx); the ones in human guise are Guise.tsx. */
+export type BeastKind = "dog" | "crawler";
+/** What the kin are called, one and many, where his work is written down. */
+export const KIN_NAMES: Record<KinKind, [string, string]> = { dog: ["dog", "dogs"], crawler: ["crawler", "crawlers"], guise: ["night walker", "night walkers"] };
+export type TrophyId = "fang" | "claw" | "stone";
 export const TROPHIES: Record<TrophyId, { name: string; text: string }> = {
   fang: { name: "Dog's fangs", text: "Pulled from a dead thing that ran as a dog. Kept for the workbench." },
   claw: { name: "Crawler's nails", text: "Black, and longer than a man's should be. Kept for the workbench." },
+  stone: { name: "Black stone", text: "It kept it under its tongue. Warm, and heavier than a stone that size. Kept for the workbench." },
 };
 /** How each kind behaves. Speeds in metres a second (he walks 1.7 and runs 3.6), turn in radians a second,
  *  harm out of his 100, notice in metres (shorter when his lamp is shuttered), leash how far from where it
@@ -41,19 +46,48 @@ export const KIN = {
   crawler: { name: "crawler", leash: 16, health: 80, speed: 2.4, prowl: 0.9, turn: 3.5, reach: 1.15, harm: 20, rest: 2.0, notice: 7, lose: 12, knockback: 1.4, stagger: 1.0, trophy: "claw" as TrophyId, coins: [4, 8], xp: 30, unlit: 0.75, bar: 1.2 },
 };
 /** How many of each come out on each night in all, and how many may be about at once. */
-export const KIN_NIGHTS: Record<number, Record<KinKind, number>> = { 1: { dog: 0, crawler: 0 }, 2: { dog: 2, crawler: 0 }, 3: { dog: 2, crawler: 1 }, 4: { dog: 3, crawler: 1 }, 5: { dog: 4, crawler: 2 } };
-export const KIN_AT_ONCE: Record<KinKind, number> = { dog: 2, crawler: 1 };
+export const KIN_NIGHTS: Record<number, Record<KinKind, number>> = {
+  1: { dog: 0, crawler: 0, guise: 0 }, 2: { dog: 2, crawler: 0, guise: 0 }, 3: { dog: 2, crawler: 1, guise: 1 }, 4: { dog: 3, crawler: 1, guise: 1 }, 5: { dog: 4, crawler: 2, guise: 2 },
+};
+export const KIN_AT_ONCE: Record<KinKind, number> = { dog: 2, crawler: 1, guise: 1 };
 export const KIN_FIRST = 25;      // seconds into the night before the first come out
 export const KIN_AGAIN = 40;      // seconds before another comes out in place of one laid down
 
+/** The kin in human guise (Guise.tsx): a farmer, a priest and a nurse who walk the paths at night like
+ *  people. While the guise holds, nothing he does harms them; held up close, a braid of garlic shows what
+ *  it is, and it reels (`recoil` seconds) and can be struck. Come up close without garlic, or strike it,
+ *  and it shows itself and goes for him at once. One comes out at a time, a different one each night.
+ *  Notice, close, garlic, leash and lose in metres; speeds in metres a second (he runs 3.6). */
+export type GuiseLook = "farmer" | "priest" | "nurse";
+export const GUISE_LOOKS: GuiseLook[] = ["farmer", "priest", "nurse"];
+export const GUISE = {
+  notice: 7,        // it stops and watches him
+  close: 2.4,       // nearer than this with the guise still on, it shows itself and strikes first
+  garlic: 4.5,      // how far a braid held up (G) reaches
+  recoil: 2.2,      // seconds it reels when the garlic shows it up
+  stroll: 0.9,      // its walking pace while the guise holds
+  leash: 18, lose: 13, alert: 0.45,
+  trophy: "stone" as TrophyId,
+  looks: {
+    farmer: { name: "farmer", health: 90, speed: 2.7, turn: 4, reach: 1.3, harm: 18, rest: 1.8, coins: [4, 7], xp: 35, knockback: 1.2, stagger: 0.8, bar: 1.95, glow: "#b8532c" },
+    priest: { name: "priest", health: 100, speed: 2.2, turn: 3, reach: 1.35, harm: 22, rest: 2.2, coins: [5, 9], xp: 45, knockback: 0.8, stagger: 0.6, bar: 2.0, glow: "#8f9a3c" },
+    nurse: { name: "nurse", health: 70, speed: 3.2, turn: 5, reach: 1.2, harm: 14, rest: 1.4, coins: [3, 6], xp: 35, knockback: 1.5, stagger: 0.9, bar: 1.85, glow: "#a33a3a" },
+  } as Record<GuiseLook, { name: string; health: number; speed: number; turn: number; reach: number; harm: number; rest: number; coins: [number, number]; xp: number; knockback: number; stagger: number; bar: number; glow: string }>,
+};
+
 // ---- the workbench, beside Rosing's house (by day) ------------------------------------------------
 /** The itak (bolo): close and quick. V to strike what is in front of him. */
-export const BLADE = { damage: 45, range: 1.7, cooldown: 1.1, breath: 0.15 };
+export const BLADE = { damage: 45, range: 1.7, cooldown: 1.1, breath: 0.15, spear: 1.1 };   // spear: how much further it reaches on a pole
 /** A salt pouch thrown in the face of what is in front of him (Z): it reels for `stun` seconds. */
 export const POUCH = { range: 3.4, stun: 2.5 };
-export type RecipeId = "itak" | "pouch" | "string" | "barsWest" | "barsEast" | "barbs" | "lash" | "fangCharm" | "clawCharm";
+/** A smudge bundle lit (X): how many seconds it smoulders. While it does, the kin lose his scent and the
+ *  manananggal will not dive at him. */
+export const SMUDGE = { seconds: 30 };
+/** The stake fence round Rosing's yard (recipe "hedge"): what tries the house takes this much longer at each opening. */
+export const HEDGE = { slow: 1.35 };
+export type RecipeId = "itak" | "pouch" | "string" | "barsWest" | "barsEast" | "barbs" | "lash" | "fangCharm" | "clawCharm" | "spear" | "smudge" | "strongOil" | "bells" | "hedge";
 export type Cost = Partial<Record<ItemId | TrophyId, number>>;
-export const RECIPES: { id: RecipeId; name: string; text: string; cost: Cost; icon: string; once?: boolean; whip?: boolean }[] = [
+export const RECIPES: { id: RecipeId; name: string; text: string; cost: Cost; icon: string; once?: boolean; whip?: boolean; needs?: "itak" }[] = [
   { id: "itak", name: "Itak", text: "A bolo with its handle bound in palm, and a dog's fang set in the pommel against them. V strikes what is in front of you: close, quick, and deep.", cost: { coins: 15, kindling: 2, fang: 1 }, icon: "blade", once: true },
   { id: "pouch", name: "Salt pouch", text: "A twist of salt and crushed leaves. Z throws it in the face of whatever is in front of you, and it reels.", cost: { salt: 2, herbs: 1 }, icon: "salt" },
   { id: "string", name: "Garlic string", text: "Worn at the neck. The next bite or grab is turned aside, and the string is spent.", cost: { garlic: 3 }, icon: "garlic" },
@@ -61,6 +95,11 @@ export const RECIPES: { id: RecipeId; name: string; text: string; cost: Cost; ic
   { id: "barsEast", name: "Bamboo bars, east window", text: "The same across the east window.", cost: { kindling: 4, coins: 4 }, icon: "window", once: true },
   { id: "barbs", name: "Barbs for the whip", text: "Dog's fangs worked into the lash. Each blow takes a third more.", cost: { fang: 3, herbs: 2 }, icon: "whip", once: true, whip: true },
   { id: "lash", name: "A longer lash", text: "Crawler's nails knotted along a new length. The whip reaches a metre further.", cost: { claw: 2, coins: 6 }, icon: "whip", once: true, whip: true },
+  { id: "spear", name: "Sibat", text: "The itak lashed to a length of bamboo, and bound with a black stone for weight. V reaches a metre further.", cost: { kindling: 3, stone: 1 }, icon: "blade", once: true, needs: "itak" },
+  { id: "smudge", name: "Smudge bundle", text: "Dried herbs and coconut husk, bound tight. X lights it: for half a minute the smoke hides you, the kin lose your scent and the wings will not dive at you.", cost: { herbs: 2, kindling: 1 }, icon: "flame" },
+  { id: "strongOil", name: "Strong oil", text: "Lamp oil boiled down with herbs and a crawler's nail. It goes into the lamp at dusk, burns the whole night through, and throws its light further.", cost: { oil: 2, herbs: 1, claw: 1 }, icon: "oil" },
+  { id: "bells", name: "Bells on the fence", text: "Little bells strung along Rosing's fence on dog's teeth. When something tries the house while you are away, you hear them across the barrio.", cost: { coins: 8, fang: 2 }, icon: "bell", once: true },
+  { id: "hedge", name: "Stake fence", text: "Sharpened stakes lashed into panels round Rosing's yard. Whatever tries the house must get past them first: it takes a third longer at each opening.", cost: { kindling: 4, coins: 5, claw: 1 }, icon: "fence", once: true },
   { id: "fangCharm", name: "A charm with a fang in it", text: "Herbs and a fang knotted with a prayer. Better than plain ones, more often.", cost: { herbs: 4, fang: 1 }, icon: "charm" },
   { id: "clawCharm", name: "A charm with a nail in it", text: "Herbs and a crawler's nail. These come out old and strong.", cost: { herbs: 4, claw: 1 }, icon: "charm" },
 ];
@@ -82,7 +121,7 @@ export const ROSING_FAVOUR: Record<number, FavourId> = { 2: "water", 3: "kindlin
 export const KADYO_HERBS = 5;
 
 // ---- old tales, found in chests and jars, that fill the book in the bag ---------------------------
-export type TaleId = "aswang" | "manananggal" | "tikbalang" | "kapre" | "sigbin" | "amalanhig" | "dogs" | "crawler";
+export type TaleId = "aswang" | "manananggal" | "tikbalang" | "kapre" | "sigbin" | "amalanhig" | "dogs" | "crawler" | "guise";
 export const TALES: { id: TaleId; title: string; text: string }[] = [
   { id: "aswang", title: "The one who walks at night", text: "By day a neighbour, kind and helpful. By night she listens at the floorboards for the unborn. Salt across the door, garlic at the window; each holds once. She hates a light carried to where she works." },
   { id: "manananggal", title: "The one who leaves her legs", text: "She splits at the waist and flies, and leaves the lower half standing hidden. Smoke keeps her off the roof. Salt or ash on the stump, and she cannot join herself again before the cock crows." },
@@ -91,6 +130,7 @@ export const TALES: { id: TaleId; title: string; text: string }[] = [
   { id: "sigbin", title: "The hound that walks backwards", text: "It goes tail first, its head between its legs, and it drinks shadows. No light, no shadow. It will not step over salt, and the stingray tail sends it off." },
   { id: "amalanhig", title: "The one who could not die", text: "An aswang who never passed it on cannot rest. It rises stiff, unable to bend, and turns slowly. Step aside and run. It cannot follow far from its grave." },
   { id: "dogs", title: "The dogs of her house", text: "When one of them dies, the dogs of the house are not buried. They run the fields at night in pairs. Salt stops them; they do not chase far from where they found you." },
+  { id: "guise", title: "The ones who walk like us", text: "Her kin can wear a face you knew: the farmer you buried, a priest, a nurse at the door. While the face holds, your blows are blows on a neighbour. Garlic held up shows the face for what it is, and it reels. Never let one come close while it still smiles." },
   { id: "crawler", title: "The one on all fours", text: "Kin who have gone too far into it, and forgot how to stand. In the dark nothing harms them. Keep your lamp on them, and strike while it is lit." },
 ];
 export const TALE_CHANCE = 0.55;     // chance a chest or a jar holds a page, while there are pages still to find
@@ -103,14 +143,17 @@ export const BOUNTY_OFFERS: Record<number, Pick<Bounty, "kind" | "count" | "coin
   3: [
     { kind: "dog", count: 2, coins: 10, xp: 40, text: "The dogs are back. Two of them again." },
     { kind: "crawler", count: 1, coins: 14, xp: 55, text: "Something goes on all fours by the shut house. Keep your lamp on it: in the dark the whip slides off." },
+    { kind: "guise", count: 1, coins: 12, xp: 60, text: "Old Celso the farmer walks the paths after dark, and Celso was buried in the dry season. Hold garlic up to him before you go close (G)." },
   ],
   4: [
     { kind: "dog", count: 3, coins: 15, xp: 55, text: "Three dogs tonight. They hunt in pairs; a line of salt stops them." },
     { kind: "crawler", count: 1, coins: 14, xp: 55, text: "The one on all fours. Lamp on it, then the whip." },
+    { kind: "guise", count: 1, coins: 12, xp: 60, text: "A priest walks the barrio at night. We have had no priest since the war. Garlic first; he is heavy, and hits like it." },
   ],
   5: [
     { kind: "crawler", count: 2, coins: 22, xp: 75, text: "She has called her kin for the birth. Two crawlers. They must not reach the house." },
     { kind: "dog", count: 3, coins: 15, xp: 55, text: "And the dogs. Three." },
+    { kind: "guise", count: 2, coins: 20, xp: 80, text: "A nurse came asking for the house with the child. There is no nurse in Capiz who walks at night. Her, and whoever walks after her." },
   ],
 };
 

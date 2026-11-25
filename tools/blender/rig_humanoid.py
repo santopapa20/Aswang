@@ -93,25 +93,51 @@ if unweighted() > 0:
     bpy.ops.object.parent_set(type="ARMATURE_AUTO")
     bad = [v.index for v in proxy.data.vertices if not any(g.weight > 0 for g in v.groups)]
     if len(bad) > len(proxy.data.vertices) * 0.01:
-        print("ERROR automatic weights failed on the stand-in too (%d vertices)" % len(bad)); sys.exit(1)
-    if bad:                                                   # stray crumbs the rebuild left floating: drop them
-        import bmesh
-        bm = bmesh.new(); bm.from_mesh(proxy.data); bm.verts.ensure_lookup_table()
-        bmesh.ops.delete(bm, geom=[bm.verts[i] for i in bad], context="VERTS")
-        bm.to_mesh(proxy.data); bm.free()
-        print("SKIN dropped %d stray stand-in vertices" % len(bad))
-    mod = ob.modifiers.new("copy_weights", "DATA_TRANSFER")
-    mod.object = proxy; mod.use_vert_data = True; mod.data_types_verts = {"VGROUP_WEIGHTS"}
-    mod.vert_mapping = "POLYINTERP_NEAREST"
-    mod.layers_vgroup_select_src = "ALL"; mod.layers_vgroup_select_dst = "NAME"
-    bpy.ops.object.select_all(action="DESELECT")
-    ob.select_set(True); bpy.context.view_layer.objects.active = ob
-    bpy.ops.object.datalayout_transfer(modifier=mod.name)
-    bpy.ops.object.modifier_apply(modifier=mod.name)
-    ob.parent = arm
-    ob.modifiers.new("Armature", "ARMATURE").object = arm
-    pm = proxy.data
-    bpy.data.objects.remove(proxy); bpy.data.meshes.remove(pm)
+        # Bone heat cannot solve this body at all (a ragged model of many loose pieces, tools in the hands).
+        # Last resort: weight every vertex of the real model by its distance to the bones (the three
+        # nearest, 1/d^4), then smooth the seams. Fine for a T- or A-pose, where the limbs stand clear.
+        print("SKIN automatic weights failed on the stand-in too (%d vertices); weighting by distance to the bones" % len(bad))
+        pm = proxy.data
+        bpy.data.objects.remove(proxy); bpy.data.meshes.remove(pm)
+        segs = [(b.name, arm.matrix_world @ b.head_local, arm.matrix_world @ b.tail_local) for b in arm_data.bones]
+        groups = {n: (ob.vertex_groups.get(n) or ob.vertex_groups.new(name=n)) for n, _, _ in segs}
+        for v in me.vertices:
+            p = ob.matrix_world @ v.co
+            near = []
+            for n, a, b in segs:
+                ab = b - a
+                t = max(0.0, min(1.0, (p - a).dot(ab) / max(ab.length_squared, 1e-9)))
+                near.append(((p - (a + ab * t)).length, n))
+            near.sort()
+            ws = [(n, 1 / max(d, 1e-4) ** 4) for d, n in near[:3]]
+            tot = sum(w for _, w in ws)
+            for n, w in ws: groups[n].add([v.index], w / tot, "REPLACE")
+        ob.parent = arm
+        ob.modifiers.new("Armature", "ARMATURE").object = arm
+        bpy.ops.object.select_all(action="DESELECT")
+        ob.select_set(True); bpy.context.view_layer.objects.active = ob
+        bpy.ops.object.mode_set(mode="WEIGHT_PAINT")
+        bpy.ops.object.vertex_group_smooth(group_select_mode="ALL", factor=0.5, repeat=4)
+        bpy.ops.object.mode_set(mode="OBJECT")
+    else:
+        if bad:                                                   # stray crumbs the rebuild left floating: drop them
+            import bmesh
+            bm = bmesh.new(); bm.from_mesh(proxy.data); bm.verts.ensure_lookup_table()
+            bmesh.ops.delete(bm, geom=[bm.verts[i] for i in bad], context="VERTS")
+            bm.to_mesh(proxy.data); bm.free()
+            print("SKIN dropped %d stray stand-in vertices" % len(bad))
+        mod = ob.modifiers.new("copy_weights", "DATA_TRANSFER")
+        mod.object = proxy; mod.use_vert_data = True; mod.data_types_verts = {"VGROUP_WEIGHTS"}
+        mod.vert_mapping = "POLYINTERP_NEAREST"
+        mod.layers_vgroup_select_src = "ALL"; mod.layers_vgroup_select_dst = "NAME"
+        bpy.ops.object.select_all(action="DESELECT")
+        ob.select_set(True); bpy.context.view_layer.objects.active = ob
+        bpy.ops.object.datalayout_transfer(modifier=mod.name)
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+        ob.parent = arm
+        ob.modifiers.new("Armature", "ARMATURE").object = arm
+        pm = proxy.data
+        bpy.data.objects.remove(proxy); bpy.data.meshes.remove(pm)
 
 # every vertex must follow something, and a game engine reads at most four bones per vertex
 bare = unweighted()

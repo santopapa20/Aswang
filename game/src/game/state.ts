@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Vector3 } from "three";
-import { aCharm, Favour, FavourId, TALES, TaleId, BASE_CARRY, BASE_HEALTH, BLADE, Bounty, RECIPES, RecipeId, WHIP, BOUNTY_OFFERS, Charm, KinKind, TrophyId, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
+import { aCharm, Favour, FavourId, GuiseLook, TALES, TaleId, BASE_CARRY, BASE_HEALTH, BLADE, Bounty, RECIPES, RecipeId, WHIP, BOUNTY_OFFERS, Charm, KinKind, TrophyId, ITEMS, ItemId, MAX_RANK, PerkId, WORN_CHARMS, makeCharm, xpForLevel } from "./data";
 import { hidingSpots, home, HUT, nodes, OpeningId, START } from "./layout";
 import type { Objective } from "./objective";
 import { sound } from "./audio";
@@ -46,10 +46,11 @@ const freshRun = () => ({
   kadyoTrust: 0,
   tonicOn: 0,                                  // the day he last bought Rosing a tonic (one a day)
   seen: [] as string[],                        // one-time hints already shown
-  trophies: { fang: 0, claw: 0 } as Record<TrophyId, number>,
+  trophies: { fang: 0, claw: 0, stone: 0 } as Record<TrophyId, number>,
   /** What he has made at the bench: the itak, salt pouches and garlic strings (counts), bars on the windows,
-   *  and the whip's barbs and longer lash. */
-  kit: { itak: false, pouch: 0, string: 0, bars: { west: false, east: false }, barbs: false, lash: false },
+   *  the whip's barbs and longer lash, the itak on a pole (spear), smudge bundles and flasks of strong oil
+   *  (counts), the bells on the fence and the thorn hedge round the yard. */
+  kit: { itak: false, pouch: 0, string: 0, bars: { west: false, east: false }, barbs: false, lash: false, spear: false, smudge: 0, strongOil: 0, bells: false, hedge: false },
   emptied: [] as number[],                     // the sitio's chests, jars and sacks he has emptied: what people left behind does not come back
   tales: [] as TaleId[],                       // the old tales he has found, for the book in the bag
   rosaryDone: false,                           // he found the hilot's rosary for her
@@ -72,6 +73,7 @@ const freshNight = () => ({
   hunted: false, overhead: false, onRoof: false,
   shirt: false, lost: false,
   lampOn: true,
+  strongLamp: false,                            // the lamp was filled with strong oil at dusk: it burns all night, further
   rationTaken: false,
   talked: [] as string[],
   tally: { held: 0, breaches: 0, searched: 0, xp: 0 },
@@ -191,8 +193,13 @@ export const useGame = create<GameState>((set, get) => ({
       mana: "absent",
     });
     beginClock(plan.seconds);
-    live.lampBlown = 0; live.breach = 0; live.breachAt = null; live.loops = 0; live.hilotOut = 0; live.kinOut = { dog: 0, crawler: 0 };      // smoke from a fire fed before dusk carries over
+    live.lampBlown = 0; live.breach = 0; live.breachAt = null; live.loops = 0; live.hilotOut = 0; live.kinOut = { dog: 0, crawler: 0, guise: 0 }; live.guiseNext = 0; live.smudge = 0;      // smoke from a fire fed before dusk carries over
     set({ banner: { big: `Night ${ROMAN[s.night - 1]}`, small: plan.name, id: ids++ } });
+    // a flask of strong oil goes into the lamp at dusk: it burns the whole night through, and further
+    if (s.kit.strongOil > 0) {
+      set({ strongLamp: true, kit: { ...get().kit, strongOil: s.kit.strongOil - 1 } });
+      get().toast("You fill the lamp with the strong oil. It will burn all night, and throw its light further.", "good");
+    }
     // what was done with the hair she asked for: tonight it has hold of Rosing
     if (s.hairGiven === s.night) {
       set({ rosing: Math.max(1, get().rosing - 1) });
@@ -389,6 +396,11 @@ export const useGame = create<GameState>((set, get) => ({
     else if (id === "barsEast") kit.bars.east = true;
     else if (id === "barbs") kit.barbs = true;
     else if (id === "lash") kit.lash = true;
+    else if (id === "spear") kit.spear = true;
+    else if (id === "smudge") kit.smudge += 1;
+    else if (id === "strongOil") kit.strongOil += 1;
+    else if (id === "bells") kit.bells = true;
+    else if (id === "hedge") kit.hedge = true;
     set({ bag, trophies, kit });
     if (id === "fangCharm" || id === "clawCharm") { const c = get().addCharm(id === "clawCharm" ? 0.25 : 0.12); get().toast(`You bind ${aCharm(c)}.`, "good"); }
     else get().toast(`Made: ${r.name.toLowerCase()}.`, "good");
@@ -493,21 +505,27 @@ function checkRun(d: Saved): ReturnType<typeof freshRun> | null {
 }
 
 /** What his learning and the charms he wears add up to. */
+/** Whether a thing made only once has been made. */
+export function made(kit: GameState["kit"], id: RecipeId) {
+  const once: Partial<Record<RecipeId, boolean>> = { itak: kit.itak, barsWest: kit.bars.west, barsEast: kit.bars.east, barbs: kit.barbs, lash: kit.lash, spear: kit.spear, bells: kit.bells, hedge: kit.hedge };
+  return !!once[id];
+}
 /** Whether he has what a recipe takes (and has not already made a thing made only once). */
 export function canCraft(s: Pick<GameState, "bag" | "trophies" | "kit" | "hasWhip">, id: RecipeId) {
   const r = RECIPES.find((x) => x.id === id)!;
   if (r.whip && !s.hasWhip) return false;
-  if (r.once && ((id === "itak" && s.kit.itak) || (id === "barsWest" && s.kit.bars.west) || (id === "barsEast" && s.kit.bars.east) || (id === "barbs" && s.kit.barbs) || (id === "lash" && s.kit.lash))) return false;
+  if (r.needs === "itak" && !s.kit.itak) return false;
+  if (r.once && made(s.kit, id)) return false;
   return Object.entries(r.cost).every(([k, n]) => (k in s.trophies ? s.trophies[k as TrophyId] : s.bag[k as ItemId]) >= n!);
 }
-export function mods(s: Pick<GameState, "perks" | "charms" | "worn"> & Partial<Pick<GameState, "kit">> = useGame.getState()) {
+export function mods(s: Pick<GameState, "perks" | "charms" | "worn"> & Partial<Pick<GameState, "kit" | "strongLamp">> = useGame.getState()) {
   const charm = (stat: string) => s.charms.filter((c) => s.worn.includes(c.id) && c.stat === stat).reduce((n, c) => n + c.value, 0);
   const p = s.perks;
   return {
     noise: Math.max(0.4, 1 - 0.1 * p.softstep - charm("quiet")),
     stamina: 1 + 0.25 * p.lungs + 1.5 * charm("steady"),
     oil: Math.max(0.3, 1 - 0.15 * p.wick - charm("thrifty")),
-    lamp: 1 + charm("bright"),
+    lamp: 1 + charm("bright") + (s.strongLamp ? 0.5 : 0),
     speed: 1 + 0.05 * p.fleet + 0.5 * charm("swift"),
     search: Math.max(0.35, 1 - 0.18 * p.quickhands),
     firm: Math.min(0.85, 0.2 * p.firmhand + 1.4 * charm("firm")),
@@ -520,6 +538,7 @@ export function mods(s: Pick<GameState, "perks" | "charms" | "worn"> & Partial<P
     whipDamage: WHIP.damage * (1 + 0.15 * (p.keen ?? 0)) * (s.kit?.barbs ? 4 / 3 : 1),
     whipReach: WHIP.range + (s.kit?.lash ? 1 : 0),
     bladeDamage: BLADE.damage * (1 + 0.15 * (p.keen ?? 0)),
+    bladeReach: BLADE.range + (s.kit?.spear ? BLADE.spear : 0),
     skinner: 0.25 * (p.skinner ?? 0),                   // chance of a second trophy
   };
 }
@@ -573,6 +592,9 @@ export function catchPlayer() {
 }
 
 /** Values that change every frame live here instead of in React state, so nothing re-renders. */
+/** One of the roaming kin, as the others see it. `unmask`: garlic was just held up to it (Guise.tsx);
+ *  `shown`: a kin in human guise has dropped the face. */
+const kinSlot = () => ({ mode: "away", x: 0, z: 0, hp: 1, unmask: false, shown: false });
 export const live = {
   player: new Vector3(START.x, 0, START.z),
   facing: Math.PI,
@@ -609,8 +631,11 @@ export const live = {
   hurt: 0,                 // 1 just after he is hurt, fading: the red flash at the edges
   eating: 0,               // seconds into eating a bundle of herbs (hold H)
   /** The roaming kin (Kin.tsx): each slot's state, and how many of each kind have come out tonight. */
-  kin: { dog: [0, 1].map(() => ({ mode: "away", x: 0, z: 0, hp: 1 })), crawler: [0].map(() => ({ mode: "away", x: 0, z: 0, hp: 1 })) },
-  kinOut: { dog: 0, crawler: 0 },
+  kin: { dog: [0, 1].map(kinSlot), crawler: [0].map(kinSlot), guise: [0, 1, 2].map(kinSlot) },
+  kinOut: { dog: 0, crawler: 0, guise: 0 },
+  guiseNext: 0,            // night seconds before the next kin in human guise may come out (one laid down waits)
+  guiseLook: null as GuiseLook | null,   // dev only (scripts/duel.mjs): which face comes out, whatever the night
+  smudge: 0,               // seconds left that a smudge bundle smoulders on him: the kin lose his scent
   freeze: 0,               // real seconds left of a hit-stop
   timeScale: 1,            // how fast the game runs this frame: 1, or nearly 0 during a hit-stop
   itakWait: 0,             // seconds until the itak can strike again

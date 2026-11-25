@@ -201,6 +201,7 @@ export function Pacing() {
 /** Runs the clock: day into night into cockcrow, what Rosing says and asks for, and what is heard. */
 export function Director() {
   const said = useRef<Set<string>>(new Set());
+  const bellsFor = useRef<string | null>(null);   // which opening the bells last rang for
   const runId = useGame((s) => s.runId);
   useEffect(() => { said.current = new Set(); }, [runId]);
 
@@ -235,6 +236,12 @@ export function Director() {
         if (game.night === 1 && live.elapsed > 16) once("tik", () => game.hint("tiktik", "Listen. The clicking is LOUD when she is far, and FAINT when she is near."));
         if (game.night === 2 && live.elapsed > 12) once("fire", () => game.hint("fire", "Tonight she will try the roof. Keep the smudge fire in the yard fed with kindling."));
         if (live.clock <= 0) { sound.rooster(); game.endNight("dawn"); }
+        // the bells on the fence: something has begun on the house while he is away from it
+        if (live.breachAt && live.breachAt !== bellsFor.current && game.kit.bells) {
+          bellsFor.current = live.breachAt;
+          if (Math.hypot(live.player.x - home.x, live.player.z - home.z) > 10) { sound.bells(); game.toast("The bells on Rosing's fence are ringing.", "bad"); }
+        }
+        if (!live.breachAt) bellsFor.current = null;
       }
     }
 

@@ -12,6 +12,7 @@ import { Kadyo } from "./game/Kadyo";
 import { Hilot } from "./game/Hilot";
 import { Amalanhig } from "./game/Amalanhig";
 import { Kin } from "./game/Kin";
+import { Guise } from "./game/Guise";
 import { Hud } from "./game/Hud";
 import { Guide } from "./game/Guide";
 import { useKeyboard } from "./game/input";
@@ -137,6 +138,9 @@ export default function App() {
           <Kin kind="dog" index={0} />
           <Kin kind="dog" index={1} />
           <Kin kind="crawler" index={0} />
+          <Guise look="farmer" />
+          <Guise look="priest" />
+          <Guise look="nurse" />
           <Guide />
           <Director />
           <Warmup />

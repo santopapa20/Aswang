@@ -125,6 +125,8 @@ export const sound = {
   growl() { tone("sawtooth", 118, 72, 0.3, 0.9, 0, 260); tone("sawtooth", 83, 60, 0.2, 1.0, 0.05, 200); burst(210, 0.5, 0.22, 0.8, "lowpass"); },
   yelp() { tone("sawtooth", 620, 1250, 0.28, 0.12, 0, 1800); tone("sawtooth", 1250, 420, 0.25, 0.3, 0.1, 1600); },
   wings() { for (let i = 0; i < 3; i++) burst(380, 0.7, 0.3, 0.22, "lowpass", i * 0.3); },
+  /** Little bells on a fence, shaken: a few bright struck notes, a little out of time. */
+  bells() { for (let i = 0; i < 6; i++) tone("triangle", 2100 + (i % 3) * 330, 2000 + (i % 3) * 330, 0.12, 0.5, i * 0.11 + Math.random() * 0.04, 2400); },
   whoosh() { burst(700, 0.6, 0.6, 0.7, "lowpass"); tone("sine", 320, 70, 0.3, 0.6); },
   rooster() {
     const notes: [number, number, number, number][] = [[520, 640, 0.16, 0], [640, 690, 0.12, 0.2], [690, 900, 0.34, 0.36], [900, 560, 0.5, 0.72]];

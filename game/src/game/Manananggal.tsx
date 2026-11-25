@@ -55,7 +55,7 @@ export function Manananggal() {
     const p = pos.current;
     const night = game.night;
     const flat = Math.hypot(live.player.x - p.x, live.player.z - p.z);
-    const lit = game.lampOn && live.lampBlown <= 0 && game.bag.oil > 0;
+    const lit = game.lampOn && live.lampBlown <= 0 && (game.bag.oil > 0 || game.strongLamp);
     const fromHome = Math.hypot(live.player.x - home.x, live.player.z - home.z);
     timer.current -= dt;
 
@@ -89,7 +89,7 @@ export function Manananggal() {
         roofIn.current -= dt;
         if (flyTo(goal.current.x, ALTITUDE, goal.current.z, CRUISE) < 1.5) newGoal();
         // near the house she wants the roof, not him: she only dives at someone out in the open
-        if (live.caught <= 0 && timer.current <= 0 && fromHome > 10 && ((lit && flat < SIGHT) || flat < 4)) {
+        if (live.caught <= 0 && live.smudge <= 0 && timer.current <= 0 && fromHome > 10 && ((lit && flat < SIGHT) || flat < 4)) {
           mode.current = "shriek"; timer.current = api.duration("shriek") * 0.8; game.set({ overhead: true }); sound.shriek();
         } else if (roofIn.current <= 0) mode.current = "toRoof";
         break;

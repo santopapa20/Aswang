@@ -1,0 +1,21 @@
+{
+  "_comment": "The nurse kin: single fused piece, standing with the knees a little bent, upper arms hanging and the forearms reaching forward with the fingers spread (claws). Symmetric, so the right side is mirrored. Measured on nurse.blend (its own units, 0.979 tall with the cap; faces -Y, her left is +X) from the front and right renders against the bounding box.",
+  "hips": [0.000, 0.000, 0.490],
+  "spine": [0.000, 0.004, 0.550],
+  "chest": [0.000, 0.008, 0.620],
+  "upper_chest": [0.000, 0.010, 0.690],
+  "neck": [0.000, 0.012, 0.790],
+  "head": [0.000, 0.010, 0.820],
+  "head_end": [0.000, 0.000, 0.950],
+  "clavicle": [0.020, 0.004, 0.770],
+  "shoulder": [0.095, 0.006, 0.768],
+  "elbow": [0.106, -0.030, 0.636],
+  "wrist": [0.115, -0.100, 0.598],
+  "hand_tip": [0.150, -0.140, 0.540],
+  "hip": [0.060, 0.000, 0.470],
+  "knee": [0.082, -0.030, 0.255],
+  "ankle": [0.105, 0.010, 0.050],
+  "toe": [0.108, -0.045, 0.016],
+  "toe_tip": [0.110, -0.095, 0.006],
+  "props": {}
+}

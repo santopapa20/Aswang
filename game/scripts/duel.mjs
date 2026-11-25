@@ -4,11 +4,14 @@
 // AMALANHIG, KIN, EAT). The game is stepped a tenth of a second at a time, like the self-test.
 //   node scripts/duel.mjs                          the amalanhig, every way of fighting, three times each
 //   node scripts/duel.mjs --foe=dog                the pair of dead dogs on night 2 (or --foe=crawler, night 3)
+//   node scripts/duel.mjs --foe=farmer             a kin in human guise: the farmer (night 3), priest (4) or nurse (5).
+//                                                  Garlic is held up first (as if G), except in the style "bare"
 //   node scripts/duel.mjs "speed=2.2" "cooldown=4"  the same with numbers changed for the run; for the kin
 //                                                  name the kind: "dog.speed=2.8,dog.harm=10"
 // Ways of fighting: stand (crack whenever ready, never move), kite (back off while the whip is not ready),
 // sidestep (run across its path while the whip is not ready), flee (no whip: run), and for the crawler
-// dark (stand and crack with the lamp shuttered).
+// dark (stand and crack with the lamp shuttered), and for the ones in human guise bare (no garlic: walk up
+// to it with the face still on, and fight it as it comes).
 // The dev server must be running (npm run dev).
 import puppeteer from "puppeteer-core";
 import { existsSync } from "node:fs";
@@ -17,7 +20,9 @@ const args = process.argv.slice(2);
 const foe = (args.find((a) => a.startsWith("--foe=")) ?? "--foe=amalanhig").slice(6);
 const setups = args.filter((a) => !a.startsWith("--"));
 if (!setups.length) setups.push("");
-const STYLES = ["stand", "kite", "sidestep", "flee", ...(foe === "crawler" ? ["dark"] : [])];
+const LOOKS = ["farmer", "priest", "nurse"];
+const guise = LOOKS.includes(foe);
+const STYLES = ["stand", "kite", "sidestep", "flee", ...(foe === "crawler" ? ["dark"] : []), ...(guise ? ["bare"] : [])];
 
 const executablePath = ["C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Google/Chrome/Application/chrome.exe"].find(existsSync);
 const browser = await puppeteer.launch({ executablePath, headless: true, defaultViewport: { width: 640, height: 360 }, protocolTimeout: 900000, args: ["--mute-audio"] });
@@ -29,11 +34,13 @@ await page.waitForFunction(() => /ready/.test(document.title), { timeout: 180000
 for (const setup of setups) {
   const rows = await page.evaluate(async (setup, styles, foe) => {
     const data = window.__aswang.tune;
-    const base = JSON.stringify({ WHIP: data.WHIP, AMALANHIG: data.AMALANHIG, KIN: data.KIN });
+    const base = JSON.stringify({ WHIP: data.WHIP, AMALANHIG: data.AMALANHIG, KIN: data.KIN, GUISE: data.GUISE });
     for (const kv of setup.split(",").filter(Boolean)) {
       const [k, v] = kv.split("=");
       const [kind, key] = k.includes(".") ? k.split(".") : [null, k];
       if (kind && data.KIN[kind] && key in data.KIN[kind]) data.KIN[kind][key] = Number(v);
+      else if (kind && data.GUISE.looks[kind] && key in data.GUISE.looks[kind]) data.GUISE.looks[kind][key] = Number(v);
+      else if (kind === "guise" && key in data.GUISE) data.GUISE[key] = Number(v);
       else if (!kind && key in data.WHIP) data.WHIP[key] = Number(v);
       else if (!kind && key in data.AMALANHIG) data.AMALANHIG[key] = Number(v);
       else return [{ error: `unknown number ${k}` }];
@@ -50,22 +57,27 @@ for (const setup of setups) {
     const dirKeys = (x, z) => [x > 0.35 ? "KeyD" : x < -0.35 ? "KeyA" : null, z > 0.35 ? "KeyS" : z < -0.35 ? "KeyW" : null].filter(Boolean);
     const crack = () => { window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyR" })); window.dispatchEvent(new KeyboardEvent("keyup", { code: "KeyR" })); };
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-    const kin = foe === "dog" || foe === "crawler";
-    const foes = () => (kin ? L.kin[foe] : [L.amalanhig[0]]);
+    const looks = ["farmer", "priest", "nurse"], guise = looks.includes(foe);
+    const kin = foe === "dog" || foe === "crawler" || guise;
+    const foes = () => (guise ? [L.kin.guise[looks.indexOf(foe)]] : kin ? L.kin[foe] : [L.amalanhig[0]]);
+    const lost = (x) => x.mode === "prowl" || x.mode === "stroll" || x.mode === "return" || x.mode === "sink";
     const alive = (f) => (kin ? !["away", "dead", "dying"].includes(f.mode) : !["down", "grave", "return", "sink"].includes(f.mode));
     const out = [];
     for (const style of styles) for (let trial = 0; trial < 3; trial++) {
       G().toTitle(); await sleep(50);
       G().newGame(); await sleep(150);
-      G().set({ dialogue: null, banner: null, night: foe === "dog" ? 2 : 3, rationTaken: true, hasWhip: style !== "flee", bag: { ...G().bag, oil: 9 } });
+      G().set({ dialogue: null, banner: null, night: foe === "dog" ? 2 : 3, rationTaken: true, hasWhip: style !== "flee", bag: { ...G().bag, oil: 9, garlic: 2 } });
       G().startNight(); await sleep(150); G().set({ banner: null, dialogue: null, lampOn: style !== "dark" });
       const ang = [Math.PI, Math.PI * 0.8, Math.PI * 1.2][trial];
+      L.guiseLook = guise ? foe : null;     // on night 3, whichever face is asked for
       if (kin) {
         // wait for them to come out, then walk up to within 6 m of the first
-        L.elapsed = 30; L.player.set(foe === "dog" ? -20 : 5, 0, foe === "dog" ? -8 : -5);
+        L.elapsed = 30; L.player.set(foe === "dog" ? -20 : guise ? -30 : 5, 0, foe === "dog" ? -8 : guise ? 25 : -5);
         for (let k = 0; k < 300 && foes().filter(alive).length < foes().length; k++) w.run(0.1);
         const f = foes()[0];
-        L.player.set(f.x + Math.cos(ang) * 6, 0, f.z + Math.sin(ang) * 6); w.run(0.1);
+        const d0 = guise ? 3.5 : 6;
+        L.player.set(f.x + Math.cos(ang) * d0, 0, f.z + Math.sin(ang) * d0); w.run(0.1);
+        if (guise && style !== "bare") { f.unmask = true; w.run(0.1); }        // the garlic held up
       } else {
         L.elapsed = 60; L.player.set(106.4 + Math.cos(ang) * 6.5, 0, 10.3 + Math.sin(ang) * 6.5); w.run(0.2);
         for (let k = 0; k < 60 && L.amalanhig[0].mode !== "hunt"; k++) w.run(0.1);
@@ -81,7 +93,7 @@ for (const setup of setups) {
         const ready = L.whipWait <= 0 && L.stamina > 0.2 && G().hasWhip;
         const away = [-dx / d, -dz / d];
         let want = [];
-        engaged = engaged || up.some((x) => x.mode === "alert" || x.mode === "hunt" || x.mode === "bite" || x.mode === "grab");   // alert: it has stopped and growled, he reacts
+        engaged = engaged || up.some((x) => x.mode === "alert" || x.mode === "hunt" || x.mode === "bite" || x.mode === "grab" || (x.shown && ["recoil", "turn", "strike"].includes(x.mode)));   // alert: it has stopped and growled, he reacts
         if (!engaged) want = dirKeys(dx / d, dz / d);          // walk up to it until it notices him
         else if (ready && d < data.WHIP.range - 0.3) crack();
         else if (style === "kite" && !ready && d < 4) want = [...dirKeys(...away), ...(d < 2.8 && L.stamina > 0.35 ? ["ShiftLeft"] : [])];
@@ -92,16 +104,18 @@ for (const setup of setups) {
         if (L.health < last - 1) hurts++;
         last = L.health;
         if (L.caught > 0 || G().stage !== "night") break;
-        if (engaged && style === "flee" && up.every((x) => x.mode === "prowl" || x.mode === "return" || x.mode === "sink")) break;      // they have lost him
+        if (engaged && style === "flee" && up.every(lost)) break;      // they have lost him
       }
       press([]);
       const left = foes().filter(alive);
-      const result = L.caught > 0 || G().stage !== "night" ? "HE WENT DOWN" : !left.length ? "laid down" : left.every((x) => x.mode === "prowl" || x.mode === "return" || x.mode === "sink") ? "got away" : `${total - left.length} of ${total} down`;
+      const result = L.caught > 0 || G().stage !== "night" ? "HE WENT DOWN" : !left.length ? "laid down" : left.every(lost) ? "got away" : `${total - left.length} of ${total} down`;
       out.push({ style, trial, result, seconds: +t.toFixed(1), health: Math.round(L.health), hurts });
     }
     const b = JSON.parse(base);
     Object.assign(data.WHIP, b.WHIP); Object.assign(data.AMALANHIG, b.AMALANHIG);
     for (const k of Object.keys(b.KIN)) Object.assign(data.KIN[k], b.KIN[k]);
+    for (const k of Object.keys(b.GUISE.looks)) Object.assign(data.GUISE.looks[k], b.GUISE.looks[k]);
+    L.guiseLook = null;
     return out;
   }, setup, STYLES, foe);
   console.log(`\n== ${foe}: ${setup || "as it is"}`);

@@ -8,7 +8,7 @@ import { interactables, Interactable } from "./interact";
 import { useCharacter } from "./useCharacter";
 import { useProp } from "./useProp";
 import { sound } from "./audio";
-import { BLADE, EAT, WHIP } from "./data";
+import { BLADE, EAT, SMUDGE, WHIP } from "./data";
 
 const SPEED = { sneak: 0.9, walk: 1.7, run: 3.6 };
 // how far away each way of moving can be noticed, in metres
@@ -146,8 +146,16 @@ export function Player() {
         if (game.kit.pouch > 0) { game.set({ kit: { ...game.kit, pouch: game.kit.pouch - 1 } }); live.saltThrow = true; sound.whoosh(); }
         else game.hint("nopouch", "You have no salt pouches. Make them at the bench beside the house, by day.");
       }
+      // ---- X lights a smudge bundle: for a while the smoke hides his scent (the kin and the wings read live.smudge)
+      if (actions.smudge) {
+        if (live.smudge > 0) game.hint("smudging", "The smudge bundle is still smouldering.");
+        else if (game.kit.smudge > 0 && night) { game.set({ kit: { ...game.kit, smudge: game.kit.smudge - 1 } }); live.smudge = SMUDGE.seconds; sound.whoosh(); game.toast("You light a smudge bundle. The smoke folds round you.", "good"); }
+        else if (game.kit.smudge > 0) game.hint("smudgeday", "Keep the smudge bundles for the night.");
+        else game.hint("nosmudge", "You have no smudge bundles. Bind them at the bench beside the house, by day.");
+      }
     }
-    actions.pour = false; actions.whip = false; actions.slash = false; actions.pouch = false;
+    actions.pour = false; actions.whip = false; actions.slash = false; actions.pouch = false; actions.smudge = false;
+    live.smudge = Math.max(0, live.smudge - dt);
     live.itakWait = Math.max(0, live.itakWait - dt);
     live.whipWait = Math.max(0, live.whipWait - dt);
     live.hurt = Math.max(0, live.hurt - dt * 1.4);
@@ -156,11 +164,11 @@ export function Player() {
 
     // ---- the lamp: it burns oil at night, can be shuttered, and can be blown out
     const lit = game.lampOn && live.lampBlown <= 0;
-    if (night && lit && free) {
+    if (night && lit && free && !game.strongLamp) {           // strong oil burns the whole night on its own
       live.oilBurn += dt * m.oil;
       if (live.oilBurn >= OIL_SECONDS) { live.oilBurn = 0; if (!game.spend("oil", 1)) game.hint("dry", "The lamp is out of oil. It gives almost no light."); }
     }
-    const dry = night && game.bag.oil <= 0;
+    const dry = night && game.bag.oil <= 0 && !game.strongLamp;
     live.playerNoise = (NOISE[mode] + (night && lit && !dry ? 2.5 : 0)) * m.noise * (live.caught > 0 ? 0 : 1);
 
     g.position.copy(live.player);

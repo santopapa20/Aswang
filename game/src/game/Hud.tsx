@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useProgress } from "@react-three/drei";
-import { canCraft, carried, endingText, hasSave, live, mods, ROMAN, useGame } from "./state";
-import { aCharm, Bounty, CHARM_HERBS, EAT, FAVOURS, KADYO_HERBS, RECIPES, TALES, TROPHIES, TrophyId, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
+import { canCraft, carried, endingText, hasSave, live, made, mods, ROMAN, useGame } from "./state";
+import { aCharm, Bounty, CHARM_HERBS, EAT, FAVOURS, KADYO_HERBS, KIN_NAMES, RECIPES, RecipeId, TALES, TROPHIES, TrophyId, charmName, HERB_PRICE, ITEM_ORDER, ITEMS, ItemId, MAX_RANK, PATHS, PERKS, RARITY, SHOP, STATS, TONIC, WHIP_COST, WORN_CHARMS, xpForLevel } from "./data";
 import { NIGHTS } from "./story";
 import { openings } from "./layout";
 import { choose, toggles } from "./input";
@@ -37,8 +37,8 @@ export function Hud() {
 }
 
 const KEYS: [string, string][] = [
-  ["W A S D", "Move"], ["Shift", "Run"], ["C", "Sneak on or off"], ["E hold", "Use, search, talk"], ["G hold", "Protect a door or window"],
-  ["Q", "Pour a line of salt"], ["F", "Shutter the lamp"], ["R", "Crack the whip"], ["V", "Strike with the itak"], ["Z", "Throw a salt pouch"], ["H hold", "Eat herbs to heal"], ["T hold", "Turn your shirt inside out"],
+  ["W A S D", "Move"], ["Shift", "Run"], ["C", "Sneak on or off"], ["E hold", "Use, search, talk"], ["G hold", "Protect a door or window; hold up garlic"],
+  ["Q", "Pour a line of salt"], ["F", "Shutter the lamp"], ["R", "Crack the whip"], ["V", "Strike with the itak"], ["Z", "Throw a salt pouch"], ["X", "Light a smudge bundle"], ["H hold", "Eat herbs to heal"], ["T hold", "Turn your shirt inside out"],
   ["Tab", "Bag and learning"], ["Esc", "Pause"], ["M", "Sound on or off"],
 ];
 /** What goes on the bar along the bottom: things you use. Herbs and money are shown as a purse beside it. */
@@ -167,7 +167,7 @@ function Play() {
     : live.sigbin.feeding ? "It is at your shadow · F shutters the lamp"
     : g.hunted ? "It has seen you"
     : live.lampBlown > 0 ? `Your lamp is out · ${Math.ceil(live.lampBlown)}s`
-    : night && g.bag.oil <= 0 ? "The lamp is dry"
+    : night && g.bag.oil <= 0 && !g.strongLamp ? "The lamp is dry"
     : null;
   const slots: [string, string, string | null, boolean][] = [
     ...openings.map((x): [string, string, string | null, boolean] => [x.id === "door" ? "door" : "window", x.id === "door" ? "Door" : x.id === "west" ? "West" : "East", g.wards[x.id], attacked === x.id]),
@@ -217,7 +217,7 @@ function Play() {
             </>
           ) : <p className="dim">…</p>}
           {g.favours.length > 0 && <ul className="work">{g.favours.map((f) => <li key={f.id} className={f.state === "carrying" ? "done" : ""}>{FAVOURS[f.id].task}{f.state === "carrying" ? " (you have it)" : ""}</li>)}</ul>}
-          {work.length > 0 && <ul className="work">{work.map((b) => <li key={b.id} className={b.state}>{b.state === "done" ? `Nong Kadyo's work is done: he pays in the morning` : `Nong Kadyo's work: ${b.count === 1 ? `a ${b.kind}` : `${b.kind}s`}, ${b.got} of ${b.count}`}</li>)}</ul>}
+          {work.length > 0 && <ul className="work">{work.map((b) => <li key={b.id} className={b.state}>{b.state === "done" ? `Nong Kadyo's work is done: he pays in the morning` : `Nong Kadyo's work: ${b.count === 1 ? `a ${KIN_NAMES[b.kind][0]}` : KIN_NAMES[b.kind][1]}, ${b.got} of ${b.count}`}</li>)}</ul>}
         </section>
       </header>
 
@@ -241,11 +241,11 @@ function Play() {
           <div className="hotbar">
             {SUPPLIES.filter((k) => g.bag[k] > 0 || k !== "tobacco").map((k) => {
               const keyed = k === "salt" ? "Q" : k === "oil" && night ? "F" : null;
-              const glowing = k === "oil" && night && lit && g.bag.oil > 0;
+              const glowing = k === "oil" && night && lit && (g.bag.oil > 0 || g.strongLamp);
               return (
                 <div key={k} className={`tile ${g.bag[k] === 0 ? "none" : ""} ${glowing ? "lit" : ""}`} title={`${ITEMS[k].name}: ${ITEMS[k].use}`}>
                   {keyed && <kbd className="key">{keyed}</kbd>}
-                  <Icon name={ITEM_ICON[k]} size={22} /><b>{g.bag[k]}</b><em>{k === "oil" && night ? (live.lampBlown > 0 ? "blown out" : !g.lampOn ? "shuttered" : g.bag.oil <= 0 ? "dry" : "lamp lit") : ITEMS[k].name}</em>
+                  <Icon name={ITEM_ICON[k]} size={22} /><b>{g.bag[k]}</b><em>{k === "oil" && night ? (live.lampBlown > 0 ? "blown out" : !g.lampOn ? "shuttered" : g.strongLamp ? "strong oil" : g.bag.oil <= 0 ? "dry" : "lamp lit") : ITEMS[k].name}</em>
                 </div>
               );
             })}
@@ -253,6 +253,7 @@ function Play() {
             {g.kit.itak && <div className={`tile ${live.itakWait > 0 ? "none" : ""}`}><kbd className="key">V</kbd><Icon name="blade" size={22} /><em>Itak</em></div>}
             {g.kit.pouch > 0 && <div className="tile"><kbd className="key">Z</kbd><Icon name="salt" size={22} /><b>{g.kit.pouch}</b><em>Pouch</em></div>}
             {g.kit.string > 0 && <div className="tile lit"><Icon name="garlic" size={22} /><b>{g.kit.string}</b><em>String</em></div>}
+            {(g.kit.smudge > 0 || live.smudge > 0) && <div className={`tile ${live.smudge > 0 ? "lit" : ""}`}><kbd className="key">X</kbd><Icon name="flame" size={22} /><b>{g.kit.smudge}</b><em>{live.smudge > 0 ? `smoke ${Math.ceil(live.smudge)}s` : "Smudge"}</em></div>}
             {g.favours.filter((f) => f.state === "carrying").map((f) => <div key={f.id} className="tile carry"><Icon name="charm" size={22} /><em>{f.id === "rosary" ? "Rosary" : "Her hair"}</em></div>)}
             {g.carrying && <div className="tile carry"><Icon name={g.carrying === "water" ? "salt" : "oil"} size={22} /><em>{g.carrying === "water" ? "Water" : "The oil"}</em></div>}
           </div>
@@ -398,17 +399,17 @@ function Trade() {
 function Bench() {
   const g = useGame();
   const have = (k: string) => (k in g.trophies ? g.trophies[k as TrophyId] : g.bag[k as ItemId]);
-  const label = (k: string, n = 2) => (k === "fang" ? (n === 1 ? "dog's fang" : "dog's fangs") : k === "claw" ? (n === 1 ? "crawler's nail" : "crawler's nails") : k === "coins" ? "centavos" : k === "herbs" && n === 1 ? "bundle of herbs" : ITEMS[k as ItemId].name.toLowerCase());
-  const owned = (id: string) => (id === "itak" && g.kit.itak) || (id === "barsWest" && g.kit.bars.west) || (id === "barsEast" && g.kit.bars.east) || (id === "barbs" && g.kit.barbs) || (id === "lash" && g.kit.lash);
+  const label = (k: string, n = 2) => (k === "fang" ? (n === 1 ? "dog's fang" : "dog's fangs") : k === "claw" ? (n === 1 ? "crawler's nail" : "crawler's nails") : k === "stone" ? (n === 1 ? "black stone" : "black stones") : k === "coins" ? "centavos" : k === "herbs" && n === 1 ? "bundle of herbs" : ITEMS[k as ItemId].name.toLowerCase());
+  const owned = (id: RecipeId) => made(g.kit, id);
   return (
     <div className="panel shop">
-      <header><h2>The bench</h2><span><Icon name="star" size={15} /> {g.trophies.fang} fangs · {g.trophies.claw} nails · <Icon name="coins" size={15} /> {g.bag.coins} · <kbd>Esc</kbd> close</span></header>
+      <header><h2>The bench</h2><span><Icon name="star" size={15} /> {g.trophies.fang} fangs · {g.trophies.claw} nails · {g.trophies.stone} stones · <Icon name="coins" size={15} /> {g.bag.coins} · <kbd>Esc</kbd> close</span></header>
       <section className="offers">
         {RECIPES.map((r) => {
           const cost = Object.entries(r.cost).map(([k, n]) => `${n} ${label(k, n)}`).join(", ");
           const short = Object.entries(r.cost).filter(([k, n]) => have(k) < n!).map(([k]) => label(k));
-          const status = owned(r.id) ? "Made." : r.whip && !g.hasWhip ? "You need a whip first (Nong Kadyo sells one)." : short.length ? `Not enough ${short.join(" or ")}.` : "";
-          const count = r.id === "pouch" ? g.kit.pouch : r.id === "string" ? g.kit.string : 0;
+          const status = owned(r.id) ? "Made." : r.whip && !g.hasWhip ? "You need a whip first (Nong Kadyo sells one)." : r.needs === "itak" && !g.kit.itak ? "Make the itak first." : short.length ? `Not enough ${short.join(" or ")}.` : "";
+          const count = r.id === "pouch" ? g.kit.pouch : r.id === "string" ? g.kit.string : r.id === "smudge" ? g.kit.smudge : r.id === "strongOil" ? g.kit.strongOil : 0;
           return <Offer key={r.id} icon={r.icon} name={`${r.name}${count ? ` (${count})` : ""}`} price={owned(r.id) ? "made" : "make"} text={`${owned(r.id) ? "" : `Takes ${cost}. `}${r.text}${status && !owned(r.id) ? ` ${status}` : ""}`} off={!canCraft(g, r.id)} act={() => g.craft(r.id)} />;
         })}
       </section>
@@ -419,7 +420,7 @@ function Bench() {
 /** One piece of Nong Kadyo's work: take it, see how it goes, or be paid for it. */
 function WorkOffer({ b }: { b: Bounty }) {
   const g = useGame();
-  const what = `${b.count === 1 ? "One" : b.count === 2 ? "Two" : b.count === 3 ? "Three" : b.count} ${b.kind}${b.count === 1 ? "" : "s"}`;
+  const what = `${b.count === 1 ? "One" : b.count === 2 ? "Two" : b.count === 3 ? "Three" : b.count} ${KIN_NAMES[b.kind][b.count === 1 ? 0 : 1]}`;
   if (b.state === "done") return <Offer icon="check" name={`${what}: done`} price={`+${b.coins} c`} text={`${b.count === 1 ? "Laid down" : b.count === 2 ? "Both laid down" : `All ${b.count} laid down`}. He adds ${b.xp} experience to the coins.`} off={false} act={() => g.payBounty(b.id)} />;
   if (b.state === "taken") return <Offer icon="whip" name={`${what}: taken`} price={`${b.coins} c`} text={`${b.text} ${b.got} of ${b.count} so far.`} off act={() => {}} />;
   return <Offer icon="whip" name={`Work for tonight: ${what.toLowerCase()}`} price={`${b.coins} c`} text={`${b.text} Take it, and lay ${b.count === 1 ? "it" : "them"} down tonight.`} off={false} act={() => { g.takeBounty(b.id); g.toast("You take Nong Kadyo's work for tonight.", "good"); }} />;

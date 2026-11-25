@@ -10,7 +10,7 @@ import { Atmosphere } from "./Atmosphere";
 import { useProp } from "./useProp";
 import { live, useGame } from "./state";
 import {
-  balete, Blob, bushes, decor, FENCE_LENGTH, fences, firePit, home, houses, HUT, nodes, openings, palms, rocks, seeded,
+  balete, Blob, bushes, decor, FENCE_LENGTH, fences, STAKE_WIDTH, stakeSolids, stakes, firePit, home, houses, HUT, nodes, openings, palms, rocks, seeded,
   trail, tufts, well,
 } from "./layout";
 
@@ -175,6 +175,14 @@ export function World() {
   const squares = useMemo(() => ({ tufts: inSquares(tufts, 24), bushes: inSquares(bushes, 24) }), []);
   const hutModels = useProp("/models/hut.glb", HUT.height, "y", houses.length, shadows);
   const fenceModels = useProp("/models/fence.glb", FENCE_LENGTH, "x", fences.length, shadows);
+  const stakeModels = useProp("/models/stakes.glb", STAKE_WIDTH, "x", stakes.length, shadows);
+  const staked = useGame((s) => s.kit.hedge);
+  useEffect(() => {
+    stakes.forEach((f, i) => [-0.3, 0.3].forEach((k, j) => {
+      const c = stakeSolids[i * 2 + j];
+      c.x = f.x + Math.cos(f.rot) * k * STAKE_WIDTH; c.z = f.z - Math.sin(f.rot) * k * STAKE_WIDTH; c.r = staked ? 0.36 : 0;
+    }));
+  }, [staked]);
   const palmModels = useProp("/models/palm.glb", 1, "y", palms.length, shadows);     // 1 m tall, scaled per tree below
   const wellModels = useProp("/models/well.glb", 2.5, "y", 1, shadows);
   const baleteModels = useProp("/models/balete.glb", balete.height, "y", 1, shadows);
@@ -247,6 +255,9 @@ export function World() {
       ))}
       {fences.map((f, i) => (
         <primitive key={`fence${i}`} object={fenceModels[i]} position={[f.x, 0, f.z]} rotation-y={f.rot} />
+      ))}
+      {staked && stakes.map((f, i) => (
+        <primitive key={`stake${i}`} object={stakeModels[i]} position={[f.x, 0, f.z]} rotation-y={f.rot + (i % 2) * Math.PI} />
       ))}
       {palms.map((t, i) => (
         <primitive key={`palm${i}`} object={palmModels[i]} position={[t.x, 0, t.z]} rotation-y={i * 2.4} rotation-z={t.lean * 0.4} scale={[t.h * 0.82, t.h, t.h * 0.82]} />
@@ -538,6 +549,7 @@ function TrailMarker() {
 
 useGLTF.preload("/models/hut.glb");
 useGLTF.preload("/models/fence.glb");
+useGLTF.preload("/models/stakes.glb");
 useGLTF.preload("/models/palm.glb");
 useGLTF.preload("/models/well.glb");
 useGLTF.preload("/models/balete.glb");

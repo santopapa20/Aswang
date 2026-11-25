@@ -57,7 +57,7 @@ export function Sigbin() {
     const hide = () => { g.visible = false; if (blob.current) blob.current.visible = false; if (eyes.current) eyes.current.visible = false; };
     if (!(game.stage === "night" && game.night === 5)) { mode.current = "kennel"; s.out = false; s.feeding = false; s.drain = 0; hide(); return; }
 
-    const lit = game.lampOn && live.lampBlown <= 0 && game.bag.oil > 0;
+    const lit = game.lampOn && live.lampBlown <= 0 && (game.bag.oil > 0 || game.strongLamp);
     const dx = live.player.x - s.x, dz = live.player.z - s.z, dist = Math.hypot(dx, dz);
     s.near = dist;
     timer.current -= dt;

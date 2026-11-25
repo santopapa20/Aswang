@@ -1,0 +1,21 @@
+{
+  "_comment": "The priest kin: single fused piece, T-pose, heavy, the belly torn open, barefoot. Symmetric, so the right side is mirrored. Measured on priest.blend (its own units, 0.902 tall; faces -Y, his left is +X) from the front render against the bounding box.",
+  "hips": [0.000, 0.000, 0.400],
+  "spine": [0.000, 0.004, 0.470],
+  "chest": [0.000, 0.008, 0.550],
+  "upper_chest": [0.000, 0.008, 0.650],
+  "neck": [0.000, 0.010, 0.765],
+  "head": [0.000, 0.010, 0.795],
+  "head_end": [0.000, 0.000, 0.902],
+  "clavicle": [0.030, 0.006, 0.755],
+  "shoulder": [0.130, 0.008, 0.750],
+  "elbow": [0.260, 0.010, 0.725],
+  "wrist": [0.386, 0.000, 0.702],
+  "hand_tip": [0.485, -0.005, 0.690],
+  "hip": [0.085, 0.000, 0.370],
+  "knee": [0.090, -0.006, 0.205],
+  "ankle": [0.092, 0.010, 0.048],
+  "toe": [0.094, -0.040, 0.015],
+  "toe_tip": [0.096, -0.085, 0.006],
+  "props": {}
+}

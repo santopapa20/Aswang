@@ -99,12 +99,14 @@ export const amalanhigGraves: P2[] = [{ x: 106.4, z: 10.3 }, { x: 110.2, z: 10.6
 export const amalanhigSolids: Circle[] = amalanhigGraves.map((g) => ({ x: g.x, z: g.z, r: 0 }));
 /** Where the aswang's kin roam at night: dogs in the north and west fields, crawlers to the east. Away from
  *  Rosing's house, which is the aswang's own business. */
-export const kinRoam: Record<"dog" | "crawler", P2[]> = {
+export const kinRoam: Record<"dog" | "crawler" | "guise", P2[]> = {
   dog: [{ x: -22, z: -12 }, { x: -33, z: -3 }, { x: -12, z: -28 }, { x: 6, z: -27 }, { x: -31, z: -28 }],
   crawler: [{ x: 26, z: 6 }, { x: 30, z: -7 }, { x: 24, z: 21 }, { x: 12, z: -6 }],
+  // the ones in human guise keep to the paths, as people do: the way in, the well, east to the trail, Kadyo's
+  guise: [{ x: 2, z: 24 }, { x: 3, z: 9 }, { x: -2, z: -8 }, { x: 20, z: 1 }, { x: 31, z: 0 }, { x: 14, z: 12 }, { x: 23, z: -10 }, { x: 46, z: 0 }],
 };
 /** The roaming kin's circles (Kin.tsx switches each on only while that one is on its feet). */
-export const kinSolids: Record<"dog" | "crawler", Circle[]> = { dog: [0, 1].map(() => ({ x: 0, z: 0, r: 0 })), crawler: [{ x: 0, z: 0, r: 0 }] };
+export const kinSolids: Record<"dog" | "crawler" | "guise", Circle[]> = { dog: [0, 1].map(() => ({ x: 0, z: 0, r: 0 })), crawler: [{ x: 0, z: 0, r: 0 }], guise: [0, 1, 2].map(() => ({ x: 0, z: 0, r: 0 })) };
 /** Where the kapre stands after dark: against the balete's trunk, on the side the barrio can see. */
 export const kapreSpot: P2 = { x: balete.x - 2.7, z: balete.z + 2.4 };
 export const START: P2 = { x: 2, z: 30 };
@@ -170,6 +172,23 @@ for (const h of houses) {
   run(h.x + half, back, -Math.PI / 2, h.id === "hilot" ? 2 : 3);
 }
 run(28.5, -6.8, -Math.PI / 2, 2); run(28.5, 2.2, -Math.PI / 2, 2);      // the gateposts where the trail leaves the barrio
+
+// ---- the stake fence round Rosing's yard, once he has made it at the bench (Aswang.tsx: she is slower at
+// the house). It carries the yard's sides forward and closes the front on the left; the right of the
+// front, where the path and the fire pit are, stays open.
+export const STAKE_WIDTH = 1.15;
+export const stakes: FencePiece[] = [];
+{
+  const h = houses.find((x) => x.id === "home")!, half = 3 * FENCE_LENGTH, front = h.z - 5.4 + 3 * FENCE_LENGTH;
+  const put = (sx: number, sz: number, dir: number, n: number) => {
+    for (let i = 0; i < n; i++) { const d = (i + 0.5) * STAKE_WIDTH; stakes.push({ x: sx + Math.cos(dir) * d, z: sz - Math.sin(dir) * d, rot: dir }); }
+  };
+  put(h.x - half, front, -Math.PI / 2, 3);
+  put(h.x + half, front, -Math.PI / 2, 2);
+  put(h.x - half, front + 3 * STAKE_WIDTH, 0, 4);
+}
+/** Two circles a panel, switched on (World.tsx) only once the fence is made. */
+export const stakeSolids: Circle[] = stakes.flatMap(() => [{ x: 0, z: 0, r: 0 }, { x: 0, z: 0, r: 0 }]);
 
 // ---- things to search ------------------------------------------------------------------------
 export type NodeKind = "baul" | "banga" | "sako" | "kindling" | "herbs";
@@ -349,7 +368,8 @@ export const solids: Circle[] = [
   { x: kadyoSpot.x, z: kadyoSpot.z, r: 0.32 },
   hilotSolid,
   ...amalanhigSolids,
-  ...kinSolids.dog, ...kinSolids.crawler,
+  ...kinSolids.dog, ...kinSolids.crawler, ...kinSolids.guise,
+  ...stakeSolids,
   ...palms.filter((p) => p.solid).map((p) => ({ x: p.x, z: p.z, r: 0.45 })),
   ...fences.flatMap((f) => [-0.75, 0, 0.75].map((k) => ({ x: f.x + Math.cos(f.rot) * k, z: f.z - Math.sin(f.rot) * k, r: 0.45 }))),
   { x: well.x, z: well.z, r: 1.05 },

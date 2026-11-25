@@ -3,7 +3,7 @@
  * so a thing offers itself only when it makes sense (the well only when water is wanted, and so on).
  * E is the main action; G lays a protection at one of the house's openings.
  */
-import { ITEMS, ItemId, NODE, rollLoot, aCharm, FavourId, KADYO_HERBS, ROSING_FAVOUR, TALE_CHANCE } from "./data";
+import { GUISE, ITEMS, ItemId, NODE, rollLoot, aCharm, FavourId, KADYO_HERBS, ROSING_FAVOUR, TALE_CHANCE } from "./data";
 import { benchSpot, doorOf, firePit, hilotSpot, hidingSpots, home, house, kapreSpot, nodes, openings, well } from "./layout";
 import { Game, live, mods, rnd } from "./state";
 import { KADYO_DAY, PACING_DAY, PROOF_TEXT, ROSING_SAYS } from "./story";
@@ -196,6 +196,16 @@ export function interactables(g: Game): Interactable[] {
       else if (first && g.night === 1) g.talk(PACING_DAY[1]);
       else g.talk([{ who: "Nang Pacing", text: ["Go and sit with your sister, Dong.", "Such a quiet barrio, no? Nothing ever happens here.", "You should rest. You will need your strength tonight."][Math.floor(rnd() * 3)] }]);
     },
+  });
+
+  // ---- a neighbour on the path at night: hold up garlic to it (Guise.tsx reads the flag). Not spent.
+  if (night) live.kin.guise.forEach((k, i) => {
+    if (k.shown || (k.mode !== "stroll" && k.mode !== "watch")) return;
+    out.push({
+      key: `guise-${i}`, button: "G", x: k.x, z: k.z, r: GUISE.garlic, hold: 0.35,
+      label: g.bag.garlic > 0 ? "Hold up garlic" : "You have no garlic to hold up",
+      act: g.bag.garlic > 0 ? () => { k.unmask = true; } : undefined,
+    });
   });
 
   // ---- the balete and what stands in its roots
