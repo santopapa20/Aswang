@@ -139,6 +139,16 @@ function Prompt({ k, p }: { k: "E" | "G" | "T"; p: { label: string; progress: nu
   );
 }
 
+/** One thing on the belt along the bottom: its icon, how many, its key, and what it is (or how it is). */
+function Item({ icon, n, label, keyed, empty, lit, carry, title }: { icon: string; n?: number; label: string; keyed?: string | null; empty?: boolean; lit?: boolean; carry?: boolean; title?: string }) {
+  return (
+    <div className={`item ${empty ? "empty" : ""} ${lit ? "lit" : ""} ${carry ? "carry" : ""}`} title={title ?? label}>
+      <span className="well">{keyed && <kbd className="key">{keyed}</kbd>}<Icon name={icon} size={22} />{n !== undefined && <b>{n}</b>}</span>
+      <em>{label}</em>
+    </div>
+  );
+}
+
 /** The playing screen. It re-reads the fast-changing values ten times a second. */
 function Play() {
   const g = useGame();
@@ -182,42 +192,45 @@ function Play() {
       <div className="hurt" style={{ opacity: live.hurt * (g.settings.flashes === "reduced" ? 0.35 : 0.9) }} />
       <div className="blackout" style={{ opacity: live.caught > 0 ? Math.min(1, 1.25 - live.caught / 2.6) : 0 }} />
 
+      <div className="scrim top" /><div className="scrim bottom" />
       <header className="topbar">
-        <section className="card house">
-          <h3>Rosing <Candles n={g.rosing} /></h3>
-          <div className="slots">
+        <section className="status">
+          <div className="status-head"><span className="label">Rosing</span><Candles n={g.rosing} /></div>
+          <div className="wards">
             {slots.map(([icon, label, state, hit], i) => (
-              <div key={i} className={`slot ${state ? "on" : ""} ${hit ? "hit" : ""}`}>
-                <Icon name={icon} size={20} />
+              <div key={i} className={`ward ${state ? "on" : ""} ${hit ? "hit" : ""}`} title={`${label}: ${hit ? "something is breaking in" : state ?? "open"}`}>
+                <span className="ring"><Icon name={icon} size={17} />{hit && <i className="meter" style={{ height: `${Math.min(100, live.breach * 100)}%` }} />}</span>
                 <b>{label}</b>
-                <em>{hit ? "under attack" : state ?? "open"}</em>
-                {hit && <i className="meter" style={{ width: `${Math.min(100, live.breach * 100)}%` }} />}
+                <em>{hit ? "breaking" : state ?? "open"}</em>
               </div>
             ))}
           </div>
         </section>
 
-        <section className={`card dial ${night ? "night" : "day"} ${late ? "late" : ""} ${g.onRoof || g.overhead ? "aside" : ""}`}>
+        <section className={`time ${night ? "night" : "day"} ${late ? "late" : ""} ${g.onRoof || g.overhead ? "aside" : ""}`}>
           <h2>{night ? `Night ${ROMAN[g.night - 1]}` : `Day ${ROMAN[g.night - 1]}`}</h2>
           <p>{night ? (late ? "First light is near" : plan.name) : late ? "Dusk is coming" : "Before dark"}</p>
           <div className="sky">
             <i className="gone" style={{ width: `${done * 100}%` }} />
             <span className="body" style={{ left: `${done * 100}%` }}>
-              <svg width="16" height="16" viewBox="0 0 24 24">{night ? <path d="M20 14.600A8.200 8.200 0 1 1 9.400 4a6.600 6.600 0 0 0 10.600 10.600z" /> : <circle cx="12" cy="12" r="6.5" />}</svg>
+              <svg width="14" height="14" viewBox="0 0 24 24">{night ? <path d="M20 14.600A8.200 8.200 0 1 1 9.400 4a6.600 6.600 0 0 0 10.600 10.600z" /> : <circle cx="12" cy="12" r="6.5" />}</svg>
             </span>
-            <em className="from">{night ? "dusk" : "dawn"}</em><em className="to">{night ? "cockcrow" : "dusk"}</em>
           </div>
         </section>
 
-        <section className={`card goal ${o.urgent ? "urgent" : ""}`}>
+        <section className={`goal ${o.urgent ? "urgent" : ""}`}>
           {o.title ? (
             <>
-              <h3>{o.title}{o.target && live.guide.dist > 2.2 && <span>{Math.round(live.guide.dist)} m</span>}</h3>
+              <h3><span>{o.title}</span>{o.target && live.guide.dist > 2.2 && <em>{Math.round(live.guide.dist)} m</em>}</h3>
               <p>{o.text}</p>
             </>
-          ) : <p className="dim">…</p>}
-          {g.favours.length > 0 && <ul className="work">{g.favours.map((f) => <li key={f.id} className={f.state === "carrying" ? "done" : ""}>{FAVOURS[f.id].task}{f.state === "carrying" ? " (you have it)" : ""}</li>)}</ul>}
-          {work.length > 0 && <ul className="work">{work.map((b) => <li key={b.id} className={b.state}>{b.state === "done" ? `Nong Kadyo's work is done: he pays in the morning` : `Nong Kadyo's work: ${b.count === 1 ? `a ${KIN_NAMES[b.kind][0]}` : KIN_NAMES[b.kind][1]}, ${b.got} of ${b.count}`}</li>)}</ul>}
+          ) : null}
+          {(g.favours.length > 0 || work.length > 0) && (
+            <ul className="work">
+              {g.favours.map((f) => <li key={f.id} className={f.state === "carrying" ? "done" : ""}>{FAVOURS[f.id].task}{f.state === "carrying" ? " · you have it" : ""}</li>)}
+              {work.map((b) => <li key={b.id} className={b.state}>{b.state === "done" ? "Nong Kadyo's work is done: he pays in the morning" : `Nong Kadyo: ${b.count === 1 ? `a ${KIN_NAMES[b.kind][0]}` : KIN_NAMES[b.kind][1]}, ${b.got} of ${b.count}`}</li>)}
+            </ul>
+          )}
         </section>
       </header>
 
@@ -237,39 +250,46 @@ function Play() {
       </div>
 
       <footer className="bottombar">
-        <section className="pack">
-          <div className="hotbar">
-            {SUPPLIES.filter((k) => g.bag[k] > 0 || k !== "tobacco").map((k) => {
-              const keyed = k === "salt" ? "Q" : k === "oil" && night ? "F" : null;
-              const glowing = k === "oil" && night && lit && (g.bag.oil > 0 || g.strongLamp);
-              return (
-                <div key={k} className={`tile ${g.bag[k] === 0 ? "none" : ""} ${glowing ? "lit" : ""}`} title={`${ITEMS[k].name}: ${ITEMS[k].use}`}>
-                  {keyed && <kbd className="key">{keyed}</kbd>}
-                  <Icon name={ITEM_ICON[k]} size={22} /><b>{g.bag[k]}</b><em>{k === "oil" && night ? (live.lampBlown > 0 ? "blown out" : !g.lampOn ? "shuttered" : g.strongLamp ? "strong oil" : g.bag.oil <= 0 ? "dry" : "lamp lit") : ITEMS[k].name}</em>
-                </div>
-              );
-            })}
-            {g.hasWhip && <div className={`tile ${live.whipWait > 0 ? "none" : ""}`}><kbd className="key">R</kbd><Icon name="whip" size={22} /><em>{live.whipWait > 0 ? `${Math.ceil(live.whipWait)}s` : "Whip"}</em></div>}
-            {g.kit.itak && <div className={`tile ${live.itakWait > 0 ? "none" : ""}`}><kbd className="key">V</kbd><Icon name="blade" size={22} /><em>Itak</em></div>}
-            {g.kit.pouch > 0 && <div className="tile"><kbd className="key">Z</kbd><Icon name="salt" size={22} /><b>{g.kit.pouch}</b><em>Pouch</em></div>}
-            {g.kit.string > 0 && <div className="tile lit"><Icon name="garlic" size={22} /><b>{g.kit.string}</b><em>String</em></div>}
-            {(g.kit.smudge > 0 || live.smudge > 0) && <div className={`tile ${live.smudge > 0 ? "lit" : ""}`}><kbd className="key">X</kbd><Icon name="flame" size={22} /><b>{g.kit.smudge}</b><em>{live.smudge > 0 ? `smoke ${Math.ceil(live.smudge)}s` : "Smudge"}</em></div>}
-            {g.favours.filter((f) => f.state === "carrying").map((f) => <div key={f.id} className="tile carry"><Icon name="charm" size={22} /><em>{f.id === "rosary" ? "Rosary" : "Her hair"}</em></div>)}
-            {g.carrying && <div className="tile carry"><Icon name={g.carrying === "water" ? "salt" : "oil"} size={22} /><em>{g.carrying === "water" ? "Water" : "The oil"}</em></div>}
+        <section className="vitals">
+          <div className={`vital ${live.health / m.health < 0.3 ? "low" : ""}`} title="Health: bites and grabs take it; eat herbs (hold H) or rest by day">
+            <Icon name="heart" size={15} />
+            <div className="bar health"><i style={{ width: `${(live.health / m.health) * 100}%` }} />{live.eating > 0 && <b className="eat" style={{ width: `${(live.eating / EAT.seconds) * 100}%` }} />}</div>
+            {live.eating > 0 && <span>eating</span>}
           </div>
-          <div className="meters">
-            <label title="Health: bites and grabs take it; eat herbs (hold H) or rest by day to get it back"><Icon name="heart" size={15} /><span>{live.eating > 0 ? "Eating" : "Health"}</span><div className={`bar health ${live.health / mods(g).health < 0.3 ? "low" : ""}`}><i style={{ width: `${(live.health / mods(g).health) * 100}%` }} />{live.eating > 0 && <b className="eat" style={{ width: `${(live.eating / EAT.seconds) * 100}%` }} />}</div></label>
-            <label title="Breath: running spends it"><Icon name="breath" size={15} /><span>Breath</span><div className={`bar ${live.stamina < 0.25 ? "low" : ""}`}><i style={{ width: `${live.stamina * 100}%` }} /></div></label>
-            <label title="What you have learned"><Icon name="star" size={15} /><span>Level {g.level}</span><div className="bar gold"><i style={{ width: `${(g.xp / xpForLevel(g.level)) * 100}%` }} /></div></label>
-            <span className="purse">
-              <span title="Centavos"><Icon name="coins" size={14} /> {g.bag.coins}</span>
-              <span title="Herbs"><Icon name="herbs" size={14} /> {g.bag.herbs}</span>
-              <span title="How much you carry" className={carried(g) >= m.carry ? "full" : ""}><Icon name="bag" size={14} /> {carried(g)}/{m.carry}</span>
-            </span>
-            {g.points > 0 && <span className="learn"><kbd>Tab</kbd> {g.points} to learn</span>}
+          <div className={`vital ${live.stamina < 0.25 ? "low" : ""}`} title="Breath: running spends it">
+            <Icon name="breath" size={15} /><div className="bar breath"><i style={{ width: `${live.stamina * 100}%` }} /></div>
+          </div>
+          <div className="vital level" title="What you have learned">
+            <span>Level {g.level}</span><div className="bar gold"><i style={{ width: `${(g.xp / xpForLevel(g.level)) * 100}%` }} /></div>
+            {g.points > 0 && <em className="learn">{g.points} to learn <kbd>Tab</kbd></em>}
           </div>
         </section>
-        <section className="hints"><span><kbd>Tab</kbd> bag</span><span><kbd>Esc</kbd> pause</span><span><kbd>C</kbd> {toggles.sneak ? "sneaking" : "sneak"}</span></section>
+
+        <section className="belt">
+          {SUPPLIES.filter((k) => g.bag[k] > 0 || k !== "tobacco").map((k) => {
+            const keyed = k === "salt" ? "Q" : k === "oil" && night ? "F" : null;
+            const glowing = k === "oil" && night && lit && (g.bag.oil > 0 || g.strongLamp);
+            const say = k === "oil" && night ? (live.lampBlown > 0 ? "blown out" : !g.lampOn ? "shuttered" : g.strongLamp ? "strong oil" : g.bag.oil <= 0 ? "dry" : "lamp lit") : ITEMS[k].name;
+            return <Item key={k} icon={ITEM_ICON[k]} n={g.bag[k]} label={say} keyed={keyed} empty={g.bag[k] === 0} lit={glowing} title={`${ITEMS[k].name}: ${ITEMS[k].use}`} />;
+          })}
+          {(g.hasWhip || g.kit.itak || g.kit.pouch > 0 || g.kit.string > 0 || g.kit.smudge > 0 || live.smudge > 0) && <i className="sep" />}
+          {g.hasWhip && <Item icon="whip" label={live.whipWait > 0 ? `${Math.ceil(live.whipWait)}s` : "Whip"} keyed="R" empty={live.whipWait > 0} />}
+          {g.kit.itak && <Item icon="blade" label={g.kit.spear ? "Sibat" : "Itak"} keyed="V" empty={live.itakWait > 0} />}
+          {g.kit.pouch > 0 && <Item icon="salt" n={g.kit.pouch} label="Pouch" keyed="Z" />}
+          {g.kit.string > 0 && <Item icon="garlic" n={g.kit.string} label="String" lit />}
+          {(g.kit.smudge > 0 || live.smudge > 0) && <Item icon="flame" n={g.kit.smudge} label={live.smudge > 0 ? `smoke ${Math.ceil(live.smudge)}s` : "Smudge"} keyed="X" lit={live.smudge > 0} />}
+          {g.favours.filter((f) => f.state === "carrying").map((f) => <Item key={f.id} icon="charm" label={f.id === "rosary" ? "Rosary" : "Her hair"} carry />)}
+          {g.carrying && <Item icon={g.carrying === "water" ? "salt" : "oil"} label={g.carrying === "water" ? "Water" : "The oil"} carry />}
+        </section>
+
+        <section className="purse">
+          <div className="coins">
+            <span title="Centavos"><Icon name="coins" size={15} />{g.bag.coins}</span>
+            <span title="Herbs"><Icon name="herbs" size={15} />{g.bag.herbs}</span>
+            <span title="How much you carry" className={carried(g) >= m.carry ? "full" : ""}><Icon name="bag" size={15} />{carried(g)}<small>/{m.carry}</small></span>
+          </div>
+          <div className="hints"><span><kbd>Tab</kbd>bag</span><span><kbd>Esc</kbd>pause</span><span><kbd>C</kbd>{toggles.sneak ? "sneaking" : "sneak"}</span></div>
+        </section>
       </footer>
     </>
   );
@@ -294,7 +314,6 @@ function DialogueBox() {
     <>
       <div className="letterbox top" /><div className="letterbox bottom" />
       <div className="dialogue" onClick={() => (full ? advance() : (live.skipTyping = true))}>
-        {line.who && <div className="portrait">{line.who.replace(/^(Nang|Nong|The) /, "")[0]}</div>}
         <div className="said">
           {line.who && <b>{line.who}</b>}
           <p className={line.who ? "" : "narration"}>{line.text.slice(0, shown)}<i className="rest">{line.text.slice(shown)}</i></p>
@@ -360,36 +379,80 @@ function Bag() {
   );
 }
 
-/** One line of Nong Kadyo's trade. (Kept outside Trade: defined inside, it would be rebuilt on every update and could swallow a click.) */
-function Offer({ icon, name, price, text, off, act }: { icon: string; name: string; price: string; text: string; off: boolean; act: () => void }) {
-  return <button className="perk" disabled={off} onClick={act}><Icon name={icon} size={22} /><div><b>{name}</b><p>{text}</p></div><span className="price">{price}</span></button>;
+const TROPHY_ICON: Record<TrophyId, string> = { fang: "fang", claw: "claw", stone: "stone" };
+const costIcon = (k: string) => (k in TROPHY_ICON ? TROPHY_ICON[k as TrophyId] : ITEM_ICON[k as ItemId]);
+const costName = (k: string) => (k in TROPHIES ? TROPHIES[k as TrophyId].name : ITEMS[k as ItemId].name);
+
+/** What something takes, as small chips: an icon and a number each, red where he has too few. */
+function Costs({ cost, have }: { cost: Partial<Record<string, number>>; have: (k: string) => number }) {
+  return <span className="costs">{Object.entries(cost).map(([k, n]) => <span key={k} className={`chip ${have(k) < n! ? "short" : ""}`} title={`${n} ${costName(k)} (you have ${have(k)})`}><Icon name={costIcon(k)} size={14} />{n}</span>)}</span>;
+}
+/** What he has to trade with, for a panel's header. */
+function Purse({ keys }: { keys: string[] }) {
+  const g = useGame();
+  const have = (k: string) => (k in g.trophies ? g.trophies[k as TrophyId] : g.bag[k as ItemId]);
+  return <span className="purse-head">{keys.map((k) => <span key={k} className="chip" title={costName(k)}><Icon name={costIcon(k)} size={14} />{have(k)}</span>)}</span>;
+}
+
+/**
+ * One thing to buy, sell, make or take, in a panel: its icon, its name and what it does, what it takes,
+ * and what pressing it does. Kept outside the panels: defined inside one, it would be rebuilt on every
+ * update and could swallow a click.
+ */
+function Offer({ icon, name, count, text, note, side, action, state, act }: {
+  icon: string; name: string; count?: number; text: string; note?: string; side?: React.ReactNode; action: string;
+  state: "ready" | "off" | "done"; act: () => void;
+}) {
+  return (
+    <button className={`offer ${state}`} disabled={state !== "ready"} onClick={act}>
+      <span className="offer-icon"><Icon name={icon} size={22} /></span>
+      <span className="offer-body">
+        <b>{name}{count ? <small>{count} made</small> : null}</b>
+        <span className="offer-text">{text}</span>
+        {note && <span className="offer-note">{note}</span>}
+      </span>
+      <span className="offer-side">{side}<em>{action}</em></span>
+    </button>
+  );
 }
 
 function Trade() {
   const g = useGame();
   const full = carried(g) >= mods(g).carry;
+  const have = (k: string) => (k in g.trophies ? g.trophies[k as TrophyId] : g.bag[k as ItemId]);
   const buy = (item: (typeof SHOP)[number]) => { if (!full && g.spend("coins", item.cost)) g.add(item.item, 1); };
+  const ready = (ok: boolean) => (ok ? "ready" : "off") as "ready" | "off";
   return (
     <div className="panel shop">
-      <header><h2>Nong Kadyo</h2><span><Icon name="coins" size={15} /> {g.bag.coins} centavos · <Icon name="herbs" size={15} /> {g.bag.herbs} herbs · <kbd>Esc</kbd> close</span></header>
+      <header>
+        <h2>Nong Kadyo <small>trades by day</small></h2>
+        <span className="meta"><Purse keys={["coins", "herbs"]} />{full && <span className="chip short" title="You can carry no more"><Icon name="bag" size={14} />full</span>}<kbd>Esc</kbd></span>
+      </header>
       {g.bounties.length > 0 && (
-        <section className="offers work">
-          {g.bounties.map((b) => <WorkOffer key={b.id} b={b} />)}
-        </section>
+        <>
+          <h3>His work</h3>
+          <section className="offers work">{g.bounties.map((b) => <WorkOffer key={b.id} b={b} />)}</section>
+        </>
       )}
+      <h3>Buy{full && <small>your bag is full</small>}</h3>
       <section className="offers">
-        {g.favours.some((f) => f.id === "herbs") && <Offer icon="herbs" name={`${KADYO_HERBS} bundles of herbs, as he asked`} price="+12 c" text={g.bag.herbs >= KADYO_HERBS ? "He takes them and puts them straight in the pot." : `You have ${g.bag.herbs} of ${KADYO_HERBS}.`} off={g.bag.herbs < KADYO_HERBS}
-          act={() => { if (g.spend("herbs", KADYO_HERBS)) { g.endFavour("herbs"); g.add("coins", 12); g.gainXp(30); g.set({ kadyoTrust: g.kadyoTrust + 1 }); g.toast("Nong Kadyo pays 12 centavos, and thinks the better of you.", "good"); } }} />}
-        {SHOP.map((it) => <Offer key={it.item} icon={ITEM_ICON[it.item]} name={ITEMS[it.item].name} price={`${it.cost} c`} text={full ? "You cannot carry any more." : ITEMS[it.item].use} off={g.bag.coins < it.cost || full} act={() => buy(it)} />)}
-        <Offer icon="herbs" name="Sell a bundle of herbs" price={`+${HERB_PRICE} c`} text="He always needs them." off={g.bag.herbs < 1} act={() => { if (g.spend("herbs", 1)) g.add("coins", HERB_PRICE); }} />
-        <Offer icon="charm" name="Have a charm bound" price={`${CHARM_HERBS} herbs`} text="He knots herbs, a prayer and a little oil into a habak. No two come out alike." off={g.bag.herbs < CHARM_HERBS}
-          act={() => { if (g.spend("herbs", CHARM_HERBS)) { const c = g.addCharm(0.05); g.toast(`Nong Kadyo binds ${aCharm(c)}.`, "good"); } }} />
-        <Offer icon="flame" name="A tonic for Rosing" price={`${TONIC.herbs} herbs + ${TONIC.coins} c`}
-          text={g.rosing >= 3 ? "She does not need it." : g.tonicOn === g.night ? "One a day is all she can take." : "Bitter leaves boiled down. It gives her back some of her strength."}
-          off={g.rosing >= 3 || g.tonicOn === g.night || g.bag.herbs < TONIC.herbs || g.bag.coins < TONIC.coins}
-          act={() => { if (g.spend("herbs", TONIC.herbs) && g.spend("coins", TONIC.coins)) { g.set({ rosing: Math.min(3, g.rosing + 1), tonicOn: g.night }); g.toast("A tonic for Rosing. She will be stronger tonight.", "good"); } }} />
-        {!g.hasWhip && <Offer icon="whip" name="Stingray-tail whip" price={`${WHIP_COST} c`} text="The old weapon against them. It does not kill her. It makes her let go." off={g.bag.coins < WHIP_COST}
+        {SHOP.map((it) => <Offer key={it.item} icon={ITEM_ICON[it.item]} name={ITEMS[it.item].name} text={ITEMS[it.item].use} side={<Costs cost={{ coins: it.cost }} have={have} />} action="Buy" state={ready(g.bag.coins >= it.cost && !full)} act={() => buy(it)} />)}
+        {!g.hasWhip && <Offer icon="whip" name="Stingray-tail whip" text="The old weapon against them. It does not kill her. It makes her let go." side={<Costs cost={{ coins: WHIP_COST }} have={have} />} action="Buy" state={ready(g.bag.coins >= WHIP_COST)}
           act={() => { if (g.spend("coins", WHIP_COST)) { g.set({ hasWhip: true }); g.toast("A stingray-tail whip. Press R when she is close.", "good"); } }} />}
+      </section>
+      <h3>Herbs</h3>
+      <section className="offers">
+        {g.favours.some((f) => f.id === "herbs") && <Offer icon="herbs" name={`${KADYO_HERBS} bundles, as he asked`} text="He takes them and puts them straight in the pot." note={g.bag.herbs < KADYO_HERBS ? `You have ${g.bag.herbs} of ${KADYO_HERBS}.` : undefined}
+          side={<span className="gain"><Icon name="coins" size={14} />+12</span>} action="Give" state={ready(g.bag.herbs >= KADYO_HERBS)}
+          act={() => { if (g.spend("herbs", KADYO_HERBS)) { g.endFavour("herbs"); g.add("coins", 12); g.gainXp(30); g.set({ kadyoTrust: g.kadyoTrust + 1 }); g.toast("Nong Kadyo pays 12 centavos, and thinks the better of you.", "good"); } }} />}
+        <Offer icon="herbs" name="Sell a bundle" text="He always needs them." side={<span className="gain"><Icon name="coins" size={14} />+{HERB_PRICE}</span>} action="Sell" state={ready(g.bag.herbs >= 1)} act={() => { if (g.spend("herbs", 1)) g.add("coins", HERB_PRICE); }} />
+        <Offer icon="charm" name="Have a charm bound" text="Herbs, a prayer and a little oil knotted into a habak. No two come out alike." side={<Costs cost={{ herbs: CHARM_HERBS }} have={have} />} action="Bind" state={ready(g.bag.herbs >= CHARM_HERBS)}
+          act={() => { if (g.spend("herbs", CHARM_HERBS)) { const c = g.addCharm(0.05); g.toast(`Nong Kadyo binds ${aCharm(c)}.`, "good"); } }} />
+        <Offer icon="flame" name="A tonic for Rosing" text="Bitter leaves boiled down. It gives her back some of her strength."
+          note={g.rosing >= 3 ? "She does not need it." : g.tonicOn === g.night ? "One a day is all she can take." : undefined}
+          side={<Costs cost={{ herbs: TONIC.herbs, coins: TONIC.coins }} have={have} />} action="Buy"
+          state={ready(g.rosing < 3 && g.tonicOn !== g.night && g.bag.herbs >= TONIC.herbs && g.bag.coins >= TONIC.coins)}
+          act={() => { if (g.spend("herbs", TONIC.herbs) && g.spend("coins", TONIC.coins)) { g.set({ rosing: Math.min(3, g.rosing + 1), tonicOn: g.night }); g.toast("A tonic for Rosing. She will be stronger tonight.", "good"); } }} />
       </section>
     </div>
   );
@@ -399,18 +462,19 @@ function Trade() {
 function Bench() {
   const g = useGame();
   const have = (k: string) => (k in g.trophies ? g.trophies[k as TrophyId] : g.bag[k as ItemId]);
-  const label = (k: string, n = 2) => (k === "fang" ? (n === 1 ? "dog's fang" : "dog's fangs") : k === "claw" ? (n === 1 ? "crawler's nail" : "crawler's nails") : k === "stone" ? (n === 1 ? "black stone" : "black stones") : k === "coins" ? "centavos" : k === "herbs" && n === 1 ? "bundle of herbs" : ITEMS[k as ItemId].name.toLowerCase());
-  const owned = (id: RecipeId) => made(g.kit, id);
   return (
     <div className="panel shop">
-      <header><h2>The bench</h2><span><Icon name="star" size={15} /> {g.trophies.fang} fangs · {g.trophies.claw} nails · {g.trophies.stone} stones · <Icon name="coins" size={15} /> {g.bag.coins} · <kbd>Esc</kbd> close</span></header>
+      <header>
+        <h2>The bench <small>beside the house</small></h2>
+        <span className="meta"><Purse keys={["coins", "kindling", "herbs", "fang", "claw", "stone"]} /><kbd>Esc</kbd></span>
+      </header>
       <section className="offers">
         {RECIPES.map((r) => {
-          const cost = Object.entries(r.cost).map(([k, n]) => `${n} ${label(k, n)}`).join(", ");
-          const short = Object.entries(r.cost).filter(([k, n]) => have(k) < n!).map(([k]) => label(k));
-          const status = owned(r.id) ? "Made." : r.whip && !g.hasWhip ? "You need a whip first (Nong Kadyo sells one)." : r.needs === "itak" && !g.kit.itak ? "Make the itak first." : short.length ? `Not enough ${short.join(" or ")}.` : "";
+          const done = made(g.kit, r.id);
+          const note = done ? undefined : r.whip && !g.hasWhip ? "Needs a whip first: Nong Kadyo sells one." : r.needs === "itak" && !g.kit.itak ? "Make the itak first." : undefined;
           const count = r.id === "pouch" ? g.kit.pouch : r.id === "string" ? g.kit.string : r.id === "smudge" ? g.kit.smudge : r.id === "strongOil" ? g.kit.strongOil : 0;
-          return <Offer key={r.id} icon={r.icon} name={`${r.name}${count ? ` (${count})` : ""}`} price={owned(r.id) ? "made" : "make"} text={`${owned(r.id) ? "" : `Takes ${cost}. `}${r.text}${status && !owned(r.id) ? ` ${status}` : ""}`} off={!canCraft(g, r.id)} act={() => g.craft(r.id)} />;
+          return <Offer key={r.id} icon={r.icon} name={r.name} count={count} text={r.text} note={note} side={done ? undefined : <Costs cost={r.cost} have={have} />}
+            action={done ? "Made" : "Make"} state={done ? "done" : canCraft(g, r.id) ? "ready" : "off"} act={() => g.craft(r.id)} />;
         })}
       </section>
     </div>
@@ -421,9 +485,10 @@ function Bench() {
 function WorkOffer({ b }: { b: Bounty }) {
   const g = useGame();
   const what = `${b.count === 1 ? "One" : b.count === 2 ? "Two" : b.count === 3 ? "Three" : b.count} ${KIN_NAMES[b.kind][b.count === 1 ? 0 : 1]}`;
-  if (b.state === "done") return <Offer icon="check" name={`${what}: done`} price={`+${b.coins} c`} text={`${b.count === 1 ? "Laid down" : b.count === 2 ? "Both laid down" : `All ${b.count} laid down`}. He adds ${b.xp} experience to the coins.`} off={false} act={() => g.payBounty(b.id)} />;
-  if (b.state === "taken") return <Offer icon="whip" name={`${what}: taken`} price={`${b.coins} c`} text={`${b.text} ${b.got} of ${b.count} so far.`} off act={() => {}} />;
-  return <Offer icon="whip" name={`Work for tonight: ${what.toLowerCase()}`} price={`${b.coins} c`} text={`${b.text} Take it, and lay ${b.count === 1 ? "it" : "them"} down tonight.`} off={false} act={() => { g.takeBounty(b.id); g.toast("You take Nong Kadyo's work for tonight.", "good"); }} />;
+  const pay = <span className="gain"><Icon name="coins" size={14} />+{b.coins}</span>;
+  if (b.state === "done") return <Offer icon="check" name={`${what}: done`} text={`${b.count === 1 ? "Laid down" : b.count === 2 ? "Both laid down" : `All ${b.count} laid down`}. He adds ${b.xp} experience to the coins.`} side={pay} action="Collect" state="ready" act={() => g.payBounty(b.id)} />;
+  if (b.state === "taken") return <Offer icon="whip" name={`${what}: taken`} text={b.text} note={`${b.got} of ${b.count} so far.`} side={pay} action="Tonight" state="off" act={() => {}} />;
+  return <Offer icon="whip" name={what} text={b.text} side={pay} action="Take" state="ready" act={() => { g.takeBounty(b.id); g.toast("You take Nong Kadyo's work for tonight.", "good"); }} />;
 }
 
 /**
@@ -456,31 +521,43 @@ function PanelKeys({ panel }: { panel: string }) {
   return null;
 }
 
+/** One setting: its name, and its choices side by side; the one in force is lit. */
+function Choice<T extends string | number | boolean>({ name, value, options, set }: { name: string; value: T; options: [T, string][]; set: (v: T) => void }) {
+  return (
+    <div className="setting">
+      <span>{name}</span>
+      <span className="segments">{options.map(([v, label]) => <button key={label} className={v === value ? "on" : ""} aria-pressed={v === value} onClick={() => set(v)}>{label}</button>)}</span>
+    </div>
+  );
+}
+
 function Pause() {
   const g = useGame();
   const s = g.settings;
-  const shakeName = s.shake >= 1 ? "full" : s.shake > 0 ? "half" : "off";
+  const shake = s.shake >= 1 ? 1 : s.shake > 0 ? 0.5 : 0;
   return (
-    <div className="panel">
-      <header><h2>Paused</h2><span><kbd>Esc</kbd> go on</span></header>
-      <section>
-        <Keys />
-        <nav className="menu row">
-          <button onClick={() => g.setPanel(null)} className="primary">Go on</button>
-          <button onClick={() => g.toggleMute()}>Sound: {g.muted ? "off" : "on"}</button>
-          <button onClick={() => g.toggleShadows()}>Lamp shadows: {g.shadows ? "on" : "off"}</button>
-          <button onClick={() => g.setSetting("shake", s.shake >= 1 ? 0.5 : s.shake > 0 ? 0 : 1)}>Screen shake: {shakeName}</button>
-          <button onClick={() => g.setSetting("flashes", s.flashes === "full" ? "reduced" : "full")}>Flashes: {s.flashes}</button>
-          <button onClick={() => g.setSetting("resolution", s.resolution === "auto" ? "full" : "auto")} title="Auto draws at a lower resolution while the game runs slow, and sharpens again when it can">Resolution: {s.resolution}</button>
-          <button onClick={() => g.toTitle()}>Leave to the title</button>
-        </nav>
-        <div className="volumes">
-          <label>Effects <input type="range" min={0} max={1} step={0.05} value={s.sfx} onChange={(e) => g.setSetting("sfx", Number(e.target.value))} aria-label="Effects volume" /><em>{Math.round(s.sfx * 100)}</em></label>
-          <label>Night sounds <input type="range" min={0} max={1} step={0.05} value={s.ambience} onChange={(e) => g.setSetting("ambience", Number(e.target.value))} aria-label="Night sounds volume" /><em>{Math.round(s.ambience * 100)}</em></label>
-        </div>
-        <p className="fine">Arrow keys move between these, Enter chooses, Left and Right turn a slider.</p>
-        <p className="fine">Your progress is kept at each dusk and each morning.</p>
-      </section>
+    <div className="panel pause">
+      <header><h2>Paused</h2><span className="meta"><kbd>Esc</kbd></span></header>
+      <div className="pause-cols">
+        <section>
+          <nav className="menu"><button onClick={() => g.setPanel(null)} className="primary">Go on</button></nav>
+          <h3>Settings</h3>
+          <Choice name="Sound" value={!g.muted} options={[[true, "On"], [false, "Off"]]} set={(v) => { if (v === g.muted) g.toggleMute(); }} />
+          <div className="setting"><span>Effects</span><span className="slider"><input type="range" min={0} max={1} step={0.05} value={s.sfx} onChange={(e) => g.setSetting("sfx", Number(e.target.value))} aria-label="Effects volume" /><em>{Math.round(s.sfx * 100)}</em></span></div>
+          <div className="setting"><span>Night sounds</span><span className="slider"><input type="range" min={0} max={1} step={0.05} value={s.ambience} onChange={(e) => g.setSetting("ambience", Number(e.target.value))} aria-label="Night sounds volume" /><em>{Math.round(s.ambience * 100)}</em></span></div>
+          <Choice name="Screen shake" value={shake} options={[[1, "Full"], [0.5, "Half"], [0, "Off"]]} set={(v) => g.setSetting("shake", v)} />
+          <Choice name="Flashes" value={s.flashes} options={[["full", "Full"], ["reduced", "Reduced"]]} set={(v) => g.setSetting("flashes", v)} />
+          <Choice name="Lamp shadows" value={g.shadows} options={[[true, "On"], [false, "Off"]]} set={(v) => { if (v !== g.shadows) g.toggleShadows(); }} />
+          <Choice name="Resolution" value={s.resolution} options={[["auto", "Auto"], ["full", "Full"]]} set={(v) => g.setSetting("resolution", v)} />
+          <p className="fine">Your progress is kept at each dusk and each morning.</p>
+          <nav className="menu"><button onClick={() => g.toTitle()} className="quiet">Leave to the title</button></nav>
+        </section>
+        <section className="keyside">
+          <h3>Keys</h3>
+          <Keys />
+          <p className="fine">Arrow keys move through this menu, Enter chooses.</p>
+        </section>
+      </div>
     </div>
   );
 }

@@ -95,7 +95,7 @@ await tap("Escape"); await sleep(500); await snap("pause"); await tap("Escape");
 await keepDay();
 await put(24, -19.2); await sleep(600); console.log("kadyo", JSON.stringify(await st()));
 await hold(["KeyE"], 1300); await sleep(600); await snap("kadyo_talk"); await talkThrough(); await sleep(600); await snap("trade");
-await page.evaluate(() => document.querySelector(".offers .perk:not([disabled])")?.click()); await sleep(300); await tap("Escape");
+await page.evaluate(() => document.querySelector(".offers .offer:not([disabled])")?.click()); await sleep(300); await tap("Escape");
 // ---- searching
 await keepDay();
 await put(6.5, 8.6); await sleep(500); await snap("sack_before"); await hold(["KeyE"], 2600); await sleep(500); await snap("sack_after"); console.log("searched", JSON.stringify((await st()).toasts));

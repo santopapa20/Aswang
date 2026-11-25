@@ -113,7 +113,7 @@ export function TouchControls() {
         <div className="tactions">
           <div className="tcluster">
             {btn({ code: "KeyE", icon: "eye", label: E?.label ?? "Use", big: true, lit: !!E && E.progress >= 0 })}
-            {G && btn({ code: "KeyG", icon: /garlic/i.test(G.label) ? "garlic" : "door", label: G.label, lit: G.progress >= 0 })}
+            {G && btn({ code: "KeyG", icon: /garlic/i.test(G.label) ? "garlic" : "door", label: /garlic/i.test(G.label) ? (G.progress >= 0 ? "Garlic" : "No garlic") : G.label, lit: G.progress >= 0 })}
             {g.hasWhip && btn({ code: "KeyR", icon: "whip", label: live.whipWait > 0 ? `${Math.ceil(live.whipWait)}s` : "Whip", lit: live.whipWait <= 0 })}
             {g.kit.itak && btn({ code: "KeyV", icon: "blade", label: g.kit.spear ? "Sibat" : "Itak", lit: live.itakWait <= 0 })}
           </div>

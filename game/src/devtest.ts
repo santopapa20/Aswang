@@ -76,7 +76,7 @@ async function play() {
   // a button answers only once the screen has caught up with the purse, so wait for it to be live before pressing
   const click = async (word: string) => {
     for (let i = 0; i < 40; i++) {
-      const b = [...document.querySelectorAll<HTMLButtonElement>(".offers .perk")].find((o) => o.textContent!.includes(word));
+      const b = [...document.querySelectorAll<HTMLButtonElement>(".offers .offer")].find((o) => o.textContent!.includes(word));
       if (b && !b.disabled) { b.click(); await sleep(60); return; }
       await sleep(50);
     }
@@ -395,7 +395,7 @@ async function play() {
   at(KADYO.x, KADYO.z + 0.5); hold("KeyE", 0.6); await sleep(50); await skipTalk(); await pick(1); await sleep(100);
   check("Nong Kadyo asks for herbs", G().favours.some((f) => f.id === "herbs") && G().panel === "trade", { favours: G().favours, panel: G().panel });
   G().set({ bag: { ...G().bag, herbs: 6 } }); const coinsK = G().bag.coins; const trust = G().kadyoTrust; await sleep(100);
-  [...document.querySelectorAll<HTMLButtonElement>(".offers .perk")].find((b) => b.textContent!.includes("as he asked"))?.click(); await sleep(60);
+  [...document.querySelectorAll<HTMLButtonElement>(".offers .offer")].find((b) => b.textContent!.includes("as he asked"))?.click(); await sleep(60);
   check("and pays for them", G().bag.coins === coinsK + 12 && G().kadyoTrust === trust + 1 && G().bag.herbs === 1, { coins: G().bag.coins - coinsK, herbs: G().bag.herbs });
   G().setPanel(null);
   run(1); at(live.pacing.x + 0.8, live.pacing.z + 0.8); hold("KeyE", 0.6); await sleep(50); await pick(1);
@@ -425,7 +425,7 @@ async function play() {
   G().set({ stage: "day" }); G().setPanel("pause"); await sleep(350);
   const first = document.activeElement?.textContent ?? "";
   window.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" })); await sleep(30);
-  const second = document.activeElement?.textContent ?? "";
+  const second = (document.activeElement?.closest(".setting") ?? document.activeElement)?.textContent ?? "";   // the Sound row's first switch
   check("panels work from the keyboard: something is selected on opening, and the arrows move", first.includes("Go on") && second.includes("Sound"), { first, second });
   G().setPanel(null);
   // the saved game: versioned, backed up, and a damaged save falls back to the backup
