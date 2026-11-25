@@ -237,9 +237,9 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0.08em 0.5em 0.12em; mar
 .offers.work { margin-bottom: 6px; }
 
 /* the pause menu: settings on the left as switches, the keys on the right */
-.panel.pause { width: min(880px, 94vw); }
-.pause-cols { display: grid; grid-template-columns: 1.15fr 1fr; gap: 36px; }
-.pause .menu { margin-top: 0; } .pause .menu .primary { width: 100%; text-align: center; font: 500 13px/1.2 var(--display); letter-spacing: 0.22em; text-transform: uppercase; padding: 12px 18px; }
+.panel.pause { width: min(520px, 94vw); }
+.pause-cols { display: block; }
+.pause .menu { margin-top: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .pause .menu button:not(.quiet) { text-align: center; font: 500 13px/1.2 var(--display); letter-spacing: 0.22em; text-transform: uppercase; padding: 12px 18px; } .pause .menu .primary { width: 100%; text-align: center; font: 500 13px/1.2 var(--display); letter-spacing: 0.22em; text-transform: uppercase; padding: 12px 18px; }
 .pause .menu + h3 { margin-top: 20px; }
 .setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid rgba(239, 230, 211, 0.06); font-size: 17px; }
 .segments { display: inline-flex; gap: 3px; padding: 3px; border-radius: 999px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(239, 230, 211, 0.1); }
@@ -271,7 +271,6 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0.08em 0.5em 0.12em; mar
 .title-card .menu { width: 300px; } .title-card .menu button { font: 500 14px/1.2 var(--display); letter-spacing: 0.2em; text-transform: uppercase; padding: 13px 20px; }
 .title-card .menu button:not(.primary) { border-color: transparent; background: none; padding-left: 21px; color: var(--soft); }
 .title-card .menu button:not(.primary):hover { border-color: transparent; background: none; color: var(--gold); }
-.howto { margin-top: 18px; padding: 16px 18px; background: rgba(0, 0, 0, 0.45); border: 1px solid var(--hair); border-radius: 3px; animation: rise 0.3s ease-out; } .howto p { margin: 0 0 14px; }
 .embers { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .embers i { position: absolute; bottom: -10px; width: 3px; height: 3px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 8px 2px rgba(255, 138, 58, 0.7); opacity: 0; animation: ember linear infinite; }
 @keyframes ember { 0% { transform: translate(0, 0); opacity: 0; } 12% { opacity: 0.9; } 100% { transform: translate(60px, -105vh); opacity: 0; } }
@@ -376,3 +375,31 @@ html, body, canvas { touch-action: none; overscroll-behavior: none; -webkit-tap-
 .tale h4 { margin: 0 0 6px; font: 500 13px/1.3 var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
 .tale p { margin: 0; font-size: 16px; line-height: 1.45; font-style: italic; color: #d8cdb8; }
 @media (max-width: 980px) { .paths { grid-template-columns: 1fr; } .tabs button { padding: 8px 10px; } .tabs button small { display: none; } }
+
+/* the guide (Guide.tsx): the same panel as the bag, with its own pages */
+.hud.over-title { z-index: 25; }
+.panel .close { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--hair); background: none; color: var(--soft); }
+.panel .close:hover { border-color: var(--gold); color: var(--gold); }
+.steps { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.steps li { display: grid; gap: 10px; align-content: start; padding: 16px 16px 14px; border-radius: 10px; background: rgba(239, 230, 211, 0.03); border: 1px solid rgba(239, 230, 211, 0.08); }
+.step-n { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(224, 164, 74, 0.6); font: 600 14px/1 var(--display); color: var(--gold); }
+.steps b { font-weight: 600; font-size: 18px; } .steps p { margin: 4px 0 0; font-size: 15px; line-height: 1.4; color: var(--soft); }
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 10px 22px; }
+.legend div { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.4; color: var(--soft); } .legend .icon { margin-top: 2px; color: var(--gold); }
+.legend b { display: block; font-weight: 600; font-size: 15.5px; color: var(--ink); }
+.threats { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+.threat { padding: 15px 17px 13px; border-radius: 10px; background: rgba(239, 230, 211, 0.03); border: 1px solid rgba(239, 230, 211, 0.08); }
+.threat.tonight { border-color: rgba(224, 164, 74, 0.45); background: rgba(224, 164, 74, 0.05); }
+.threat h4 { display: flex; align-items: center; gap: 9px; margin: 0 0 8px; font: 500 13px/1.2 var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); }
+.threat h4 .icon { color: var(--gold); }
+.threat h4 em { margin-left: auto; padding: 3px 9px; border-radius: 999px; background: rgba(224, 164, 74, 0.16); font: italic 500 13px/1.2 var(--body); letter-spacing: 0; text-transform: none; color: var(--gold); }
+.threat .know { margin: 0 0 9px; font-size: 15px; line-height: 1.4; font-style: italic; color: #d8cdb8; }
+.threat .works { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.threat .works li, .threat .not { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; line-height: 1.35; color: var(--ink); }
+.threat .works .icon { margin-top: 3px; color: var(--good); }
+.threat .not { margin: 8px 0 0; color: var(--soft); } .threat .not .icon { margin-top: 3px; color: #e0857a; }
+.keylist { display: grid; gap: 2px; max-width: 760px; }
+.keyrow { display: grid; grid-template-columns: 80px 96px 1fr; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(239, 230, 211, 0.05); font-size: 15.5px; color: var(--soft); }
+.keyrow .group { font: 500 10.5px/1 var(--display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); }
+.keyrow kbd { justify-self: start; margin: 0; }
+@media (max-width: 980px) { .keyrow { grid-template-columns: 70px 1fr; } .keyrow .group { display: none; } }

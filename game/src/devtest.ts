@@ -426,7 +426,12 @@ async function play() {
   const first = document.activeElement?.textContent ?? "";
   window.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" })); await sleep(30);
   const second = (document.activeElement?.closest(".setting") ?? document.activeElement)?.textContent ?? "";   // the Sound row's first switch
-  check("panels work from the keyboard: something is selected on opening, and the arrows move", first.includes("Go on") && second.includes("Sound"), { first, second });
+  check("panels work from the keyboard: something is selected on opening, and the arrows move", first.includes("Go on") && second.includes("How to play"), { first, second });
+  G().setPanel(null); await sleep(50);
+  window.dispatchEvent(new KeyboardEvent("keydown", { code: "Slash" })); await sleep(250);
+  const guideOpen = G().panel === "guide" && !!document.querySelector(".guidebook"), firstPage = document.querySelector(".guidebook .steps")?.children.length ?? 0;
+  window.dispatchEvent(new KeyboardEvent("keydown", { code: "Slash" })); await sleep(50);
+  check("? opens the guide on how to play (four steps), and closes it again", guideOpen && firstPage === 4 && G().panel === null, { guideOpen, firstPage, panel: G().panel });
   G().setPanel(null);
   // the saved game: versioned, backed up, and a damaged save falls back to the backup
   G().set({ night: 3, stage: "morning" }); G().nextDay(); await sleep(200); await skipTalk();

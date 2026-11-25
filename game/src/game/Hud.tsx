@@ -7,6 +7,7 @@ import { openings } from "./layout";
 import { choose, toggles } from "./input";
 import { sound } from "./audio";
 import { Icon } from "./Icons";
+import { HowToPlay } from "./HowToPlay";
 
 /** Everything drawn on top of the 3D view. */
 export function Hud() {
@@ -29,6 +30,7 @@ export function Hud() {
           {panel === "trade" && <Trade />}
           {panel === "bench" && <Bench />}
           {panel === "pause" && <Pause />}
+          {panel === "guide" && <HowToPlay onClose={() => useGame.getState().setPanel(null)} />}
           {panel && <PanelKeys panel={panel} />}
         </div>
       )}
@@ -36,15 +38,9 @@ export function Hud() {
   );
 }
 
-const KEYS: [string, string][] = [
-  ["W A S D", "Move"], ["Shift", "Run"], ["C", "Sneak on or off"], ["E hold", "Use, search, talk"], ["G hold", "Protect a door or window; hold up garlic"],
-  ["Q", "Pour a line of salt"], ["F", "Shutter the lamp"], ["R", "Crack the whip"], ["V", "Strike with the itak"], ["Z", "Throw a salt pouch"], ["X", "Light a smudge bundle"], ["H hold", "Eat herbs to heal"], ["T hold", "Turn your shirt inside out"],
-  ["Tab", "Bag and learning"], ["Esc", "Pause"], ["M", "Sound on or off"],
-];
 /** What goes on the bar along the bottom: things you use. Herbs and money are shown as a purse beside it. */
 const SUPPLIES: ItemId[] = ["salt", "garlic", "oil", "kindling", "tobacco"];
 const ITEM_ICON: Record<ItemId, string> = { salt: "salt", garlic: "garlic", oil: "oil", kindling: "kindling", tobacco: "tobacco", herbs: "herbs", coins: "coins" };
-const Keys = () => <ul className="keys">{KEYS.map(([k, v]) => <li key={k}><kbd>{k}</kbd><span>{v}</span></li>)}</ul>;
 const Candles = ({ n }: { n: number }) => <span className="candles">{[0, 1, 2].map((i) => <i key={i} className={i < n ? "on" : ""}><Icon name="flame" size={17} /></i>)}</span>;
 
 function Title() {
@@ -71,17 +67,13 @@ function Title() {
           {!ready && <div className="loading"><span>Lighting the lamps</span><i><b style={{ width: `${Math.max(4, progress)}%` }} /></i></div>}
           {ready && saved && <button className="primary" onClick={() => { sound.wake(); continueGame(); }}>Continue the watch</button>}
           {ready && <button className={saved ? "" : "primary"} onClick={() => { sound.wake(); newGame(); }}>{saved ? "Begin again" : "Begin the watch"}</button>}
-          <button onClick={() => setHelp(!help)}>How to play</button>
+          <button onClick={() => setHelp(true)}>How to play</button>
           <button onClick={() => { sound.wake(); toggleMute(); }}>Sound: {muted ? "off" : "on"}</button>
         </nav>
-        {help && (
-          <div className="howto">
-            <p>By day, gather and prepare. At dusk, protect the door and windows. At night, guard the house, and leave it only when you must. Each protection holds once. Three breaches and Rosing is lost.</p>
-            <Keys />
-          </div>
-        )}
+
         <p className="fine">Keyboard, or touch on a phone held sideways. Sound matters: use headphones if you can.</p>
       </div>
+      {help && <div className="hud over-title"><HowToPlay onClose={() => setHelp(false)} /></div>}
     </div>
   );
 }
@@ -288,7 +280,7 @@ function Play() {
             <span title="Herbs"><Icon name="herbs" size={15} />{g.bag.herbs}</span>
             <span title="How much you carry" className={carried(g) >= m.carry ? "full" : ""}><Icon name="bag" size={15} />{carried(g)}<small>/{m.carry}</small></span>
           </div>
-          <div className="hints"><span><kbd>Tab</kbd>bag</span><span><kbd>Esc</kbd>pause</span><span><kbd>C</kbd>{toggles.sneak ? "sneaking" : "sneak"}</span></div>
+          <div className="hints"><span><kbd>Tab</kbd>bag</span><span><kbd>Esc</kbd>pause</span><span><kbd>?</kbd>guide</span><span><kbd>C</kbd>{toggles.sneak ? "sneaking" : "sneak"}</span></div>
         </section>
       </footer>
     </>
@@ -659,7 +651,7 @@ function Pause() {
       <header><h2>Paused</h2><span className="meta"><kbd>Esc</kbd></span></header>
       <div className="pause-cols">
         <section>
-          <nav className="menu"><button onClick={() => g.setPanel(null)} className="primary">Go on</button></nav>
+          <nav className="menu"><button onClick={() => g.setPanel(null)} className="primary">Go on</button><button onClick={() => g.setPanel("guide")}>How to play</button></nav>
           <h3>Settings</h3>
           <Choice name="Sound" value={!g.muted} options={[[true, "On"], [false, "Off"]]} set={(v) => { if (v === g.muted) g.toggleMute(); }} />
           <div className="setting"><span>Effects</span><span className="slider"><input type="range" min={0} max={1} step={0.05} value={s.sfx} onChange={(e) => g.setSetting("sfx", Number(e.target.value))} aria-label="Effects volume" /><em>{Math.round(s.sfx * 100)}</em></span></div>
@@ -668,13 +660,8 @@ function Pause() {
           <Choice name="Flashes" value={s.flashes} options={[["full", "Full"], ["reduced", "Reduced"]]} set={(v) => g.setSetting("flashes", v)} />
           <Choice name="Lamp shadows" value={g.shadows} options={[[true, "On"], [false, "Off"]]} set={(v) => { if (v !== g.shadows) g.toggleShadows(); }} />
           <Choice name="Resolution" value={s.resolution} options={[["auto", "Auto"], ["full", "Full"]]} set={(v) => g.setSetting("resolution", v)} />
-          <p className="fine">Your progress is kept at each dusk and each morning.</p>
+          <p className="fine">Your progress is kept at each dusk and each morning. Arrow keys move through this menu, Enter chooses.</p>
           <nav className="menu"><button onClick={() => g.toTitle()} className="quiet">Leave to the title</button></nav>
-        </section>
-        <section className="keyside">
-          <h3>Keys</h3>
-          <Keys />
-          <p className="fine">Arrow keys move through this menu, Enter chooses.</p>
         </section>
       </div>
     </div>

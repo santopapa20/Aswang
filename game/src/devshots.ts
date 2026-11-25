@@ -139,6 +139,11 @@ const SHOTS: Record<string, () => Promise<void>> = {
   bagCharms: async () => { await SHOTS.bag(); await sleep(150); [...document.querySelectorAll<HTMLButtonElement>(".tabs button")].find((b) => /Charms/.test(b.textContent ?? ""))?.click(); await sleep(200); },
   bagLearning: async () => { await SHOTS.bag(); await sleep(150); [...document.querySelectorAll<HTMLButtonElement>(".tabs button")].find((b) => /Learning/.test(b.textContent ?? ""))?.click(); await sleep(200); },
   bagTales: async () => { await SHOTS.tales(); await sleep(150); [...document.querySelectorAll<HTMLButtonElement>(".tabs button")].find((b) => /tales/i.test(b.textContent ?? ""))?.click(); await sleep(200); },
+  // the guide: its first page over the title, and the night's page during play
+  titleGuide: async () => { G().toTitle(); await sleep(900); [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => /How to play/.test(b.textContent ?? ""))?.click(); await sleep(300); },
+  guide: async () => { await begin(3); G().setPanel("guide"); await sleep(200); },
+  guideNight: async () => { await begin(3); G().setPanel("guide"); await sleep(150); [...document.querySelectorAll<HTMLButtonElement>(".tabs button")].find((b) => /night/i.test(b.textContent ?? ""))?.click(); await sleep(200); },
+  guideKeys: async () => { await begin(3); G().setPanel("guide"); await sleep(150); [...document.querySelectorAll<HTMLButtonElement>(".tabs button")].find((b) => /Controls/.test(b.textContent ?? ""))?.click(); await sleep(200); },
   tales: async () => { await begin(3); G().set({ tales: ["aswang", "sigbin", "amalanhig"] }); G().setPanel("bag"); },
   bag: async () => { await begin(3); for (let i = 0; i < 4; i++) G().addCharm(i * 0.03); G().gainXp(150); G().set({ hasWhip: true, proofs: { salt: true, oil: false, skirt: false } }); G().setPanel("bag"); },
   trade: async () => { await begin(2); at(24, -18.7); G().setPanel("trade"); },

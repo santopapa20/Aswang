@@ -11,7 +11,7 @@ export type WardKind = "salt" | "garlic";
 /** A line of salt on the ground, from point A to point B. The aswang cannot cross it. */
 export type SaltLine = { ax: number; az: number; bx: number; bz: number };
 export type Dialogue = { lines: Line[]; index: number; choices?: { text: string; pick: () => void }[]; then?: () => void };
-export type Panel = null | "bag" | "trade" | "bench" | "pause";
+export type Panel = null | "bag" | "trade" | "bench" | "pause" | "guide";
 export type Toast = { id: number; text: string; tone: "good" | "bad" | "plain" };
 export const SHIRT_SECONDS = 2;
 const SAVE_KEY = "aswang-night-save-v1";

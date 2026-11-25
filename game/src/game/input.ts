@@ -36,6 +36,7 @@ export function useKeyboard() {
       }
       if (e.code === "Escape" && playing) { g.setPanel(g.panel ? null : "pause"); return; }
       if (e.code === "Tab" && playing) { g.setPanel(g.panel === "bag" ? null : "bag"); return; }
+      if ((e.code === "Slash" || e.code === "F1") && playing) { e.preventDefault(); g.setPanel(g.panel === "guide" ? null : "guide"); return; }
       if (g.stage === "morning" && e.code === "Enter") { g.nextDay(); return; }
       if (g.panel || !playing) return;
       held.add(e.code);
