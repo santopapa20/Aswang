@@ -25,6 +25,10 @@ export function TouchControls() {
   const [, tick] = useState(0);
   const base = useRef<{ id: number; x: number; y: number } | null>(null);
   const [knob, setKnob] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  const running = useRef(false);
+  /** A tapped Use or Garlic: its key stays down until the thing is done, he walks off, or it is gone. */
+  const latch = useRef<{ code: "KeyE" | "KeyG"; peak: number; until: number } | null>(null);
+  const [stickUsed, setStickUsed] = useState(() => { try { return localStorage.getItem("aswang-stick-used") === "1"; } catch { return false; } });
 
   useEffect(() => {
     const touch = (e: PointerEvent) => { if (e.pointerType === "touch") setOn(true); };
@@ -37,7 +41,21 @@ export function TouchControls() {
     return () => { window.removeEventListener("pointerdown", touch, true); window.removeEventListener("keydown", keyboard, true); coarse.removeEventListener("change", changed); };
   }, []);
   // what can be done changes as he walks about: look again a few times a second
-  useEffect(() => { if (!on) return; const id = setInterval(() => tick((n) => n + 1), 150); return () => clearInterval(id); }, [on]);
+  useEffect(() => {
+    if (!on) return;
+    const id = setInterval(() => {
+      const l = latch.current;
+      if (l) {
+        const p = live.prompts[l.code === "KeyE" ? "E" : "G"];
+        const progress = p ? p.progress : -1;
+        l.peak = Math.max(l.peak, progress);
+        // done (the ring filled and went back), walked away, nothing there any more, or taking too long
+        if (!p || progress < 0 || stick.on || performance.now() > l.until || (l.peak > 0.05 && progress < l.peak - 0.25)) { press(l.code, false); latch.current = null; }
+      }
+      tick((n) => n + 1);
+    }, 100);
+    return () => clearInterval(id);
+  }, [on]);
 
   // the rest of the interface drops its keyboard hints while the controls are up (styles.css: .touching)
   useEffect(() => { document.body.classList.toggle("touching", on); }, [on]);
@@ -52,7 +70,6 @@ export function TouchControls() {
     base.current = null; setKnob(null);
     stick.on = false; stick.x = 0; stick.z = 0; run(false);
   };
-  const running = useRef(false);
   const run = (yes: boolean) => { if (yes !== running.current) { running.current = yes; press("ShiftLeft", yes); } };
   const moveStick = (e: React.PointerEvent) => {
     const b = base.current;
@@ -64,21 +81,29 @@ export function TouchControls() {
     stick.on = k > DEAD; stick.x = dx / REACH; stick.z = dy / REACH;
     run(k >= RUN_AT && !toggles.sneak);
     setKnob({ x: b.x, y: b.y, dx, dy });
+    if (!stickUsed && k > 0.5) { setStickUsed(true); try { localStorage.setItem("aswang-stick-used", "1"); } catch { /* private window */ } }
   };
 
-  // ---- a button that holds its key while the finger is on it
+  // ---- a button that holds its key while the finger is on it. Use and Garlic need a hold of up to a second
+  // and a half on a keyboard; on glass a tap starts them and they finish by themselves (`latch`).
+  const latched = (code: string): code is "KeyE" | "KeyG" => code === "KeyE" || code === "KeyG";
   const hold = (code: string) => ({
-    onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); e.stopPropagation(); capture(e); press(code, true); },
-    onPointerUp: () => press(code, false),
-    onPointerCancel: () => press(code, false),
-    onLostPointerCapture: () => press(code, false),
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault(); e.stopPropagation(); capture(e);
+      if (latched(code)) { if (latch.current) press(latch.current.code, false); latch.current = { code, peak: 0, until: performance.now() + 4000 }; }
+      press(code, true);
+    },
+    onPointerUp: () => { if (!latched(code)) press(code, false); },
+    onPointerCancel: () => { if (!latched(code)) press(code, false); },
+    onLostPointerCapture: () => { if (!latched(code)) press(code, false); },
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   });
   // a plain function, not a component: a component made here would be new each render, and the button
   // would be rebuilt under the finger (losing its hold) every time the controls look again
-  const btn = ({ code, icon, label, big, lit, count }: { code: string; icon: string; label: string; big?: boolean; lit?: boolean; count?: number }) => (
-    <button key={code} className={`tbtn ${big ? "big" : ""} ${lit ? "lit" : ""}`} aria-label={label} {...hold(code)}>
-      <Icon name={icon} size={big ? 30 : 22} />
+  const btn = ({ code, icon, label, big, lit, count, progress }: { code: string; icon: string; label: string; big?: boolean; lit?: boolean; count?: number; progress?: number }) => (
+    <button key={code} className={`tbtn ${big ? "big" : ""} ${lit ? "lit" : ""} ${progress && progress > 0 ? "doing" : ""}`} aria-label={label} {...hold(code)}
+      style={progress && progress > 0 ? { ["--p" as string]: `${Math.min(1, progress) * 360}deg` } : undefined}>
+      <Icon name={icon} size={big ? 24 : 19} />
       <span>{label}</span>
       {count !== undefined && <b>{count}</b>}
     </button>
@@ -100,32 +125,32 @@ export function TouchControls() {
           onPointerCancel={release}
         >
           {knob && <div className="stick" style={{ left: knob.x, top: knob.y }}><i style={{ transform: `translate(${knob.dx}px, ${knob.dy}px)` }} /></div>}
-          {!knob && <p className="stickhint">Hold here and push to walk · push to the edge to run</p>}
+          {!knob && !stickUsed && <p className="stickhint">Touch and drag here to walk. Drag further to run.</p>}
         </div>
       )}
       {playing && (
         <div className="tmenu">
-          <button className="tbtn small" aria-label="Bag" onPointerDown={(e) => { e.preventDefault(); press("Tab", true); press("Tab", false); }}><Icon name="bag" size={20} /></button>
-          <button className="tbtn small" aria-label="Pause" onPointerDown={(e) => { e.preventDefault(); press("Escape", true); press("Escape", false); }}><Icon name="moon" size={20} /></button>
+          <button className="tbtn small" aria-label="Bag" onPointerDown={(e) => { e.preventDefault(); press("Tab", true); press("Tab", false); }}><Icon name="bag" size={19} /></button>
+          <button className="tbtn small" aria-label="Pause" onPointerDown={(e) => { e.preventDefault(); press("Escape", true); press("Escape", false); }}><Icon name="pause" size={17} /></button>
         </div>
       )}
       {free && (
         <div className="tactions">
           <div className="tcluster">
-            {btn({ code: "KeyE", icon: "eye", label: E?.label ?? "Use", big: true, lit: !!E && E.progress >= 0 })}
-            {G && btn({ code: "KeyG", icon: /garlic/i.test(G.label) ? "garlic" : "door", label: /garlic/i.test(G.label) ? (G.progress >= 0 ? "Garlic" : "No garlic") : G.label, lit: G.progress >= 0 })}
+            {E && E.progress >= 0 && btn({ code: "KeyE", icon: "hand", label: "Use", big: true, lit: true, progress: E.progress })}
+            {G && G.progress >= 0 && btn({ code: "KeyG", icon: /garlic/i.test(G.label) ? "garlic" : "door", label: /garlic/i.test(G.label) ? "Garlic" : /salt/i.test(G.label) ? "Salt it" : "Protect", big: !E || E.progress < 0, lit: true, progress: G.progress })}
             {g.hasWhip && btn({ code: "KeyR", icon: "whip", label: live.whipWait > 0 ? `${Math.ceil(live.whipWait)}s` : "Whip", lit: live.whipWait <= 0 })}
             {g.kit.itak && btn({ code: "KeyV", icon: "blade", label: g.kit.spear ? "Sibat" : "Itak", lit: live.itakWait <= 0 })}
           </div>
           <div className="trow">
-            {g.bag.salt > 0 && btn({ code: "KeyQ", icon: "salt", label: "Salt line", count: g.bag.salt })}
+            {g.bag.salt > 0 && btn({ code: "KeyQ", icon: "salt", label: "Salt", count: g.bag.salt })}
             {g.kit.pouch > 0 && btn({ code: "KeyZ", icon: "salt", label: "Pouch", count: g.kit.pouch })}
             {night && g.kit.smudge > 0 && btn({ code: "KeyX", icon: "flame", label: live.smudge > 0 ? `${Math.ceil(live.smudge)}s` : "Smudge", count: g.kit.smudge })}
             {night && btn({ code: "KeyF", icon: "oil", label: g.lampOn ? "Shutter" : "Unshutter", lit: g.lampOn })}
             {g.bag.herbs > 0 && live.health < m.health - 0.5 && btn({ code: "KeyH", icon: "herbs", label: "Eat (hold)", count: g.bag.herbs })}
             {g.lost && btn({ code: "KeyT", icon: "charm", label: "Shirt (hold)" })}
             <button className={`tbtn ${toggles.sneak ? "lit" : ""}`} aria-label="Sneak" onPointerDown={(e) => { e.preventDefault(); press("KeyC", true); press("KeyC", false); tick((n) => n + 1); }}>
-              <Icon name="breath" size={22} /><span>{toggles.sneak ? "Sneaking" : "Sneak"}</span>
+              <Icon name="feet" size={19} /><span>{toggles.sneak ? "Sneaking" : "Sneak"}</span>
             </button>
           </div>
         </div>

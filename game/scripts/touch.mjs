@@ -52,9 +52,9 @@ const g = await page.evaluate(() => {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 });
 check("a garlic button is offered beside the farmer", !!g);
-if (g) { await touch("touchStart", g.x, g.y); await sleep(700); await touch("touchEnd", g.x, g.y); await sleep(200); }
+if (g) { await touch("touchStart", g.x, g.y); await sleep(100); await touch("touchEnd", g.x, g.y); await sleep(900); }   // a tap, not a hold
 const w = await page.evaluate(() => { const k = window.__aswang.live.kin.guise[0]; return { mode: k.mode, shown: k.shown, garlic: window.__aswang.useGame.getState().bag.garlic }; });
-check("held, it shows the farmer up and keeps the garlic", w.shown && w.mode === "recoil" && w.garlic === 2, w);
+check("a tap on Garlic (no holding) shows the farmer up, and keeps the garlic", w.shown && w.mode === "recoil" && w.garlic === 2, w);
 
 // the stick: a little push walks, a full push runs
 const speed = async (dx) => {
@@ -70,6 +70,8 @@ const speed = async (dx) => {
 // somewhere quiet, with his breath back (the farmer, shown up, comes for him; a blow or being winded stops a run)
 await page.evaluate(() => { const L = window.__aswang.live; L.health = 100; L.stamina = 1; L.player.set(56, 0, 0);   /* the trail east: straight and open */ L.kin.guise.forEach((k) => (k.unmask = false)); });
 await sleep(300);
+const nothing = await page.evaluate(() => ![...document.querySelectorAll(".tbtn")].some((b) => b.getAttribute("aria-label") === "Use"));
+check("with nothing near, there is no Use button", nothing);
 const walk = await speed(30), run = await speed(60);
 check("a small push on the stick walks (1.7 m/s), a full one runs (3.6)", walk.perSec > 1.2 && walk.perSec < 2.3 && run.perSec > 3 && run.perSec < 4.4, { walk: walk.perSec, run: run.perSec });
 const still = await page.evaluate(async () => { const x = window.__aswang.live.player.x; await new Promise((r) => setTimeout(r, 300)); return Math.abs(window.__aswang.live.player.x - x) < 0.02; });
