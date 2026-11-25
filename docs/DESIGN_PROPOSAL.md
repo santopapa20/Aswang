@@ -1,4 +1,4 @@
-# Aswang Night: game design proposal
+# Aswang: game design proposal
 
 Written 2026-11-23. This is a proposal, not a decision. Nothing is built from it yet.
 Three labels are used throughout:
@@ -96,7 +96,7 @@ the most cinematic but would have us making environments for months.
 
 ## 3. The concept
 
-**Aswang Night** is a top-down folk-horror game about keeping watch.
+**Aswang** is a top-down folk-horror game about keeping watch.
 
 > Five nights guarding your pregnant sister's house in a 1950s Visayan barrio, while you work out
 > which of the neighbours who greet you every morning is the thing that circles the house every night.

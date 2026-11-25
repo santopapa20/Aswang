@@ -1,4 +1,4 @@
-# Aswang Night: handoff from the portfolio chat
+# Aswang: handoff from the portfolio chat (first named "Aswang Night")
 
 This file carries everything the game chat needs to continue. It was written on 2026-11-23 when
 the game work was moved out of the portfolio-website chat.

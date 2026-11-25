@@ -1,4 +1,4 @@
-# Aswang Night: what is built, and what is next
+# Aswang: what is built, and what is next
 
 Updated 2026-11-24 (map and bug pass). The design is `DESIGN_PROPOSAL.md` (direction B, the vigil) with a loot-and-level
 loop added on top, as Keith asked. This file tracks the state of the build.

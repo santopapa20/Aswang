@@ -60,7 +60,7 @@ function Title() {
       <div className="embers">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${-i * 1.3}s`, animationDuration: `${9 + (i % 5) * 2}s` }} />)}</div>
       <div className="title-card">
         <p className="eyebrow">A folk horror in five nights</p>
-        <h1 className="logo">Aswang<span>Night</span></h1>
+        <h1 className="logo">Aswang</h1>
         <p className="place">Visayas · 1953</p>
         <p className="lede">Your sister is near her time. Her husband is cutting cane in Negros.<br />Every night, something tests the house. Every morning, a neighbour asks how you slept.</p>
         <nav className="menu">

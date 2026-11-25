@@ -1,4 +1,4 @@
-# Aswang Night
+# Aswang
 
 A top-down 3D survival horror game set in a remote Visayan barrio in the 1950s. Survive each night
 until sunrise while creatures from Philippine folklore (aswang, manananggal, wakwak, tikbalang,
