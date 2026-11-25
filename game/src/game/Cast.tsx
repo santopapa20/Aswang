@@ -250,13 +250,29 @@ export function Director() {
     live.daylight += (want - live.daylight) * Math.min(1, dt * 1.2);
 
     const hearing = night && live.aswang.active && live.caught <= 0;
+    const fear = Math.max(hearing ? Math.max(0, 1 - live.aswang.near / 9) : 0, night ? live.sigbin.drain : 0);
+    // how near the danger is, for the score: the worst of everything that is after him or the house
+    let danger = 0;
+    if (night) {
+      const near = (x: number, z: number) => Math.hypot(x - live.player.x, z - live.player.z);
+      const coming = ["alert", "hunt", "bite", "strike", "turn", "recoil", "back", "blocked"];
+      for (const kind of ["dog", "crawler", "guise"] as const) for (const k of live.kin[kind]) {
+        if (coming.includes(k.mode) && near(k.x, k.z) < 16) danger = Math.max(danger, 0.85);
+        else if (kind === "guise" && k.mode === "watch") danger = Math.max(danger, 0.5);      // something watching him that looks like a man
+      }
+      for (const m of live.amalanhig) if (m.mode === "hunt" || m.mode === "grab") danger = Math.max(danger, 0.85);
+      danger = Math.max(danger, fear, game.hunted ? 1 : 0, game.overhead ? 0.9 : 0, live.breach > 0 ? 0.55 + 0.45 * live.breach : 0,
+        live.caught > 0 ? 1 : 0, game.lost ? 0.45 : 0, live.sigbin.feeding ? 1 : 0);
+    }
     sound.update(dt, {
       dark: 1 - live.daylight,
       tiktik: hearing ? live.aswang.near : null,
       scratch: night && live.breach > 0,
-      fear: Math.max(hearing ? Math.max(0, 1 - live.aswang.near / 9) : 0, night ? live.sigbin.drain : 0),
+      fear,
       smoke: live.smoke > 0,
-      muted: game.muted || game.stage === "title", sfx: game.settings.sfx, ambience: game.settings.ambience,
+      muted: game.muted, sfx: game.settings.sfx, ambience: game.settings.ambience, music: game.settings.music,
+      stage: game.stage === "title" ? "title" : day ? "day" : night ? "night" : "other",
+      danger, night: game.night, talking: !!game.dialogue,
     });
     live.whipCrack = false; live.struck = false; live.slash = false; live.saltThrow = false;
   });

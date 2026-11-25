@@ -106,7 +106,7 @@ export function Guise({ look }: { look: GuiseLook }) {
     const strike = () => { mode.current = "strike"; timer.current = STRIKE; api.play("attack", { once: true, fade: 0.1, speed: STRIKE_SPEED }); };
     /** The face comes off. `garlic`: shown up by him, and it reels; otherwise it shows itself, and comes. */
     const unmask = (garlic: boolean) => {
-      shown.current = true; from.current = { x: p.x, z: p.z }; sound.shriek();
+      shown.current = true; from.current = { x: p.x, z: p.z }; sound.shriek(); sound.unmask();
       if (garlic) {
         mode.current = "recoil"; timer.current = GUISE.recoil; api.play("repelled", { once: true, fade: 0.12 });
         game.gainXp(5);

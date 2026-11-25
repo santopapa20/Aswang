@@ -655,6 +655,7 @@ function Pause() {
           <h3>Settings</h3>
           <Choice name="Sound" value={!g.muted} options={[[true, "On"], [false, "Off"]]} set={(v) => { if (v === g.muted) g.toggleMute(); }} />
           <div className="setting"><span>Effects</span><span className="slider"><input type="range" min={0} max={1} step={0.05} value={s.sfx} onChange={(e) => g.setSetting("sfx", Number(e.target.value))} aria-label="Effects volume" /><em>{Math.round(s.sfx * 100)}</em></span></div>
+          <div className="setting"><span>Music</span><span className="slider"><input type="range" min={0} max={1} step={0.05} value={s.music} onChange={(e) => g.setSetting("music", Number(e.target.value))} aria-label="Music volume" /><em>{Math.round(s.music * 100)}</em></span></div>
           <div className="setting"><span>Night sounds</span><span className="slider"><input type="range" min={0} max={1} step={0.05} value={s.ambience} onChange={(e) => g.setSetting("ambience", Number(e.target.value))} aria-label="Night sounds volume" /><em>{Math.round(s.ambience * 100)}</em></span></div>
           <Choice name="Screen shake" value={shake} options={[[1, "Full"], [0.5, "Half"], [0, "Off"]]} set={(v) => g.setSetting("shake", v)} />
           <Choice name="Flashes" value={s.flashes} options={[["full", "Full"], ["reduced", "Reduced"]]} set={(v) => g.setSetting("flashes", v)} />

@@ -17,13 +17,13 @@ export const SHIRT_SECONDS = 2;
 const SAVE_KEY = "aswang-night-save-v1";
 const SETTINGS_KEY = "aswang-night-settings";
 /** resolution: "auto" lowers the drawing resolution while the frame rate is short of 60 (App.tsx); "full" never does. */
-export type Settings = { shake: number; flashes: "full" | "reduced"; sfx: number; ambience: number; resolution: "auto" | "full" };
-const DEFAULT_SETTINGS: Settings = { shake: 1, flashes: "full", sfx: 0.8, ambience: 0.8, resolution: "auto" };
+export type Settings = { shake: number; flashes: "full" | "reduced"; sfx: number; ambience: number; music: number; resolution: "auto" | "full" };
+const DEFAULT_SETTINGS: Settings = { shake: 1, flashes: "full", sfx: 0.8, ambience: 0.8, music: 0.75, resolution: "auto" };
 function loadSettings(): Settings {
   try {
     const d = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") as Partial<Settings>;
     const unit = (x: unknown, dflt: number) => (typeof x === "number" && x >= 0 && x <= 1 ? x : dflt);
-    return { shake: unit(d.shake, 1), flashes: d.flashes === "reduced" ? "reduced" : "full", sfx: unit(d.sfx, 0.8), ambience: unit(d.ambience, 0.8), resolution: d.resolution === "full" ? "full" : "auto" };
+    return { shake: unit(d.shake, 1), flashes: d.flashes === "reduced" ? "reduced" : "full", sfx: unit(d.sfx, 0.8), ambience: unit(d.ambience, 0.8), music: unit(d.music, 0.75), resolution: d.resolution === "full" ? "full" : "auto" };
   } catch { return { ...DEFAULT_SETTINGS }; }
 }
 
