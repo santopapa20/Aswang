@@ -13,6 +13,7 @@ import { Hilot } from "./game/Hilot";
 import { Amalanhig } from "./game/Amalanhig";
 import { Kin } from "./game/Kin";
 import { Guise } from "./game/Guise";
+import { TouchControls } from "./game/TouchControls";
 import { Hud } from "./game/Hud";
 import { Guide } from "./game/Guide";
 import { useKeyboard } from "./game/input";
@@ -175,6 +176,7 @@ export default function App() {
         <DevHook />
       </Canvas>
       <Hud />
+      <TouchControls />
     </>
   );
 }

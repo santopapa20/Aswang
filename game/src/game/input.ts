@@ -5,6 +5,8 @@ import { sound } from "./audio";
 /** Keys currently held, by KeyboardEvent.code. */
 export const held = new Set<string>();
 export const toggles = { sneak: false };
+/** The touch screen's stick (TouchControls.tsx): which way it is pushed, -1..1, screen down is +z. */
+export const stick = { on: false, x: 0, z: 0 };
 /** One-shot actions: set on key press, cleared by whoever handles them. */
 export const actions = { pour: false, whip: false, slash: false, pouch: false, smudge: false };
 
@@ -47,7 +49,7 @@ export function useKeyboard() {
       if (e.code === "KeyF" && g.stage === "night") g.set({ lampOn: !g.lampOn });
     };
     const up = (e: KeyboardEvent) => held.delete(e.code);
-    const blur = () => held.clear();
+    const blur = () => { held.clear(); stick.on = false; };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     window.addEventListener("blur", blur);
@@ -63,6 +65,7 @@ export function useKeyboard() {
 
 /** Direction the player wants to go, on the ground plane. Up on screen is -Z. */
 export function moveAxis(): { x: number; z: number } {
+  if (stick.on) { const n = Math.hypot(stick.x, stick.z) || 1; return { x: stick.x / n, z: stick.z / n }; }
   let x = 0, z = 0;
   if (held.has("KeyW") || held.has("ArrowUp")) z -= 1;
   if (held.has("KeyS") || held.has("ArrowDown")) z += 1;

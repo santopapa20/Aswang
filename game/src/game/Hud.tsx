@@ -80,7 +80,7 @@ function Title() {
             <Keys />
           </div>
         )}
-        <p className="fine">Keyboard only. Sound matters: use headphones if you can.</p>
+        <p className="fine">Keyboard, or touch on a phone held sideways. Sound matters: use headphones if you can.</p>
       </div>
     </div>
   );

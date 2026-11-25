@@ -47,4 +47,5 @@ will not pass a run that left the night. `duel.mjs` now treats the kin's stare a
 |---|---|---|---|---|
 | BUG-0013 | S3 | P3 | Once, the first production load in a fresh browser froze for about 15 s after Begin. The next run did not. | Not reproduced. Possibly the preview server's first reads of the large model files out of OneDrive. Watch for it in the playtest. |
 | BUG-0011 | S4 | P3 | One slow frame (about 130 ms) can still come when a bite lands. | No shader behind it; likely the hurt sound and the HUD's toast together. |
+| BUG-0014 | — | P2 | The touch controls have only been tried on an emulated phone (`scripts/touch.mjs`), not on a real one. | Try them on a phone held sideways: the stick, holding Use and garlic, and whether the smaller interface can be read. |
 | BUG-0012 | — | P2 | Nobody has played the whole game by hand. | `docs/PLAYTEST.md` is the form for that session. |
