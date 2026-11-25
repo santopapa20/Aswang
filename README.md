@@ -1,23 +1,18 @@
 # Aswang
 
 A top-down 3D survival horror game set in a remote Visayan barrio in the 1950s. Survive each night
-until sunrise while creatures from Philippine folklore (aswang, manananggal, wakwak, tikbalang,
-kapre, sigbin) hunt you, each beaten by the counter the old stories give.
+until sunrise while creatures from Philippine folklore (aswang, manananggal, tikbalang,
+kapre, sigbin, amalanhig, and the aswang's kin) hunt you, each beaten by the counter the old stories give.
 
-Status: asset production. The player is rigged and animated (`assets/player/game/player.glb`, six clips:
-idle, look, walk, run, sneak, caught) and so is the aswang (`assets/aswang/game/aswang.glb`, six clips:
-idle, walk, run, attack, scream, repelled).
-No game code yet; the engine and scope are still to be agreed. Full background is in `HANDOFF.md`.
+**Play it:** https://santopapa20.github.io/Aswang/ (a computer with a keyboard, or a phone held sideways).
 
-Current models: `assets/player/player_v2*` (Tripo-textured, the one in use) and `assets/aswang/aswang*`.
-The older `player_textured` / `player_rigready` files are the first player; they are kept because the
-new one borrows its garlic and sash labels and its test skin weights from them.
+Keep your sister Rosing and her unborn child alive for five nights in a Capiz barrio in 1953. By day you
+gather, trade with Nong Kadyo, make things at the bench and do favours; at dusk you lay salt and garlic
+at the door and windows; at night you keep the house while the aswang, the manananggal, her kin and
+worse come for it. Press **?** in the game (or "How to play" on the title) for the full guide.
 
-## First playable version (agreed 2026-11-23)
-
-One small barrio map and one night: the player with his lamp, one aswang and one manananggal, salt
-and garlic as counters, win at sunrise or lose when caught. Village: one or two Tripo models plus
-free assets. Engine: browser, React Three Fiber (agreed).
+Status: playable start to finish, with five endings. Checked by script, not yet by a person playing by
+hand (see `docs/BUGS.md`). What is in the game, and how each part was tested: `docs/GAME_PLAN.md`.
 
 ## Running the game
 
@@ -27,7 +22,7 @@ npm install      # first time only
 npm run dev      # then open http://localhost:5173
 ```
 
-WASD or arrows to move, Shift to run, C to sneak. Hold E to use, search or talk; hold G at a door or window to protect it. Q pours a line of salt, F shutters the lamp, R cracks the whip, T (held) turns your shirt inside out. Tab opens the bag, Esc pauses, M mutes.
+WASD or arrows to move, Shift to run, C to sneak. Hold E to use, search or talk; hold G at a door or window to protect it, or near a night walker to hold up garlic. Q pours a line of salt, F shutters the lamp, R cracks the whip, V strikes with the itak, Z throws a salt pouch, X lights a smudge bundle, H (held) eats herbs, T (held) turns your shirt inside out. Tab opens the bag, Esc pauses, ? opens the guide, M mutes. On a phone: the left half of the screen is a stick, the buttons on the right do what can be done now.
 `npm run dev` first copies the finished models from `assets/` into `game/public/models/`.
 
 Checking the game without playing it (the dev server must be running; needs Edge or Chrome installed):
@@ -35,7 +30,20 @@ Checking the game without playing it (the dev server must be running; needs Edge
 ```bash
 npm run selftest   # plays all five nights by script and prints a pass/fail list
 npm run shots      # photographs the main screens into game/shots/
+node scripts/touch.mjs     # plays the touch controls on an emulated phone
+node scripts/levels.mjs    # meters the sound in six situations
 ```
+
+Other measuring scripts in `game/scripts/` (each explains itself at the top): `duel.mjs` (fights),
+`economy.mjs` (coins), `frames.mjs`, `prodfps.mjs`, `drawcount.mjs`, `bound.mjs`, `hitch.mjs`, `soak.mjs`
+(frame rate, stalls and memory).
+
+## Putting it online
+
+The site is the built game on the `gh-pages` branch (the models are not in the repository, so GitHub
+cannot build it): build, check out `gh-pages` in a separate folder, replace its files with `game/dist` plus a
+`.nojekyll` file, commit and push. Each deploy is a new commit on that branch. Vite's `base` is `./`, so the same build works at
+`/Aswang/`.
 
 Any single state can be opened in a browser too: `http://localhost:5173/#shot=roof` (the names are in `game/src/devshots.ts`).
 

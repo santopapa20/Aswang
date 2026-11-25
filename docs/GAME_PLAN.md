@@ -57,14 +57,16 @@ and what did not. Rosing's strength (three points) carries over: at none, the ga
 
 ## Not built yet
 
-- **Models still missing:** none of the speaking characters.
+- **Played by a person:** every check so far is a script. The hand playtest (`docs/PLAYTEST.md`) and a try on
+  a real phone are the next real tests; balance, the sound's scariness and the guide's clarity wait on them.
 - **A few things are still built in code:** the trail marker, the undergrowth and the grass. They are
   shaped and shaded to sit with the models, but they are not models. The gallery had no usable banana
   plant, bamboo, rice mortar, carabao, second house type or period scarecrow, and its human figures are
   built from photographs of real people, so none were used.
-- **Real sound:** everything is synthesized. Recorded night ambience and voices would lift it a great deal.
-- **Balance:** the numbers come from scripted test runs, not from people playing.
-- **The opening walk-in**, a title-screen settings page, and quality levels.
+- **Recorded sound:** everything is synthesized, the score included. Recordings (whispers, howls, a gong,
+  voices) would lift it; they would be downloads.
+- **Not yet:** the opening walk-in, settings on the title screen (they are in the pause menu), a language
+  other than English.
 
 ## How it was tested
 

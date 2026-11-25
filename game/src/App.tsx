@@ -96,14 +96,17 @@ function Warmup() {
 /**
  * The game is limited by pixels on a laptop's graphics (the ground, the grass and the huts fill the screen;
  * half the resolution ran 51 -> 77 fps where full ran slowest), so it draws at the screen's own pixels and,
- * while the frame rate is short, at fewer: every 2 s of real time it steps the resolution down a tenth
- * (to 0.7) below 50 fps, and back up a twentieth at 58 or more. Settings: Resolution auto / full.
+ * while the frame rate is short, at fewer. Every change resizes the canvas, which costs a slow frame of its own,
+ * so it changes only on a clear reading: down a tenth (to 0.7) after two 2-second readings in a row under
+ * 50 fps, up a tenth after five in a row (10 s) at 58 or more, and never in the 4 s after a change. Settings:
+ * Resolution auto / full. (It used to step every 2 s on one reading, and flipped back and forth: a hitch
+ * every 2 s; found with scripts/hitch.mjs.)
  */
 function AdaptiveResolution() {
   const setDpr = useThree((s) => s.setDpr);
   const auto = useGame((s) => s.settings.resolution === "auto");
-  const acc = useRef({ start: 0, frames: 0, dpr: 1 });
-  useEffect(() => { acc.current = { start: 0, frames: 0, dpr: 1 }; setDpr(1); }, [auto, setDpr]);
+  const acc = useRef({ start: 0, frames: 0, dpr: 1, slow: 0, quick: 0, settle: 0 });
+  useEffect(() => { acc.current = { start: 0, frames: 0, dpr: 1, slow: 0, quick: 0, settle: 0 }; setDpr(1); }, [auto, setDpr]);
   useFrame(() => {
     if (!auto) return;
     const a = acc.current, now = performance.now();
@@ -112,8 +115,13 @@ function AdaptiveResolution() {
     if (now - a.start < 2000) return;
     const fps = (a.frames * 1000) / (now - a.start);
     a.start = now; a.frames = 0;
-    const next = fps < 50 ? Math.max(0.7, a.dpr - 0.1) : fps >= 58 ? Math.min(1, a.dpr + 0.05) : a.dpr;
-    if (Math.abs(next - a.dpr) > 0.001) { a.dpr = Math.round(next * 100) / 100; setDpr(a.dpr); live.dpr = a.dpr; }
+    if (now < a.settle) return;
+    a.slow = fps < 50 ? a.slow + 1 : 0;
+    a.quick = fps >= 58 ? a.quick + 1 : 0;
+    let next = a.dpr;
+    if (a.slow >= 2) next = Math.max(0.7, a.dpr - 0.1);
+    else if (a.quick >= 5) next = Math.min(1, a.dpr + 0.1);
+    if (Math.abs(next - a.dpr) > 0.001) { a.dpr = Math.round(next * 100) / 100; setDpr(a.dpr); live.dpr = a.dpr; a.slow = 0; a.quick = 0; a.settle = now + 4000; }
   });
   return null;
 }
