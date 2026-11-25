@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
+import { assetUrl } from "./assetUrl";
 import { Box3, Material, Mesh, MeshLambertMaterial, MeshStandardMaterial, Object3D, Vector3 } from "three";
 
 /** Models big enough on screen for the fine relief in their surface to show. The rest do without it. */
@@ -26,7 +27,7 @@ function matt(source: Material, relief: boolean) {
  * `axis`, centred on X and Z and standing on the ground (its lowest point at y = 0).
  */
 export function useProp(url: string, size: number, axis: "x" | "y", count: number, shadows: boolean) {
-  const gltf = useGLTF(url);
+  const gltf = useGLTF(assetUrl(url));
   return useMemo(() => {
     const box = new Box3().setFromObject(gltf.scene);
     const dim = box.getSize(new Vector3());

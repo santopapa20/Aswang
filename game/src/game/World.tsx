@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
+import { assetUrl } from "./assetUrl";
 import {
   Box3, BufferAttribute, BufferGeometry, Color, CylinderGeometry, DirectionalLight, DoubleSide, FogExp2, Group, HemisphereLight, IcosahedronGeometry, InstancedMesh, Mesh, MeshBasicMaterial, MeshLambertMaterial, Object3D, PointLight, Vector3,
 } from "three";
@@ -547,9 +548,9 @@ function TrailMarker() {
   );
 }
 
-useGLTF.preload("/models/hut.glb");
-useGLTF.preload("/models/fence.glb");
-useGLTF.preload("/models/stakes.glb");
-useGLTF.preload("/models/palm.glb");
-useGLTF.preload("/models/well.glb");
-useGLTF.preload("/models/balete.glb");
+useGLTF.preload(assetUrl("/models/hut.glb"));
+useGLTF.preload(assetUrl("/models/fence.glb"));
+useGLTF.preload(assetUrl("/models/stakes.glb"));
+useGLTF.preload(assetUrl("/models/palm.glb"));
+useGLTF.preload(assetUrl("/models/well.glb"));
+useGLTF.preload(assetUrl("/models/balete.glb"));

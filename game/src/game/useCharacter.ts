@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useAnimations, useGLTF } from "@react-three/drei";
+import { assetUrl } from "./assetUrl";
 import { live, useGame } from "./state";
 import { AnimationAction, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, Mesh, Object3D, SkinnedMesh, Vector3 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -17,7 +18,7 @@ const PACES = new Map<string, number>();
  */
 export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
   const group = useRef<Group>(null);
-  const gltf = useGLTF(url);
+  const gltf = useGLTF(assetUrl(url));
   const model = useMemo(() => {
     const m = cloneSkinned(gltf.scene) as Object3D;
     // Culled like anything else, so a creature out of view costs nothing: three would measure a skinned
