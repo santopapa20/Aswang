@@ -285,7 +285,8 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0.08em 0.5em 0.12em; mar
 .rosing { margin-top: 18px; font: 500 12px/1 var(--display); letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); } .rosing .candles { margin-left: 10px; vertical-align: -4px; }
 .sheet .menu { align-items: center; justify-content: center; } .sheet .menu button { min-width: 230px; text-align: center; font: 500 13px/1.2 var(--display); letter-spacing: 0.2em; text-transform: uppercase; padding: 13px 20px; }
 
-@media (max-width: 980px) {
+/* a narrow window that is also tall (a phone on its side is drawn smaller instead, and keeps the corners) */
+@media (max-width: 980px) and (min-height: 521px) {
   .topbar { grid-template-columns: 1fr 1fr; } .time { grid-column: 1 / -1; grid-row: 1; } .goal { width: 100%; }
   .warn { top: 250px; } .toasts { top: 270px; } .item { width: 50px; } .hints { display: none; }
   .bottombar { grid-template-columns: auto 1fr; } .belt { justify-self: end; } .purse { display: none; }
@@ -409,3 +410,7 @@ html, body, canvas { touch-action: none; overscroll-behavior: none; -webkit-tap-
 .tactions .tcluster { gap: 8px; } .trow { gap: 7px; }
 /* on a phone the prompt keeps its filling ring, without the keyboard letter */
 .touching .hud .keycap b { display: none; }
+/* on a phone the house sits in the top left corner, tight to the edge; the goal drops below the bag and pause buttons */
+@media (max-height: 520px) { .touching .hud .topbar { top: 12px; left: 18px; right: 18px; } .touching .hud .goal { margin-top: 96px; } }
+/* the bottom right belongs to the touch buttons: the keyboard hints and the purse step aside (the bag shows the purse) */
+.touching .hud .hints, .touching .hud .purse { display: none; }
