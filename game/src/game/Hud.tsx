@@ -326,55 +326,173 @@ function DialogueBox() {
   );
 }
 
+type BagTab = "carried" | "charms" | "learning" | "tales" | "known";
+
+/**
+ * The bag (Tab): one page at a time instead of everything at once. What he carries, the charms (worn first),
+ * what he has learned and can still learn, the old tales, and what he has found out about his neighbour.
+ * It opens on Learning when there is something to spend, otherwise on what he carries.
+ */
 function Bag() {
   const g = useGame();
   const m = mods(g);
+  const [tab, setTab] = useState<BagTab>(() => (g.points > 0 ? "learning" : "carried"));
   const proofs: [boolean, string, string, string][] = [
     [g.proofs.salt, "The salted door", "She would not come near it.", "Leave salt across the door overnight, and see who visits in the morning."],
     [g.proofs.oil, "The oil", "It boiled beside Nang Pacing.", "An albularyo's oil boils when one of them is near."],
     [g.proofs.skirt, "The patadyong", "The legs in the roots wear her skirt.", "They leave their legs standing somewhere."],
   ];
+  const known = proofs.filter(([has]) => has).length;
+  const worn = g.charms.filter((c) => g.worn.includes(c.id));
+  const loose = g.charms.filter((c) => !g.worn.includes(c.id));
+  const tabs: [BagTab, string, string][] = [
+    ["carried", "Carried", `${carried(g)} of ${m.carry}`],
+    ["charms", "Charms", `${worn.length} of ${WORN_CHARMS} worn`],
+    ["learning", "Learning", g.points > 0 ? `${g.points} to spend` : `level ${g.level}`],
+    ["tales", "Old tales", `${g.tales.length} of ${TALES.length}`],
+    ["known", "What you know", `${known} of ${proofs.length}`],
+  ];
+  const trophies = (Object.keys(TROPHIES) as TrophyId[]).filter((k) => g.trophies[k] > 0);
+  const kit: [string, string, string, number | null][] = [
+    ...(g.hasWhip ? [["whip", "Stingray-tail whip", "Crack it (R) when one is close: she falls back, and a thing that can be hurt is hurt.", null] as [string, string, string, number | null]] : []),
+    ...(g.kit.itak ? [["blade", g.kit.spear ? "Sibat" : "Itak", g.kit.spear ? "The itak on a pole (V): it reaches a metre further." : "Strikes what is close in front of you (V).", null] as [string, string, string, number | null]] : []),
+    ...(g.kit.pouch ? [["salt", "Salt pouches", "Thrown in the face of what is in front of you (Z): it reels.", g.kit.pouch] as [string, string, string, number | null]] : []),
+    ...(g.kit.string ? [["garlic", "Garlic strings", "Worn at the neck: the next bite or grab is turned aside.", g.kit.string] as [string, string, string, number | null]] : []),
+    ...(g.kit.smudge ? [["flame", "Smudge bundles", "Lit (X), the smoke hides you for half a minute.", g.kit.smudge] as [string, string, string, number | null]] : []),
+    ...(g.kit.strongOil ? [["oil", "Strong oil", "Goes in the lamp at dusk and burns all night.", g.kit.strongOil] as [string, string, string, number | null]] : []),
+  ];
+  const charmCard = (c: (typeof g.charms)[number]) => {
+    const on = g.worn.includes(c.id);
+    return (
+      <button key={c.id} className={`charm-card ${on ? "worn" : ""}`} style={{ ["--rarity" as string]: RARITY[c.rarity].colour }} onClick={() => g.wear(c.id)}>
+        <span className="gem"><Icon name="charm" size={20} /></span>
+        <span className="charm-body"><b>{charmName(c)}</b><span>{STATS[c.stat].text(c.value)}</span></span>
+        <em>{on ? "Worn" : worn.length >= WORN_CHARMS ? "Swap" : "Wear"}</em>
+      </button>
+    );
+  };
   return (
-    <div className="panel wide">
-      <header><h2><Icon name="bag" size={20} /> What you carry, and what you have learned</h2><span><kbd>Tab</kbd> close</span></header>
-      <div className="cols">
-        <section>
-          <h3>Supplies <small>{carried(g)} of {m.carry}</small></h3>
-          {ITEM_ORDER.map((k) => <div key={k} className={`row ${g.bag[k] ? "" : "dim"}`}><Icon name={ITEM_ICON[k]} size={22} /><div><b>{ITEMS[k].name}</b><p>{ITEMS[k].use}</p></div><em>{g.bag[k]}</em></div>)}
-          {(Object.keys(TROPHIES) as TrophyId[]).filter((k) => g.trophies[k] > 0).map((k) => <div key={k} className="row"><Icon name="star" size={22} /><div><b>{TROPHIES[k].name}</b><p>{TROPHIES[k].text}</p></div><em>{g.trophies[k]}</em></div>)}
-          {g.hasWhip && <div className="row"><Icon name="whip" size={22} /><div><b>Stingray-tail whip</b><p>Crack it when one is close: she falls back, and a thing that can be hurt is hurt.</p></div><em>R</em></div>}
-          <h3>What you know</h3>
-          {proofs.map(([has, name, yes, no]) => <div key={name} className={`row ${has ? "" : "dim"}`}><Icon name={has ? "check" : "eye"} size={20} /><div><b>{name}</b><p>{has ? yes : no}</p></div></div>)}
-        </section>
-        <section>
-          <h3>Charms <small>wear {WORN_CHARMS}</small></h3>
-          {g.charms.length === 0 && <p className="empty">None yet. Old chests hide them, Nong Kadyo binds them from herbs, and the bench makes better ones.</p>}
-          {g.charms.map((c) => (
-            <button key={c.id} className={`charm ${g.worn.includes(c.id) ? "worn" : ""}`} style={{ borderLeftColor: RARITY[c.rarity].colour }} onClick={() => g.wear(c.id)}>
-              <Icon name="charm" size={22} />
-              <div><b style={{ color: RARITY[c.rarity].colour }}>{charmName(c)}</b><p>{STATS[c.stat].text(c.value)}</p></div>
-              <em>{g.worn.includes(c.id) ? "worn" : "wear"}</em>
-            </button>
-          ))}
-          <h3>Old tales <small>{g.tales.length} of {TALES.length}</small></h3>
-          {g.tales.length === 0 && <p className="empty">None yet. Pages of the old tales turn up in chests and jars.</p>}
-          {TALES.filter((t) => g.tales.includes(t.id)).map((t) => <div key={t.id} className="row tale"><Icon name="eye" size={20} /><div><b>{t.title}</b><p>{t.text}</p></div></div>)}
-        </section>
-        <section>
-          <h3>Learning <small>level {g.level} · {g.points} to spend</small></h3>
-          {PATHS.map((path) => (
-            <div key={path.name} className="path">
-              <h4>{path.name}<small>{path.about}</small></h4>
-              {path.perks.map((id) => (
-                <button key={id} className="perk" disabled={g.points <= 0 || g.perks[id] >= MAX_RANK} onClick={() => g.spendPoint(id)}>
-                  <div><b>{PERKS[id].name}</b><p>{PERKS[id].text}</p></div>
-                  <span className="rank">{Array.from({ length: MAX_RANK }, (_, i) => <i key={i} className={i < g.perks[id] ? "on" : ""} />)}</span>
-                </button>
-              ))}
+    <div className="panel wide bag">
+      <header>
+        <h2>Your bag</h2>
+        <span className="meta">
+          <span className="purse-head">
+            <span className="chip" title="Centavos"><Icon name="coins" size={14} />{g.bag.coins}</span>
+            <span className="chip" title="Herbs"><Icon name="herbs" size={14} />{g.bag.herbs}</span>
+            <span className={`chip ${carried(g) >= m.carry ? "short" : ""}`} title="How much you carry"><Icon name="bag" size={14} />{carried(g)}/{m.carry}</span>
+          </span>
+          <kbd>Tab</kbd>
+        </span>
+      </header>
+      <nav className="tabs" role="tablist">
+        {tabs.map(([id, name, sub]) => (
+          <button key={id} role="tab" aria-selected={tab === id} className={`${tab === id ? "on" : ""} ${id === "learning" && g.points > 0 ? "news" : ""}`} onClick={() => setTab(id)}>
+            <b>{name}</b><small>{sub}</small>
+          </button>
+        ))}
+      </nav>
+
+      {tab === "carried" && (
+        <div className="bag-page">
+          <h3>Supplies</h3>
+          <div className="cards">
+            {ITEM_ORDER.map((k) => (
+              <div key={k} className={`card-item ${g.bag[k] ? "" : "empty"}`}>
+                <span className="card-icon"><Icon name={ITEM_ICON[k]} size={22} /></span>
+                <span className="card-body"><b>{ITEMS[k].name}</b><span>{ITEMS[k].use}</span></span>
+                <em>{g.bag[k]}</em>
+              </div>
+            ))}
+          </div>
+          {kit.length > 0 && (
+            <>
+              <h3>Made and bought</h3>
+              <div className="cards">
+                {kit.map(([icon, name, text, n]) => (
+                  <div key={name} className="card-item">
+                    <span className="card-icon"><Icon name={icon} size={22} /></span>
+                    <span className="card-body"><b>{name}</b><span>{text}</span></span>
+                    {n !== null && <em>{n}</em>}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {trophies.length > 0 && (
+            <>
+              <h3>Trophies <small>for the bench</small></h3>
+              <div className="cards">
+                {trophies.map((k) => (
+                  <div key={k} className="card-item">
+                    <span className="card-icon"><Icon name={TROPHY_ICON[k]} size={22} /></span>
+                    <span className="card-body"><b>{TROPHIES[k].name}</b><span>{TROPHIES[k].text}</span></span>
+                    <em>{g.trophies[k]}</em>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === "charms" && (
+        <div className="bag-page">
+          {g.charms.length === 0 ? (
+            <p className="empty-page">No charms yet. Old chests hide them, Nong Kadyo binds them from herbs, and the bench makes better ones.</p>
+          ) : (
+            <>
+              <h3>Worn <small>{worn.length} of {WORN_CHARMS}{worn.length >= WORN_CHARMS && loose.length ? ": choose another to swap it for the oldest" : ""}</small></h3>
+              {worn.length ? <div className="cards">{worn.map(charmCard)}</div> : <p className="empty">Nothing worn. Choose one below.</p>}
+              {loose.length > 0 && <><h3>In the bag</h3><div className="cards">{loose.map(charmCard)}</div></>}
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === "learning" && (
+        <div className="bag-page">
+          <p className="page-lede">{g.points > 0 ? `You have ${g.points} to spend. Each skill can be learned ${MAX_RANK} times.` : `Level ${g.level}. Laying the kin down, searching and keeping the house earn more.`}</p>
+          <div className="paths">
+            {PATHS.map((path) => (
+              <section key={path.name} className="path">
+                <h4>{path.name}</h4>
+                <p className="path-about">{path.about}</p>
+                {path.perks.map((id) => (
+                  <button key={id} className="perk" disabled={g.points <= 0 || g.perks[id] >= MAX_RANK} onClick={() => g.spendPoint(id)}>
+                    <div><b>{PERKS[id].name}</b><p>{PERKS[id].text}</p></div>
+                    <span className="rank">{Array.from({ length: MAX_RANK }, (_, n) => <i key={n} className={n < g.perks[id] ? "on" : ""} />)}</span>
+                  </button>
+                ))}
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "tales" && (
+        <div className="bag-page">
+          {g.tales.length === 0 ? <p className="empty-page">None yet. Pages of the old tales turn up in chests and jars.</p> : (
+            <div className="tales">
+              {TALES.filter((t) => g.tales.includes(t.id)).map((t) => <article key={t.id} className="tale"><h4>{t.title}</h4><p>{t.text}</p></article>)}
             </div>
-          ))}
-        </section>
-      </div>
+          )}
+          {g.tales.length > 0 && g.tales.length < TALES.length && <p className="fine">{TALES.length - g.tales.length} more to find, in chests and jars.</p>}
+        </div>
+      )}
+
+      {tab === "known" && (
+        <div className="bag-page">
+          <p className="page-lede">What you have seen for yourself about Nang Pacing.</p>
+          <div className="cards one">
+            {proofs.map(([has, name, yes, no]) => (
+              <div key={name} className={`card-item ${has ? "found" : "empty"}`}>
+                <span className="card-icon"><Icon name={has ? "check" : "eye"} size={20} /></span>
+                <span className="card-body"><b>{name}</b><span>{has ? yes : no}</span></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -500,7 +618,8 @@ function PanelKeys({ panel }: { panel: string }) {
   useEffect(() => {
     const items = () => [...document.querySelectorAll<HTMLElement>(".hud .panel button:not(:disabled), .hud .panel input")];
     // select the first thing once the panel is on screen (tried again shortly after, in case it was still drawing)
-    const first = () => { if (!document.activeElement?.closest(".hud .panel")) items()[0]?.focus(); };
+    // the chosen tab if the panel has tabs (the bag), otherwise the first thing that can be used
+    const first = () => { if (!document.activeElement?.closest(".hud .panel")) (document.querySelector<HTMLElement>(".hud .panel [aria-selected=true]") ?? items()[0])?.focus(); };
     const ids = [0, 60, 200].map((ms) => setTimeout(first, ms));
     const down = (e: KeyboardEvent) => {
       const keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
