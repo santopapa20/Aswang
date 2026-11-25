@@ -16,13 +16,14 @@ export type Toast = { id: number; text: string; tone: "good" | "bad" | "plain" }
 export const SHIRT_SECONDS = 2;
 const SAVE_KEY = "aswang-night-save-v1";
 const SETTINGS_KEY = "aswang-night-settings";
-export type Settings = { shake: number; flashes: "full" | "reduced"; sfx: number; ambience: number };
-const DEFAULT_SETTINGS: Settings = { shake: 1, flashes: "full", sfx: 0.8, ambience: 0.8 };
+/** resolution: "auto" lowers the drawing resolution while the frame rate is short of 60 (App.tsx); "full" never does. */
+export type Settings = { shake: number; flashes: "full" | "reduced"; sfx: number; ambience: number; resolution: "auto" | "full" };
+const DEFAULT_SETTINGS: Settings = { shake: 1, flashes: "full", sfx: 0.8, ambience: 0.8, resolution: "auto" };
 function loadSettings(): Settings {
   try {
     const d = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") as Partial<Settings>;
     const unit = (x: unknown, dflt: number) => (typeof x === "number" && x >= 0 && x <= 1 ? x : dflt);
-    return { shake: unit(d.shake, 1), flashes: d.flashes === "reduced" ? "reduced" : "full", sfx: unit(d.sfx, 0.8), ambience: unit(d.ambience, 0.8) };
+    return { shake: unit(d.shake, 1), flashes: d.flashes === "reduced" ? "reduced" : "full", sfx: unit(d.sfx, 0.8), ambience: unit(d.ambience, 0.8), resolution: d.resolution === "full" ? "full" : "auto" };
   } catch { return { ...DEFAULT_SETTINGS }; }
 }
 
@@ -649,4 +650,5 @@ export const live = {
   /** Her hound on the last night: where it is, whether it is at his shadow, and how much it has drunk (0 to 1). */
   sigbin: { x: 0, z: 0, near: 99, out: false, feeding: false, drain: 0 },
   fps: 0,
+  dpr: 1,                  // the drawing resolution the automatic setting has come to (App.tsx)
 };

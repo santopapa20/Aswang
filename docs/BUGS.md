@@ -23,6 +23,12 @@ counter (`scripts/prodfps.mjs`) and the self-test.
 | BUG-0008 | S3 | P2 | The bench, trade, bag and pause panels needed the mouse in a keyboard game; nothing was selected on opening. | Arrow keys move, Enter chooses, first item selected on opening, a clear focus outline. | self-test |
 | BUG-0009 | S4 | P2 | Creatures went from not seeing him to charging in the same instant. | The kin stop and stare for 0.45 s first. | `duel.mjs`: dogs and crawler as before; fleeing gets away 3 of 3 from each |
 
+## Fixed (2026-11-25, frame rate)
+
+| ID | Sev | Pri | What was wrong | Fix | Verified by |
+|---|---|---|---|---|---|
+| BUG-0010 | S3 | P2 | The production build ran 43-50 fps on this laptop. Two causes, measured with `drawcount.mjs` and `bound.mjs`: every animated character was exempt from frustum culling, so off-screen creatures were drawn anyway (a night-5 frame drew 413k triangles with 153k on screen); and the graphics are limited by pixels (half resolution ran 51 -> 77 fps behind the house), while the canvas drew up to 1.25 device pixels. | Characters are culled with their bind-pose sphere at twice the radius (useCharacter.ts); the canvas draws at 1 device pixel, and Resolution: auto (the default, in the pause menu) steps down to 0.7 while under 50 fps and back at 58; the ground's texture filtering eased from 4x to 2x. | `prodfps.mjs`: 50 / 43 -> 83 / 79 fps (standing / walking, full resolution); `drawcount.mjs` night 5: 413k -> 153k triangles; `frames.mjs`: the slowest places (the sitio by day 53, Rosing's yard at night 57) stay above where the resolution steps down |
+
 ## Soak (2026-11-25)
 
 `node scripts/soak.mjs 6 night5`, night held for the whole 6 minutes, the player moved between seven spots:
@@ -39,6 +45,6 @@ will not pass a run that left the night. `duel.mjs` now treats the kin's stare a
 
 | ID | Sev | Pri | What | Notes |
 |---|---|---|---|---|
-| BUG-0010 | S3 | P2 | The production build runs about 43-50 fps on this laptop (p95 about 35 ms), short of 60. | 400-500k triangles are drawn at night; each creature is 15-45k. The lever is lighter far models (LOD) or fewer triangles per creature. Measured with `prodfps.mjs`. |
+| BUG-0013 | S3 | P3 | Once, the first production load in a fresh browser froze for about 15 s after Begin. The next run did not. | Not reproduced. Possibly the preview server's first reads of the large model files out of OneDrive. Watch for it in the playtest. |
 | BUG-0011 | S4 | P3 | One slow frame (about 130 ms) can still come when a bite lands. | No shader behind it; likely the hurt sound and the HUD's toast together. |
 | BUG-0012 | — | P2 | Nobody has played the whole game by hand. | `docs/PLAYTEST.md` is the form for that session. |

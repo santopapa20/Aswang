@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useRef } from "react";
 import { advance, Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Vector3 } from "three";
+import { Frustum, Matrix4, Vector3 } from "three";
 import { World } from "./game/World";
 import { Player } from "./game/Player";
 import { Aswang } from "./game/Aswang";
@@ -92,6 +92,31 @@ function Warmup() {
   return null;
 }
 
+/**
+ * The game is limited by pixels on a laptop's graphics (the ground, the grass and the huts fill the screen;
+ * half the resolution ran 51 -> 77 fps where full ran slowest), so it draws at the screen's own pixels and,
+ * while the frame rate is short, at fewer: every 2 s of real time it steps the resolution down a tenth
+ * (to 0.7) below 50 fps, and back up a twentieth at 58 or more. Settings: Resolution auto / full.
+ */
+function AdaptiveResolution() {
+  const setDpr = useThree((s) => s.setDpr);
+  const auto = useGame((s) => s.settings.resolution === "auto");
+  const acc = useRef({ start: 0, frames: 0, dpr: 1 });
+  useEffect(() => { acc.current = { start: 0, frames: 0, dpr: 1 }; setDpr(1); }, [auto, setDpr]);
+  useFrame(() => {
+    if (!auto) return;
+    const a = acc.current, now = performance.now();
+    if (!a.start) { a.start = now; a.frames = 0; return; }
+    a.frames++;
+    if (now - a.start < 2000) return;
+    const fps = (a.frames * 1000) / (now - a.start);
+    a.start = now; a.frames = 0;
+    const next = fps < 50 ? Math.max(0.7, a.dpr - 0.1) : fps >= 58 ? Math.min(1, a.dpr + 0.05) : a.dpr;
+    if (Math.abs(next - a.dpr) > 0.001) { a.dpr = Math.round(next * 100) / 100; setDpr(a.dpr); live.dpr = a.dpr; }
+  });
+  return null;
+}
+
 /** While developing: lets a test step the game frame by frame (window.__aswang.three / .advance). */
 function DevHook() {
   const get = useThree((s) => s.get);
@@ -106,7 +131,7 @@ function DevHook() {
     };
     const key = (code: string, down = true) => window.dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { code }));
     const show = () => get().setFrameloop("always");
-    Object.assign((window as unknown as { __aswang: object }).__aswang, { three: get, advance, run, key, show });
+    Object.assign((window as unknown as { __aswang: object }).__aswang, { three: get, advance, run, key, show, THREE: { Frustum, Matrix4 } });
   }, [get]);
   return null;
 }
@@ -118,7 +143,7 @@ export default function App() {
     <>
       <Canvas
         shadows={shadows}
-        dpr={[1, 1.25]}
+        dpr={1}
         camera={{ fov: 38, near: 0.5, far: 110, position: [0, 10.5, 14.5] }}
         gl={{ antialias: true, powerPreference: "high-performance", toneMappingExposure: 1.25 }}
       >
@@ -146,6 +171,7 @@ export default function App() {
           <Warmup />
         </Suspense>
         <FollowCamera />
+        <AdaptiveResolution />
         <DevHook />
       </Canvas>
       <Hud />

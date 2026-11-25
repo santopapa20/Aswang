@@ -29,7 +29,8 @@ const measure = (label) => page.evaluate(async (seconds, label) => {
   await new Promise((done) => { const f = (t) => { gaps.push(t - last); last = t; if (t - start < seconds * 1000) requestAnimationFrame(f); else done(); }; requestAnimationFrame(f); });
   gaps.shift(); gaps.sort((a, b) => a - b);
   const avg = gaps.reduce((s, g) => s + g, 0) / gaps.length;
-  return { label, fps: Math.round(1000 / avg), avgMs: +avg.toFixed(1), p95Ms: +gaps[Math.floor(gaps.length * 0.95)].toFixed(1), worstMs: Math.round(gaps[gaps.length - 1]), frames: gaps.length };
+  const cv = document.querySelector("canvas");
+  return { label, fps: Math.round(1000 / avg), avgMs: +avg.toFixed(1), p95Ms: +gaps[Math.floor(gaps.length * 0.95)].toFixed(1), worstMs: Math.round(gaps[gaps.length - 1]), frames: gaps.length, resolution: cv ? +(cv.width / cv.clientWidth).toFixed(2) : null };
 }, seconds, label);
 console.log(JSON.stringify(await measure("standing in the yard")));
 const walking = measure("walking and running about");

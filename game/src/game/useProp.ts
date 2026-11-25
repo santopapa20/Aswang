@@ -35,6 +35,7 @@ export function useProp(url: string, size: number, axis: "x" | "y", count: numbe
     const relief = KEEP_RELIEF.includes(url);
     return Array.from({ length: count }, () => {
       const copy = gltf.scene.clone(true);
+      copy.userData.url = url;
       copy.traverse((o) => {
         const mesh = o as Mesh;
         if (!mesh.isMesh) return;

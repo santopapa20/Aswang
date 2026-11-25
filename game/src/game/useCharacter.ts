@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { live, useGame } from "./state";
-import { AnimationAction, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, Mesh, Object3D, Vector3 } from "three";
+import { AnimationAction, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, Mesh, Object3D, SkinnedMesh, Vector3 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 export type PlayOptions = { fade?: number; once?: boolean; speed?: number };
@@ -20,8 +20,19 @@ export function useCharacter(url: string, shadows: boolean, holdsStill = true) {
   const gltf = useGLTF(url);
   const model = useMemo(() => {
     const m = cloneSkinned(gltf.scene) as Object3D;
-    // the bind-pose bounds are wrong once the character moves, so never cull it
-    m.traverse((o) => { if ((o as Mesh).isMesh) o.frustumCulled = false; });
+    // Culled like anything else, so a creature out of view costs nothing: three would measure a skinned
+    // mesh's bounds once, in whatever pose it is in, so it is given its bind-pose sphere at twice the radius
+    // instead, which holds every pose these clips reach (the clips stay in place; the game moves the group).
+    m.traverse((o) => {
+      const mesh = o as SkinnedMesh;
+      if (!mesh.isMesh) return;
+      if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
+      const sphere = mesh.geometry.boundingSphere!.clone();
+      sphere.radius *= 2;
+      if (mesh.isSkinnedMesh) mesh.boundingSphere = sphere;
+      mesh.frustumCulled = true;
+    });
+    m.userData.url = url;              // (for scripts/drawcount.mjs)
     return m;
   }, [gltf.scene]);
 

@@ -114,7 +114,7 @@ function paintGround() {
   tex.flipY = false;
   tex.wrapS = tex.wrapT = ClampToEdgeWrapping;
   tex.minFilter = LinearMipmapLinearFilter; tex.magFilter = LinearFilter;
-  tex.anisotropy = 4;
+  tex.anisotropy = 2;
   return tex;
 }
 
@@ -125,7 +125,7 @@ function tile(size: number, paint: (g: CanvasRenderingContext2D, size: number) =
   const tex = new CanvasTexture(c);
   tex.wrapS = tex.wrapT = RepeatWrapping;
   tex.colorSpace = SRGBColorSpace;
-  tex.anisotropy = 4;
+  tex.anisotropy = 2;                 // 4 cost this laptop's graphics ~2 fps over the whole screen
   return tex;
 }
 const around = (g: CanvasRenderingContext2D, s: number, x: number, y: number, fn: (x: number, y: number) => void) => { for (const ox of [-s, 0, s]) for (const oy of [-s, 0, s]) fn(x + ox, y + oy); void g; };

@@ -471,6 +471,7 @@ function Pause() {
           <button onClick={() => g.toggleShadows()}>Lamp shadows: {g.shadows ? "on" : "off"}</button>
           <button onClick={() => g.setSetting("shake", s.shake >= 1 ? 0.5 : s.shake > 0 ? 0 : 1)}>Screen shake: {shakeName}</button>
           <button onClick={() => g.setSetting("flashes", s.flashes === "full" ? "reduced" : "full")}>Flashes: {s.flashes}</button>
+          <button onClick={() => g.setSetting("resolution", s.resolution === "auto" ? "full" : "auto")} title="Auto draws at a lower resolution while the game runs slow, and sharpens again when it can">Resolution: {s.resolution}</button>
           <button onClick={() => g.toTitle()}>Leave to the title</button>
         </nav>
         <div className="volumes">
