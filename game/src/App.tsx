@@ -102,25 +102,41 @@ function Warmup() {
  * Resolution auto / full. (It used to step every 2 s on one reading, and flipped back and forth: a hitch
  * every 2 s; found with scripts/hitch.mjs.)
  */
+/**
+ * How many real pixels to draw per screen point at best. A computer's graphics are the slow part (see above),
+ * so it draws one per point. A phone packs two or three real pixels into each point; drawn at one, the
+ * picture is stretched up two or three times and looks smeared, so a phone draws at its own pixels, up to 2.
+ */
+const BEST_DPR = typeof window === "undefined" ? 1
+  : Math.min(window.devicePixelRatio || 1, typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches ? 2 : 1);
+
 function AdaptiveResolution() {
   const setDpr = useThree((s) => s.setDpr);
   const auto = useGame((s) => s.settings.resolution === "auto");
-  const acc = useRef({ start: 0, frames: 0, dpr: 1, slow: 0, quick: 0, settle: 0 });
-  useEffect(() => { acc.current = { start: 0, frames: 0, dpr: 1, slow: 0, quick: 0, settle: 0 }; setDpr(1); }, [auto, setDpr]);
+  const acc = useRef({ start: 0, frames: 0, dpr: BEST_DPR, slow: 0, quick: 0, settle: 0, last: 0, stall: false });
+  useEffect(() => { acc.current = { start: 0, frames: 0, dpr: BEST_DPR, slow: 0, quick: 0, settle: 0, last: 0, stall: false }; setDpr(BEST_DPR); live.dpr = BEST_DPR; }, [auto, setDpr]);
   useFrame(() => {
     if (!auto) return;
     const a = acc.current, now = performance.now();
-    if (!a.start) { a.start = now; a.frames = 0; return; }
+    // only a game being played counts: the title, a panel or a talk, and any reading with a stall in it
+    // (loading, a shader being prepared) say nothing about whether this device can keep up
+    const stage = useGame.getState().stage, playing = stage === "day" || stage === "night";
+    if (a.last && now - a.last > 250) a.stall = true;
+    a.last = now;
+    if (!playing) { a.start = 0; a.slow = 0; a.quick = 0; a.settle = Math.max(a.settle, now + 3000); return; }
+    if (!a.start) { a.start = now; a.frames = 0; a.stall = false; return; }
     a.frames++;
     if (now - a.start < 2000) return;
     const fps = (a.frames * 1000) / (now - a.start);
-    a.start = now; a.frames = 0;
-    if (now < a.settle) return;
+    const stalled = a.stall;
+    a.start = now; a.frames = 0; a.stall = false;
+    if (now < a.settle || stalled) return;
     a.slow = fps < 50 ? a.slow + 1 : 0;
     a.quick = fps >= 58 ? a.quick + 1 : 0;
     let next = a.dpr;
-    if (a.slow >= 2) next = Math.max(0.7, a.dpr - 0.1);
-    else if (a.quick >= 5) next = Math.min(1, a.dpr + 0.1);
+    // steps of a tenth of the best, down to 0.6 of it (never under 0.7: below that it smears even on a computer)
+    if (a.slow >= 2) next = Math.max(0.7, BEST_DPR * 0.6, a.dpr - BEST_DPR * 0.1);
+    else if (a.quick >= 5) next = Math.min(BEST_DPR, a.dpr + BEST_DPR * 0.1);
     if (Math.abs(next - a.dpr) > 0.001) { a.dpr = Math.round(next * 100) / 100; setDpr(a.dpr); live.dpr = a.dpr; a.slow = 0; a.quick = 0; a.settle = now + 4000; }
   });
   return null;
@@ -152,7 +168,7 @@ export default function App() {
     <>
       <Canvas
         shadows={shadows}
-        dpr={1}
+        dpr={BEST_DPR}
         camera={{ fov: 38, near: 0.5, far: 110, position: [0, 10.5, 14.5] }}
         gl={{ antialias: true, powerPreference: "high-performance", toneMappingExposure: 1.25 }}
       >

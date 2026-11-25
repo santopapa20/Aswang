@@ -27,6 +27,23 @@ await sleep(600);
 check("the touch controls are up on a phone", await page.evaluate(() => !!document.querySelector(".tactions") && document.body.classList.contains("touching")));
 await page.screenshot({ path: "shots/touch-play.png" });
 
+// sharp: on a phone with 2 real pixels per point, the 3D view is drawn at them (not stretched from 1)
+// (with Resolution set to full, so this checks the ceiling, not how far "auto" has had to come down on this laptop)
+const sharp = await page.evaluate(async () => {
+  const g = window.__aswang.useGame.getState(); g.setSetting("resolution", "full");
+  await new Promise((r) => setTimeout(r, 400));
+  const c = document.querySelector("canvas"), ratio = +(c.width / c.clientWidth).toFixed(2);
+  g.setSetting("resolution", "auto");
+  return ratio;
+});
+check("the 3D view is drawn at the phone's own pixels (here 2 per point), not stretched", sharp >= 1.9, { pixelsPerPoint: sharp });
+
+// the stick appears under the thumb
+await touch("touchStart", 150, 270, 3); await sleep(150);
+const knob = await page.evaluate(() => { const r = document.querySelector(".stick i")?.getBoundingClientRect(); return r ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null; });
+await touch("touchEnd", 150, 270, 3); await sleep(150);
+check("the stick appears right under the thumb", !!knob && Math.abs(knob.x - 150) <= 3 && Math.abs(knob.y - 270) <= 3, knob);
+
 // hold the garlic button
 const g = await page.evaluate(() => {
   const b = [...document.querySelectorAll(".tbtn")].find((x) => /garlic/i.test(x.getAttribute("aria-label") ?? ""));
