@@ -40,6 +40,7 @@ check("the 3D view is drawn at the phone's own pixels (here 2 per point), not st
 
 // the stick appears under the thumb
 await touch("touchStart", 150, 270, 3); await sleep(150);
+await page.screenshot({ path: "shots/touch-stick.png" });   // (not pushed: pushing walks him away from the farmer, whom the next check needs)
 const knob = await page.evaluate(() => { const r = document.querySelector(".stick i")?.getBoundingClientRect(); return r ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null; });
 await touch("touchEnd", 150, 270, 3); await sleep(150);
 check("the stick appears right under the thumb", !!knob && Math.abs(knob.x - 150) <= 3 && Math.abs(knob.y - 270) <= 3, knob);
